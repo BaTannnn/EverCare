@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="3.0" xmlns="https://jakarta.ee/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+  <!-- Define Persistence Unit -->
+  <persistence-unit name="my_persistence_unit">
+    <class>com.evercare.pojo.Users</class>
+    <class>com.evercare.pojo.DoctorSchedules</class>
+    <class>com.evercare.pojo.TestResults</class>
+    <class>com.evercare.pojo.Roles</class>
+    <class>com.evercare.pojo.MedicalRecordServices</class>
+    <class>com.evercare.pojo.MedicalServices</class>
+    <class>com.evercare.pojo.OnlineConsultations</class>
+    <class>com.evercare.pojo.Patients</class>
+    <class>com.evercare.pojo.Invoices</class>
+    <class>com.evercare.pojo.MedicineBatches</class>
+    <class>com.evercare.pojo.Doctors</class>
+    <class>com.evercare.pojo.PrescriptionItems</class>
+    <class>com.evercare.pojo.Employees</class>
+    <class>com.evercare.pojo.Prescriptions</class>
+    <class>com.evercare.pojo.Medicines</class>
+    <class>com.evercare.pojo.Appointments</class>
+    <class>com.evercare.pojo.Payments</class>
+    <class>com.evercare.pojo.Departments</class>
+    <class>com.evercare.pojo.Notifications</class>
+    <class>com.evercare.pojo.MedicalRecords</class>
+    <class>com.evercare.pojo.InventoryTransactions</class>
+  </persistence-unit>
+</persistence>
