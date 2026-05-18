@@ -24,31 +24,31 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "invoices")
+@Table(name = "invoice")
 @NamedQueries({
-    @NamedQuery(name = "Invoices.findAll", query = "SELECT i FROM Invoices i"),
-    @NamedQuery(name = "Invoices.findById", query = "SELECT i FROM Invoices i WHERE i.id = :id"),
-    @NamedQuery(name = "Invoices.findByInvoiceCode", query = "SELECT i FROM Invoices i WHERE i.invoiceCode = :invoiceCode"),
-    @NamedQuery(name = "Invoices.findByTotalServiceAmount", query = "SELECT i FROM Invoices i WHERE i.totalServiceAmount = :totalServiceAmount"),
-    @NamedQuery(name = "Invoices.findByTotalMedicineAmount", query = "SELECT i FROM Invoices i WHERE i.totalMedicineAmount = :totalMedicineAmount"),
-    @NamedQuery(name = "Invoices.findByDiscountAmount", query = "SELECT i FROM Invoices i WHERE i.discountAmount = :discountAmount"),
-    @NamedQuery(name = "Invoices.findByTotalAmount", query = "SELECT i FROM Invoices i WHERE i.totalAmount = :totalAmount"),
-    @NamedQuery(name = "Invoices.findByPaymentMethod", query = "SELECT i FROM Invoices i WHERE i.paymentMethod = :paymentMethod"),
-    @NamedQuery(name = "Invoices.findByPaymentStatus", query = "SELECT i FROM Invoices i WHERE i.paymentStatus = :paymentStatus"),
-    @NamedQuery(name = "Invoices.findByPaidAt", query = "SELECT i FROM Invoices i WHERE i.paidAt = :paidAt"),
-    @NamedQuery(name = "Invoices.findByNote", query = "SELECT i FROM Invoices i WHERE i.note = :note"),
-    @NamedQuery(name = "Invoices.findByCreatedAt", query = "SELECT i FROM Invoices i WHERE i.createdAt = :createdAt"),
-    @NamedQuery(name = "Invoices.findByUpdatedAt", query = "SELECT i FROM Invoices i WHERE i.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Invoices.findByActive", query = "SELECT i FROM Invoices i WHERE i.active = :active")})
-public class Invoices implements Serializable {
+    @NamedQuery(name = "Invoice.findAll", query = "SELECT i FROM Invoice i"),
+    @NamedQuery(name = "Invoice.findById", query = "SELECT i FROM Invoice i WHERE i.id = :id"),
+    @NamedQuery(name = "Invoice.findByInvoiceCode", query = "SELECT i FROM Invoice i WHERE i.invoiceCode = :invoiceCode"),
+    @NamedQuery(name = "Invoice.findByTotalServiceAmount", query = "SELECT i FROM Invoice i WHERE i.totalServiceAmount = :totalServiceAmount"),
+    @NamedQuery(name = "Invoice.findByTotalMedicineAmount", query = "SELECT i FROM Invoice i WHERE i.totalMedicineAmount = :totalMedicineAmount"),
+    @NamedQuery(name = "Invoice.findByDiscountAmount", query = "SELECT i FROM Invoice i WHERE i.discountAmount = :discountAmount"),
+    @NamedQuery(name = "Invoice.findByTotalAmount", query = "SELECT i FROM Invoice i WHERE i.totalAmount = :totalAmount"),
+    @NamedQuery(name = "Invoice.findByPaymentMethod", query = "SELECT i FROM Invoice i WHERE i.paymentMethod = :paymentMethod"),
+    @NamedQuery(name = "Invoice.findByPaymentStatus", query = "SELECT i FROM Invoice i WHERE i.paymentStatus = :paymentStatus"),
+    @NamedQuery(name = "Invoice.findByPaidAt", query = "SELECT i FROM Invoice i WHERE i.paidAt = :paidAt"),
+    @NamedQuery(name = "Invoice.findByNote", query = "SELECT i FROM Invoice i WHERE i.note = :note"),
+    @NamedQuery(name = "Invoice.findByCreatedAt", query = "SELECT i FROM Invoice i WHERE i.createdAt = :createdAt"),
+    @NamedQuery(name = "Invoice.findByUpdatedAt", query = "SELECT i FROM Invoice i WHERE i.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Invoice.findByActive", query = "SELECT i FROM Invoice i WHERE i.active = :active")})
+public class Invoice implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -107,25 +107,25 @@ public class Invoices implements Serializable {
     @Column(name = "active")
     private boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "invoiceId")
-    private Collection<Payments> paymentsCollection;
+    private Set<Payment> paymentSet;
     @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
     @OneToOne(optional = false)
-    private MedicalRecords medicalRecordId;
+    private MedicalRecord medicalRecordId;
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Patients patientId;
+    private Patient patientId;
     @JoinColumn(name = "cashier_id", referencedColumnName = "id")
     @ManyToOne
-    private Users cashierId;
+    private User cashierId;
 
-    public Invoices() {
+    public Invoice() {
     }
 
-    public Invoices(Long id) {
+    public Invoice(Long id) {
         this.id = id;
     }
 
-    public Invoices(Long id, String invoiceCode, BigDecimal totalServiceAmount, BigDecimal totalMedicineAmount, BigDecimal discountAmount, BigDecimal totalAmount, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Invoice(Long id, String invoiceCode, BigDecimal totalServiceAmount, BigDecimal totalMedicineAmount, BigDecimal discountAmount, BigDecimal totalAmount, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.invoiceCode = invoiceCode;
         this.totalServiceAmount = totalServiceAmount;
@@ -242,35 +242,35 @@ public class Invoices implements Serializable {
         this.active = active;
     }
 
-    public Collection<Payments> getPaymentsCollection() {
-        return paymentsCollection;
+    public Set<Payment> getPaymentSet() {
+        return paymentSet;
     }
 
-    public void setPaymentsCollection(Collection<Payments> paymentsCollection) {
-        this.paymentsCollection = paymentsCollection;
+    public void setPaymentSet(Set<Payment> paymentSet) {
+        this.paymentSet = paymentSet;
     }
 
-    public MedicalRecords getMedicalRecordId() {
+    public MedicalRecord getMedicalRecordId() {
         return medicalRecordId;
     }
 
-    public void setMedicalRecordId(MedicalRecords medicalRecordId) {
+    public void setMedicalRecordId(MedicalRecord medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
     }
 
-    public Patients getPatientId() {
+    public Patient getPatientId() {
         return patientId;
     }
 
-    public void setPatientId(Patients patientId) {
+    public void setPatientId(Patient patientId) {
         this.patientId = patientId;
     }
 
-    public Users getCashierId() {
+    public User getCashierId() {
         return cashierId;
     }
 
-    public void setCashierId(Users cashierId) {
+    public void setCashierId(User cashierId) {
         this.cashierId = cashierId;
     }
 
@@ -284,10 +284,10 @@ public class Invoices implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Invoices)) {
+        if (!(object instanceof Invoice)) {
             return false;
         }
-        Invoices other = (Invoices) object;
+        Invoice other = (Invoice) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -296,7 +296,7 @@ public class Invoices implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Invoices[ id=" + id + " ]";
+        return "com.evercare.pojo.Invoice[ id=" + id + " ]";
     }
     
 }

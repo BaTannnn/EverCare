@@ -25,33 +25,33 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "doctors")
+@Table(name = "doctor")
 @NamedQueries({
-    @NamedQuery(name = "Doctors.findAll", query = "SELECT d FROM Doctors d"),
-    @NamedQuery(name = "Doctors.findById", query = "SELECT d FROM Doctors d WHERE d.id = :id"),
-    @NamedQuery(name = "Doctors.findByDoctorCode", query = "SELECT d FROM Doctors d WHERE d.doctorCode = :doctorCode"),
-    @NamedQuery(name = "Doctors.findByFullName", query = "SELECT d FROM Doctors d WHERE d.fullName = :fullName"),
-    @NamedQuery(name = "Doctors.findByPhone", query = "SELECT d FROM Doctors d WHERE d.phone = :phone"),
-    @NamedQuery(name = "Doctors.findByEmail", query = "SELECT d FROM Doctors d WHERE d.email = :email"),
-    @NamedQuery(name = "Doctors.findByAvatarUrl", query = "SELECT d FROM Doctors d WHERE d.avatarUrl = :avatarUrl"),
-    @NamedQuery(name = "Doctors.findByQualification", query = "SELECT d FROM Doctors d WHERE d.qualification = :qualification"),
-    @NamedQuery(name = "Doctors.findBySpecialization", query = "SELECT d FROM Doctors d WHERE d.specialization = :specialization"),
-    @NamedQuery(name = "Doctors.findByDoctorType", query = "SELECT d FROM Doctors d WHERE d.doctorType = :doctorType"),
-    @NamedQuery(name = "Doctors.findByWorkStatus", query = "SELECT d FROM Doctors d WHERE d.workStatus = :workStatus"),
-    @NamedQuery(name = "Doctors.findByBaseSalary", query = "SELECT d FROM Doctors d WHERE d.baseSalary = :baseSalary"),
-    @NamedQuery(name = "Doctors.findByHourlyRate", query = "SELECT d FROM Doctors d WHERE d.hourlyRate = :hourlyRate"),
-    @NamedQuery(name = "Doctors.findByCreatedAt", query = "SELECT d FROM Doctors d WHERE d.createdAt = :createdAt"),
-    @NamedQuery(name = "Doctors.findByUpdatedAt", query = "SELECT d FROM Doctors d WHERE d.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Doctors.findByActive", query = "SELECT d FROM Doctors d WHERE d.active = :active")})
-public class Doctors implements Serializable {
+    @NamedQuery(name = "Doctor.findAll", query = "SELECT d FROM Doctor d"),
+    @NamedQuery(name = "Doctor.findById", query = "SELECT d FROM Doctor d WHERE d.id = :id"),
+    @NamedQuery(name = "Doctor.findByDoctorCode", query = "SELECT d FROM Doctor d WHERE d.doctorCode = :doctorCode"),
+    @NamedQuery(name = "Doctor.findByFullName", query = "SELECT d FROM Doctor d WHERE d.fullName = :fullName"),
+    @NamedQuery(name = "Doctor.findByPhone", query = "SELECT d FROM Doctor d WHERE d.phone = :phone"),
+    @NamedQuery(name = "Doctor.findByEmail", query = "SELECT d FROM Doctor d WHERE d.email = :email"),
+    @NamedQuery(name = "Doctor.findByAvatarUrl", query = "SELECT d FROM Doctor d WHERE d.avatarUrl = :avatarUrl"),
+    @NamedQuery(name = "Doctor.findByQualification", query = "SELECT d FROM Doctor d WHERE d.qualification = :qualification"),
+    @NamedQuery(name = "Doctor.findBySpecialization", query = "SELECT d FROM Doctor d WHERE d.specialization = :specialization"),
+    @NamedQuery(name = "Doctor.findByDoctorType", query = "SELECT d FROM Doctor d WHERE d.doctorType = :doctorType"),
+    @NamedQuery(name = "Doctor.findByWorkStatus", query = "SELECT d FROM Doctor d WHERE d.workStatus = :workStatus"),
+    @NamedQuery(name = "Doctor.findByBaseSalary", query = "SELECT d FROM Doctor d WHERE d.baseSalary = :baseSalary"),
+    @NamedQuery(name = "Doctor.findByHourlyRate", query = "SELECT d FROM Doctor d WHERE d.hourlyRate = :hourlyRate"),
+    @NamedQuery(name = "Doctor.findByCreatedAt", query = "SELECT d FROM Doctor d WHERE d.createdAt = :createdAt"),
+    @NamedQuery(name = "Doctor.findByUpdatedAt", query = "SELECT d FROM Doctor d WHERE d.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Doctor.findByActive", query = "SELECT d FROM Doctor d WHERE d.active = :active")})
+public class Doctor implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -120,28 +120,28 @@ public class Doctors implements Serializable {
     @Column(name = "active")
     private boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
-    private Collection<Appointments> appointmentsCollection;
+    private Set<DoctorSchedule> doctorScheduleSet;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
-    private Collection<MedicalRecords> medicalRecordsCollection;
+    private Set<MedicalRecord> medicalRecordSet;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
-    private Collection<DoctorSchedules> doctorSchedulesCollection;
+    private Set<Appointment> appointmentSet;
     @JoinColumn(name = "department_id", referencedColumnName = "id")
     @ManyToOne
-    private Departments departmentId;
+    private Department departmentId;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @OneToOne
-    private Users userId;
+    private User userId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
-    private Collection<Prescriptions> prescriptionsCollection;
+    private Set<Prescription> prescriptionSet;
 
-    public Doctors() {
+    public Doctor() {
     }
 
-    public Doctors(Long id) {
+    public Doctor(Long id) {
         this.id = id;
     }
 
-    public Doctors(Long id, String doctorCode, String fullName, String doctorType, String workStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Doctor(Long id, String doctorCode, String fullName, String doctorType, String workStatus, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.doctorCode = doctorCode;
         this.fullName = fullName;
@@ -280,52 +280,52 @@ public class Doctors implements Serializable {
         this.active = active;
     }
 
-    public Collection<Appointments> getAppointmentsCollection() {
-        return appointmentsCollection;
+    public Set<DoctorSchedule> getDoctorScheduleSet() {
+        return doctorScheduleSet;
     }
 
-    public void setAppointmentsCollection(Collection<Appointments> appointmentsCollection) {
-        this.appointmentsCollection = appointmentsCollection;
+    public void setDoctorScheduleSet(Set<DoctorSchedule> doctorScheduleSet) {
+        this.doctorScheduleSet = doctorScheduleSet;
     }
 
-    public Collection<MedicalRecords> getMedicalRecordsCollection() {
-        return medicalRecordsCollection;
+    public Set<MedicalRecord> getMedicalRecordSet() {
+        return medicalRecordSet;
     }
 
-    public void setMedicalRecordsCollection(Collection<MedicalRecords> medicalRecordsCollection) {
-        this.medicalRecordsCollection = medicalRecordsCollection;
+    public void setMedicalRecordSet(Set<MedicalRecord> medicalRecordSet) {
+        this.medicalRecordSet = medicalRecordSet;
     }
 
-    public Collection<DoctorSchedules> getDoctorSchedulesCollection() {
-        return doctorSchedulesCollection;
+    public Set<Appointment> getAppointmentSet() {
+        return appointmentSet;
     }
 
-    public void setDoctorSchedulesCollection(Collection<DoctorSchedules> doctorSchedulesCollection) {
-        this.doctorSchedulesCollection = doctorSchedulesCollection;
+    public void setAppointmentSet(Set<Appointment> appointmentSet) {
+        this.appointmentSet = appointmentSet;
     }
 
-    public Departments getDepartmentId() {
+    public Department getDepartmentId() {
         return departmentId;
     }
 
-    public void setDepartmentId(Departments departmentId) {
+    public void setDepartmentId(Department departmentId) {
         this.departmentId = departmentId;
     }
 
-    public Users getUserId() {
+    public User getUserId() {
         return userId;
     }
 
-    public void setUserId(Users userId) {
+    public void setUserId(User userId) {
         this.userId = userId;
     }
 
-    public Collection<Prescriptions> getPrescriptionsCollection() {
-        return prescriptionsCollection;
+    public Set<Prescription> getPrescriptionSet() {
+        return prescriptionSet;
     }
 
-    public void setPrescriptionsCollection(Collection<Prescriptions> prescriptionsCollection) {
-        this.prescriptionsCollection = prescriptionsCollection;
+    public void setPrescriptionSet(Set<Prescription> prescriptionSet) {
+        this.prescriptionSet = prescriptionSet;
     }
 
     @Override
@@ -338,10 +338,10 @@ public class Doctors implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Doctors)) {
+        if (!(object instanceof Doctor)) {
             return false;
         }
-        Doctors other = (Doctors) object;
+        Doctor other = (Doctor) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -350,7 +350,7 @@ public class Doctors implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Doctors[ id=" + id + " ]";
+        return "com.evercare.pojo.Doctor[ id=" + id + " ]";
     }
     
 }

@@ -25,23 +25,23 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "payments")
+@Table(name = "payment")
 @NamedQueries({
-    @NamedQuery(name = "Payments.findAll", query = "SELECT p FROM Payments p"),
-    @NamedQuery(name = "Payments.findById", query = "SELECT p FROM Payments p WHERE p.id = :id"),
-    @NamedQuery(name = "Payments.findByAmount", query = "SELECT p FROM Payments p WHERE p.amount = :amount"),
-    @NamedQuery(name = "Payments.findByPaymentMethod", query = "SELECT p FROM Payments p WHERE p.paymentMethod = :paymentMethod"),
-    @NamedQuery(name = "Payments.findByTransactionCode", query = "SELECT p FROM Payments p WHERE p.transactionCode = :transactionCode"),
-    @NamedQuery(name = "Payments.findByPaymentProvider", query = "SELECT p FROM Payments p WHERE p.paymentProvider = :paymentProvider"),
-    @NamedQuery(name = "Payments.findByPaymentStatus", query = "SELECT p FROM Payments p WHERE p.paymentStatus = :paymentStatus"),
-    @NamedQuery(name = "Payments.findByPaidAt", query = "SELECT p FROM Payments p WHERE p.paidAt = :paidAt"),
-    @NamedQuery(name = "Payments.findByCreatedAt", query = "SELECT p FROM Payments p WHERE p.createdAt = :createdAt"),
-    @NamedQuery(name = "Payments.findByUpdatedAt", query = "SELECT p FROM Payments p WHERE p.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Payments.findByActive", query = "SELECT p FROM Payments p WHERE p.active = :active")})
-public class Payments implements Serializable {
+    @NamedQuery(name = "Payment.findAll", query = "SELECT p FROM Payment p"),
+    @NamedQuery(name = "Payment.findById", query = "SELECT p FROM Payment p WHERE p.id = :id"),
+    @NamedQuery(name = "Payment.findByAmount", query = "SELECT p FROM Payment p WHERE p.amount = :amount"),
+    @NamedQuery(name = "Payment.findByPaymentMethod", query = "SELECT p FROM Payment p WHERE p.paymentMethod = :paymentMethod"),
+    @NamedQuery(name = "Payment.findByTransactionCode", query = "SELECT p FROM Payment p WHERE p.transactionCode = :transactionCode"),
+    @NamedQuery(name = "Payment.findByPaymentProvider", query = "SELECT p FROM Payment p WHERE p.paymentProvider = :paymentProvider"),
+    @NamedQuery(name = "Payment.findByPaymentStatus", query = "SELECT p FROM Payment p WHERE p.paymentStatus = :paymentStatus"),
+    @NamedQuery(name = "Payment.findByPaidAt", query = "SELECT p FROM Payment p WHERE p.paidAt = :paidAt"),
+    @NamedQuery(name = "Payment.findByCreatedAt", query = "SELECT p FROM Payment p WHERE p.createdAt = :createdAt"),
+    @NamedQuery(name = "Payment.findByUpdatedAt", query = "SELECT p FROM Payment p WHERE p.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Payment.findByActive", query = "SELECT p FROM Payment p WHERE p.active = :active")})
+public class Payment implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -89,16 +89,16 @@ public class Payments implements Serializable {
     private boolean active;
     @JoinColumn(name = "invoice_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Invoices invoiceId;
+    private Invoice invoiceId;
 
-    public Payments() {
+    public Payment() {
     }
 
-    public Payments(Long id) {
+    public Payment(Long id) {
         this.id = id;
     }
 
-    public Payments(Long id, BigDecimal amount, String paymentMethod, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Payment(Long id, BigDecimal amount, String paymentMethod, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
@@ -188,11 +188,11 @@ public class Payments implements Serializable {
         this.active = active;
     }
 
-    public Invoices getInvoiceId() {
+    public Invoice getInvoiceId() {
         return invoiceId;
     }
 
-    public void setInvoiceId(Invoices invoiceId) {
+    public void setInvoiceId(Invoice invoiceId) {
         this.invoiceId = invoiceId;
     }
 
@@ -206,10 +206,10 @@ public class Payments implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Payments)) {
+        if (!(object instanceof Payment)) {
             return false;
         }
-        Payments other = (Payments) object;
+        Payment other = (Payment) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -218,7 +218,7 @@ public class Payments implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Payments[ id=" + id + " ]";
+        return "com.evercare.pojo.Payment[ id=" + id + " ]";
     }
     
 }

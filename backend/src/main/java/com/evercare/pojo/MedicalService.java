@@ -24,26 +24,26 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "medical_services")
+@Table(name = "medical_service")
 @NamedQueries({
-    @NamedQuery(name = "MedicalServices.findAll", query = "SELECT m FROM MedicalServices m"),
-    @NamedQuery(name = "MedicalServices.findById", query = "SELECT m FROM MedicalServices m WHERE m.id = :id"),
-    @NamedQuery(name = "MedicalServices.findByCode", query = "SELECT m FROM MedicalServices m WHERE m.code = :code"),
-    @NamedQuery(name = "MedicalServices.findByName", query = "SELECT m FROM MedicalServices m WHERE m.name = :name"),
-    @NamedQuery(name = "MedicalServices.findByPrice", query = "SELECT m FROM MedicalServices m WHERE m.price = :price"),
-    @NamedQuery(name = "MedicalServices.findByServiceType", query = "SELECT m FROM MedicalServices m WHERE m.serviceType = :serviceType"),
-    @NamedQuery(name = "MedicalServices.findByCreatedAt", query = "SELECT m FROM MedicalServices m WHERE m.createdAt = :createdAt"),
-    @NamedQuery(name = "MedicalServices.findByUpdatedAt", query = "SELECT m FROM MedicalServices m WHERE m.updatedAt = :updatedAt"),
-    @NamedQuery(name = "MedicalServices.findByActive", query = "SELECT m FROM MedicalServices m WHERE m.active = :active")})
-public class MedicalServices implements Serializable {
+    @NamedQuery(name = "MedicalService.findAll", query = "SELECT m FROM MedicalService m"),
+    @NamedQuery(name = "MedicalService.findById", query = "SELECT m FROM MedicalService m WHERE m.id = :id"),
+    @NamedQuery(name = "MedicalService.findByCode", query = "SELECT m FROM MedicalService m WHERE m.code = :code"),
+    @NamedQuery(name = "MedicalService.findByName", query = "SELECT m FROM MedicalService m WHERE m.name = :name"),
+    @NamedQuery(name = "MedicalService.findByPrice", query = "SELECT m FROM MedicalService m WHERE m.price = :price"),
+    @NamedQuery(name = "MedicalService.findByServiceType", query = "SELECT m FROM MedicalService m WHERE m.serviceType = :serviceType"),
+    @NamedQuery(name = "MedicalService.findByCreatedAt", query = "SELECT m FROM MedicalService m WHERE m.createdAt = :createdAt"),
+    @NamedQuery(name = "MedicalService.findByUpdatedAt", query = "SELECT m FROM MedicalService m WHERE m.updatedAt = :updatedAt"),
+    @NamedQuery(name = "MedicalService.findByActive", query = "SELECT m FROM MedicalService m WHERE m.active = :active")})
+public class MedicalService implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -89,24 +89,24 @@ public class MedicalServices implements Serializable {
     @NotNull
     @Column(name = "active")
     private boolean active;
-    @OneToMany(mappedBy = "serviceId")
-    private Collection<Appointments> appointmentsCollection;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "serviceId")
+    private Set<MedicalRecordService> medicalRecordServiceSet;
     @JoinColumn(name = "department_id", referencedColumnName = "id")
     @ManyToOne
-    private Departments departmentId;
+    private Department departmentId;
     @OneToMany(mappedBy = "serviceId")
-    private Collection<TestResults> testResultsCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "serviceId")
-    private Collection<MedicalRecordServices> medicalRecordServicesCollection;
+    private Set<Appointment> appointmentSet;
+    @OneToMany(mappedBy = "serviceId")
+    private Set<TestResult> testResultSet;
 
-    public MedicalServices() {
+    public MedicalService() {
     }
 
-    public MedicalServices(Long id) {
+    public MedicalService(Long id) {
         this.id = id;
     }
 
-    public MedicalServices(Long id, String code, String name, BigDecimal price, String serviceType, Date createdAt, Date updatedAt, boolean active) {
+    public MedicalService(Long id, String code, String name, BigDecimal price, String serviceType, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.code = code;
         this.name = name;
@@ -189,36 +189,36 @@ public class MedicalServices implements Serializable {
         this.active = active;
     }
 
-    public Collection<Appointments> getAppointmentsCollection() {
-        return appointmentsCollection;
+    public Set<MedicalRecordService> getMedicalRecordServiceSet() {
+        return medicalRecordServiceSet;
     }
 
-    public void setAppointmentsCollection(Collection<Appointments> appointmentsCollection) {
-        this.appointmentsCollection = appointmentsCollection;
+    public void setMedicalRecordServiceSet(Set<MedicalRecordService> medicalRecordServiceSet) {
+        this.medicalRecordServiceSet = medicalRecordServiceSet;
     }
 
-    public Departments getDepartmentId() {
+    public Department getDepartmentId() {
         return departmentId;
     }
 
-    public void setDepartmentId(Departments departmentId) {
+    public void setDepartmentId(Department departmentId) {
         this.departmentId = departmentId;
     }
 
-    public Collection<TestResults> getTestResultsCollection() {
-        return testResultsCollection;
+    public Set<Appointment> getAppointmentSet() {
+        return appointmentSet;
     }
 
-    public void setTestResultsCollection(Collection<TestResults> testResultsCollection) {
-        this.testResultsCollection = testResultsCollection;
+    public void setAppointmentSet(Set<Appointment> appointmentSet) {
+        this.appointmentSet = appointmentSet;
     }
 
-    public Collection<MedicalRecordServices> getMedicalRecordServicesCollection() {
-        return medicalRecordServicesCollection;
+    public Set<TestResult> getTestResultSet() {
+        return testResultSet;
     }
 
-    public void setMedicalRecordServicesCollection(Collection<MedicalRecordServices> medicalRecordServicesCollection) {
-        this.medicalRecordServicesCollection = medicalRecordServicesCollection;
+    public void setTestResultSet(Set<TestResult> testResultSet) {
+        this.testResultSet = testResultSet;
     }
 
     @Override
@@ -231,10 +231,10 @@ public class MedicalServices implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof MedicalServices)) {
+        if (!(object instanceof MedicalService)) {
             return false;
         }
-        MedicalServices other = (MedicalServices) object;
+        MedicalService other = (MedicalService) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -243,7 +243,7 @@ public class MedicalServices implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.MedicalServices[ id=" + id + " ]";
+        return "com.evercare.pojo.MedicalService[ id=" + id + " ]";
     }
     
 }

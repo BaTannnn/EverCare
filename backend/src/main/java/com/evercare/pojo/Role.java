@@ -21,25 +21,25 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "roles")
+@Table(name = "role")
 @NamedQueries({
-    @NamedQuery(name = "Roles.findAll", query = "SELECT r FROM Roles r"),
-    @NamedQuery(name = "Roles.findById", query = "SELECT r FROM Roles r WHERE r.id = :id"),
-    @NamedQuery(name = "Roles.findByCode", query = "SELECT r FROM Roles r WHERE r.code = :code"),
-    @NamedQuery(name = "Roles.findByName", query = "SELECT r FROM Roles r WHERE r.name = :name"),
-    @NamedQuery(name = "Roles.findByDescription", query = "SELECT r FROM Roles r WHERE r.description = :description"),
-    @NamedQuery(name = "Roles.findByCreatedAt", query = "SELECT r FROM Roles r WHERE r.createdAt = :createdAt"),
-    @NamedQuery(name = "Roles.findByUpdatedAt", query = "SELECT r FROM Roles r WHERE r.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Roles.findByActive", query = "SELECT r FROM Roles r WHERE r.active = :active")})
-public class Roles implements Serializable {
+    @NamedQuery(name = "Role.findAll", query = "SELECT r FROM Role r"),
+    @NamedQuery(name = "Role.findById", query = "SELECT r FROM Role r WHERE r.id = :id"),
+    @NamedQuery(name = "Role.findByCode", query = "SELECT r FROM Role r WHERE r.code = :code"),
+    @NamedQuery(name = "Role.findByName", query = "SELECT r FROM Role r WHERE r.name = :name"),
+    @NamedQuery(name = "Role.findByDescription", query = "SELECT r FROM Role r WHERE r.description = :description"),
+    @NamedQuery(name = "Role.findByCreatedAt", query = "SELECT r FROM Role r WHERE r.createdAt = :createdAt"),
+    @NamedQuery(name = "Role.findByUpdatedAt", query = "SELECT r FROM Role r WHERE r.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Role.findByActive", query = "SELECT r FROM Role r WHERE r.active = :active")})
+public class Role implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -74,20 +74,20 @@ public class Roles implements Serializable {
     @NotNull
     @Column(name = "active")
     private boolean active;
-    @JoinTable(name = "user_roles", joinColumns = {
+    @JoinTable(name = "user_role", joinColumns = {
         @JoinColumn(name = "role_id", referencedColumnName = "id")}, inverseJoinColumns = {
         @JoinColumn(name = "user_id", referencedColumnName = "id")})
     @ManyToMany
-    private Collection<Users> usersCollection;
+    private Set<User> userSet;
 
-    public Roles() {
+    public Role() {
     }
 
-    public Roles(Long id) {
+    public Role(Long id) {
         this.id = id;
     }
 
-    public Roles(Long id, String code, String name, Date createdAt, Date updatedAt, boolean active) {
+    public Role(Long id, String code, String name, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.code = code;
         this.name = name;
@@ -152,12 +152,12 @@ public class Roles implements Serializable {
         this.active = active;
     }
 
-    public Collection<Users> getUsersCollection() {
-        return usersCollection;
+    public Set<User> getUserSet() {
+        return userSet;
     }
 
-    public void setUsersCollection(Collection<Users> usersCollection) {
-        this.usersCollection = usersCollection;
+    public void setUserSet(Set<User> userSet) {
+        this.userSet = userSet;
     }
 
     @Override
@@ -170,10 +170,10 @@ public class Roles implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Roles)) {
+        if (!(object instanceof Role)) {
             return false;
         }
-        Roles other = (Roles) object;
+        Role other = (Role) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -182,7 +182,7 @@ public class Roles implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Roles[ id=" + id + " ]";
+        return "com.evercare.pojo.Role[ id=" + id + " ]";
     }
     
 }

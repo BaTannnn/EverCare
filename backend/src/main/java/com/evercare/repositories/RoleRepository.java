@@ -4,14 +4,12 @@
  */
 package com.evercare.repositories;
 
-import com.evercare.pojo.User;
+import com.evercare.pojo.Role;
 
 /**
  *
- * @author huu-thanhduong
+ * @author cadic
  */
-public interface UserRepository {
-    User getUserByUsername(String username);
-    User addUser(User u);
-    boolean authenticate(String username, String password);
+public interface RoleRepository {
+    Role getRoleByRoleName(String roleName);
 }

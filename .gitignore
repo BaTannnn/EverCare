@@ -1,8 +1,25 @@
+backend/src/main/resources/database.properties
+*.env
+.env
+
+# Maven build output
+target/
+*/target/
+
+# NetBeans
+nbproject/private/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
 # Compiled class file
 *.class
 
 # Log file
 *.log
+logs/
 
 # BlueJ files
 *.ctxt

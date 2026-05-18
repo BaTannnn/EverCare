@@ -23,5 +23,26 @@
     <class>com.evercare.pojo.Notifications</class>
     <class>com.evercare.pojo.MedicalRecords</class>
     <class>com.evercare.pojo.InventoryTransactions</class>
+    <class>com.evercare.pojo.DoctorSchedule</class>
+    <class>com.evercare.pojo.Notification</class>
+    <class>com.evercare.pojo.Payment</class>
+    <class>com.evercare.pojo.MedicalRecordService</class>
+    <class>com.evercare.pojo.User</class>
+    <class>com.evercare.pojo.Prescription</class>
+    <class>com.evercare.pojo.Role</class>
+    <class>com.evercare.pojo.Patient</class>
+    <class>com.evercare.pojo.PrescriptionItem</class>
+    <class>com.evercare.pojo.OnlineConsultation</class>
+    <class>com.evercare.pojo.Appointment</class>
+    <class>com.evercare.pojo.MedicalRecord</class>
+    <class>com.evercare.pojo.Medicine</class>
+    <class>com.evercare.pojo.InventoryTransaction</class>
+    <class>com.evercare.pojo.MedicineBatch</class>
+    <class>com.evercare.pojo.Invoice</class>
+    <class>com.evercare.pojo.Department</class>
+    <class>com.evercare.pojo.Employee</class>
+    <class>com.evercare.pojo.Doctor</class>
+    <class>com.evercare.pojo.MedicalService</class>
+    <class>com.evercare.pojo.TestResult</class>
   </persistence-unit>
 </persistence>

@@ -26,20 +26,20 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "notifications")
+@Table(name = "notification")
 @NamedQueries({
-    @NamedQuery(name = "Notifications.findAll", query = "SELECT n FROM Notifications n"),
-    @NamedQuery(name = "Notifications.findById", query = "SELECT n FROM Notifications n WHERE n.id = :id"),
-    @NamedQuery(name = "Notifications.findByTitle", query = "SELECT n FROM Notifications n WHERE n.title = :title"),
-    @NamedQuery(name = "Notifications.findByNotificationType", query = "SELECT n FROM Notifications n WHERE n.notificationType = :notificationType"),
-    @NamedQuery(name = "Notifications.findByRelatedId", query = "SELECT n FROM Notifications n WHERE n.relatedId = :relatedId"),
-    @NamedQuery(name = "Notifications.findByReadAt", query = "SELECT n FROM Notifications n WHERE n.readAt = :readAt"),
-    @NamedQuery(name = "Notifications.findByCreatedAt", query = "SELECT n FROM Notifications n WHERE n.createdAt = :createdAt"),
-    @NamedQuery(name = "Notifications.findByActive", query = "SELECT n FROM Notifications n WHERE n.active = :active")})
-public class Notifications implements Serializable {
+    @NamedQuery(name = "Notification.findAll", query = "SELECT n FROM Notification n"),
+    @NamedQuery(name = "Notification.findById", query = "SELECT n FROM Notification n WHERE n.id = :id"),
+    @NamedQuery(name = "Notification.findByTitle", query = "SELECT n FROM Notification n WHERE n.title = :title"),
+    @NamedQuery(name = "Notification.findByNotificationType", query = "SELECT n FROM Notification n WHERE n.notificationType = :notificationType"),
+    @NamedQuery(name = "Notification.findByRelatedId", query = "SELECT n FROM Notification n WHERE n.relatedId = :relatedId"),
+    @NamedQuery(name = "Notification.findByReadAt", query = "SELECT n FROM Notification n WHERE n.readAt = :readAt"),
+    @NamedQuery(name = "Notification.findByCreatedAt", query = "SELECT n FROM Notification n WHERE n.createdAt = :createdAt"),
+    @NamedQuery(name = "Notification.findByActive", query = "SELECT n FROM Notification n WHERE n.active = :active")})
+public class Notification implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -79,16 +79,16 @@ public class Notifications implements Serializable {
     private boolean active;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Users userId;
+    private User userId;
 
-    public Notifications() {
+    public Notification() {
     }
 
-    public Notifications(Long id) {
+    public Notification(Long id) {
         this.id = id;
     }
 
-    public Notifications(Long id, String title, String content, String notificationType, Date createdAt, boolean active) {
+    public Notification(Long id, String title, String content, String notificationType, Date createdAt, boolean active) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -161,11 +161,11 @@ public class Notifications implements Serializable {
         this.active = active;
     }
 
-    public Users getUserId() {
+    public User getUserId() {
         return userId;
     }
 
-    public void setUserId(Users userId) {
+    public void setUserId(User userId) {
         this.userId = userId;
     }
 
@@ -179,10 +179,10 @@ public class Notifications implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Notifications)) {
+        if (!(object instanceof Notification)) {
             return false;
         }
-        Notifications other = (Notifications) object;
+        Notification other = (Notification) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -191,7 +191,7 @@ public class Notifications implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Notifications[ id=" + id + " ]";
+        return "com.evercare.pojo.Notification[ id=" + id + " ]";
     }
     
 }

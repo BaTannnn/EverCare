@@ -22,29 +22,29 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "medicine_batches")
+@Table(name = "medicine_batch")
 @NamedQueries({
-    @NamedQuery(name = "MedicineBatches.findAll", query = "SELECT m FROM MedicineBatches m"),
-    @NamedQuery(name = "MedicineBatches.findById", query = "SELECT m FROM MedicineBatches m WHERE m.id = :id"),
-    @NamedQuery(name = "MedicineBatches.findByBatchCode", query = "SELECT m FROM MedicineBatches m WHERE m.batchCode = :batchCode"),
-    @NamedQuery(name = "MedicineBatches.findByImportDate", query = "SELECT m FROM MedicineBatches m WHERE m.importDate = :importDate"),
-    @NamedQuery(name = "MedicineBatches.findByExpiryDate", query = "SELECT m FROM MedicineBatches m WHERE m.expiryDate = :expiryDate"),
-    @NamedQuery(name = "MedicineBatches.findByQuantity", query = "SELECT m FROM MedicineBatches m WHERE m.quantity = :quantity"),
-    @NamedQuery(name = "MedicineBatches.findByRemainingQuantity", query = "SELECT m FROM MedicineBatches m WHERE m.remainingQuantity = :remainingQuantity"),
-    @NamedQuery(name = "MedicineBatches.findByImportPrice", query = "SELECT m FROM MedicineBatches m WHERE m.importPrice = :importPrice"),
-    @NamedQuery(name = "MedicineBatches.findBySupplierName", query = "SELECT m FROM MedicineBatches m WHERE m.supplierName = :supplierName"),
-    @NamedQuery(name = "MedicineBatches.findByCreatedAt", query = "SELECT m FROM MedicineBatches m WHERE m.createdAt = :createdAt"),
-    @NamedQuery(name = "MedicineBatches.findByUpdatedAt", query = "SELECT m FROM MedicineBatches m WHERE m.updatedAt = :updatedAt"),
-    @NamedQuery(name = "MedicineBatches.findByActive", query = "SELECT m FROM MedicineBatches m WHERE m.active = :active")})
-public class MedicineBatches implements Serializable {
+    @NamedQuery(name = "MedicineBatch.findAll", query = "SELECT m FROM MedicineBatch m"),
+    @NamedQuery(name = "MedicineBatch.findById", query = "SELECT m FROM MedicineBatch m WHERE m.id = :id"),
+    @NamedQuery(name = "MedicineBatch.findByBatchCode", query = "SELECT m FROM MedicineBatch m WHERE m.batchCode = :batchCode"),
+    @NamedQuery(name = "MedicineBatch.findByImportDate", query = "SELECT m FROM MedicineBatch m WHERE m.importDate = :importDate"),
+    @NamedQuery(name = "MedicineBatch.findByExpiryDate", query = "SELECT m FROM MedicineBatch m WHERE m.expiryDate = :expiryDate"),
+    @NamedQuery(name = "MedicineBatch.findByQuantity", query = "SELECT m FROM MedicineBatch m WHERE m.quantity = :quantity"),
+    @NamedQuery(name = "MedicineBatch.findByRemainingQuantity", query = "SELECT m FROM MedicineBatch m WHERE m.remainingQuantity = :remainingQuantity"),
+    @NamedQuery(name = "MedicineBatch.findByImportPrice", query = "SELECT m FROM MedicineBatch m WHERE m.importPrice = :importPrice"),
+    @NamedQuery(name = "MedicineBatch.findBySupplierName", query = "SELECT m FROM MedicineBatch m WHERE m.supplierName = :supplierName"),
+    @NamedQuery(name = "MedicineBatch.findByCreatedAt", query = "SELECT m FROM MedicineBatch m WHERE m.createdAt = :createdAt"),
+    @NamedQuery(name = "MedicineBatch.findByUpdatedAt", query = "SELECT m FROM MedicineBatch m WHERE m.updatedAt = :updatedAt"),
+    @NamedQuery(name = "MedicineBatch.findByActive", query = "SELECT m FROM MedicineBatch m WHERE m.active = :active")})
+public class MedicineBatch implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -97,18 +97,18 @@ public class MedicineBatches implements Serializable {
     private boolean active;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Medicines medicineId;
+    private Medicine medicineId;
     @OneToMany(mappedBy = "batchId")
-    private Collection<InventoryTransactions> inventoryTransactionsCollection;
+    private Set<InventoryTransaction> inventoryTransactionSet;
 
-    public MedicineBatches() {
+    public MedicineBatch() {
     }
 
-    public MedicineBatches(Long id) {
+    public MedicineBatch(Long id) {
         this.id = id;
     }
 
-    public MedicineBatches(Long id, String batchCode, Date importDate, Date expiryDate, int quantity, int remainingQuantity, Date createdAt, Date updatedAt, boolean active) {
+    public MedicineBatch(Long id, String batchCode, Date importDate, Date expiryDate, int quantity, int remainingQuantity, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.batchCode = batchCode;
         this.importDate = importDate;
@@ -208,20 +208,20 @@ public class MedicineBatches implements Serializable {
         this.active = active;
     }
 
-    public Medicines getMedicineId() {
+    public Medicine getMedicineId() {
         return medicineId;
     }
 
-    public void setMedicineId(Medicines medicineId) {
+    public void setMedicineId(Medicine medicineId) {
         this.medicineId = medicineId;
     }
 
-    public Collection<InventoryTransactions> getInventoryTransactionsCollection() {
-        return inventoryTransactionsCollection;
+    public Set<InventoryTransaction> getInventoryTransactionSet() {
+        return inventoryTransactionSet;
     }
 
-    public void setInventoryTransactionsCollection(Collection<InventoryTransactions> inventoryTransactionsCollection) {
-        this.inventoryTransactionsCollection = inventoryTransactionsCollection;
+    public void setInventoryTransactionSet(Set<InventoryTransaction> inventoryTransactionSet) {
+        this.inventoryTransactionSet = inventoryTransactionSet;
     }
 
     @Override
@@ -234,10 +234,10 @@ public class MedicineBatches implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof MedicineBatches)) {
+        if (!(object instanceof MedicineBatch)) {
             return false;
         }
-        MedicineBatches other = (MedicineBatches) object;
+        MedicineBatch other = (MedicineBatch) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -246,7 +246,7 @@ public class MedicineBatches implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.MedicineBatches[ id=" + id + " ]";
+        return "com.evercare.pojo.MedicineBatch[ id=" + id + " ]";
     }
     
 }

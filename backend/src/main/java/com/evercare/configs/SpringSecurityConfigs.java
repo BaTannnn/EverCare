@@ -47,9 +47,10 @@ public class SpringSecurityConfigs {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(c -> c.disable()).authorizeHttpRequests((requests) -> requests
+         http.securityMatcher("/admin/**", "/", "/login").csrf(c -> c.disable()).authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/admin/login", "/login").permitAll()
                 .requestMatchers("/", "/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/**").permitAll()
+                .anyRequest().permitAll()
         ).formLogin(form -> form.loginPage("/admin/login") // Đường dẫn tới trang đăng nhập
                 .loginProcessingUrl("/admin/login") // Đường dẫn xử lý POST
                 .defaultSuccessUrl("/", true) // Chuyển hướng khi thành công

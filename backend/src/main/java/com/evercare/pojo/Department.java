@@ -20,24 +20,24 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "departments")
+@Table(name = "department")
 @NamedQueries({
-    @NamedQuery(name = "Departments.findAll", query = "SELECT d FROM Departments d"),
-    @NamedQuery(name = "Departments.findById", query = "SELECT d FROM Departments d WHERE d.id = :id"),
-    @NamedQuery(name = "Departments.findByCode", query = "SELECT d FROM Departments d WHERE d.code = :code"),
-    @NamedQuery(name = "Departments.findByName", query = "SELECT d FROM Departments d WHERE d.name = :name"),
-    @NamedQuery(name = "Departments.findByCreatedAt", query = "SELECT d FROM Departments d WHERE d.createdAt = :createdAt"),
-    @NamedQuery(name = "Departments.findByUpdatedAt", query = "SELECT d FROM Departments d WHERE d.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Departments.findByActive", query = "SELECT d FROM Departments d WHERE d.active = :active")})
-public class Departments implements Serializable {
+    @NamedQuery(name = "Department.findAll", query = "SELECT d FROM Department d"),
+    @NamedQuery(name = "Department.findById", query = "SELECT d FROM Department d WHERE d.id = :id"),
+    @NamedQuery(name = "Department.findByCode", query = "SELECT d FROM Department d WHERE d.code = :code"),
+    @NamedQuery(name = "Department.findByName", query = "SELECT d FROM Department d WHERE d.name = :name"),
+    @NamedQuery(name = "Department.findByCreatedAt", query = "SELECT d FROM Department d WHERE d.createdAt = :createdAt"),
+    @NamedQuery(name = "Department.findByUpdatedAt", query = "SELECT d FROM Department d WHERE d.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Department.findByActive", query = "SELECT d FROM Department d WHERE d.active = :active")})
+public class Department implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -74,18 +74,18 @@ public class Departments implements Serializable {
     @Column(name = "active")
     private boolean active;
     @OneToMany(mappedBy = "departmentId")
-    private Collection<MedicalServices> medicalServicesCollection;
+    private Set<MedicalService> medicalServiceSet;
     @OneToMany(mappedBy = "departmentId")
-    private Collection<Doctors> doctorsCollection;
+    private Set<Doctor> doctorSet;
 
-    public Departments() {
+    public Department() {
     }
 
-    public Departments(Long id) {
+    public Department(Long id) {
         this.id = id;
     }
 
-    public Departments(Long id, String code, String name, Date createdAt, Date updatedAt, boolean active) {
+    public Department(Long id, String code, String name, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.code = code;
         this.name = name;
@@ -150,20 +150,20 @@ public class Departments implements Serializable {
         this.active = active;
     }
 
-    public Collection<MedicalServices> getMedicalServicesCollection() {
-        return medicalServicesCollection;
+    public Set<MedicalService> getMedicalServiceSet() {
+        return medicalServiceSet;
     }
 
-    public void setMedicalServicesCollection(Collection<MedicalServices> medicalServicesCollection) {
-        this.medicalServicesCollection = medicalServicesCollection;
+    public void setMedicalServiceSet(Set<MedicalService> medicalServiceSet) {
+        this.medicalServiceSet = medicalServiceSet;
     }
 
-    public Collection<Doctors> getDoctorsCollection() {
-        return doctorsCollection;
+    public Set<Doctor> getDoctorSet() {
+        return doctorSet;
     }
 
-    public void setDoctorsCollection(Collection<Doctors> doctorsCollection) {
-        this.doctorsCollection = doctorsCollection;
+    public void setDoctorSet(Set<Doctor> doctorSet) {
+        this.doctorSet = doctorSet;
     }
 
     @Override
@@ -176,10 +176,10 @@ public class Departments implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Departments)) {
+        if (!(object instanceof Department)) {
             return false;
         }
-        Departments other = (Departments) object;
+        Department other = (Department) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -188,7 +188,7 @@ public class Departments implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Departments[ id=" + id + " ]";
+        return "com.evercare.pojo.Department[ id=" + id + " ]";
     }
     
 }

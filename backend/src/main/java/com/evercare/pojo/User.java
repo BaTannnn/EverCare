@@ -4,10 +4,13 @@
  */
 package com.evercare.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,30 +25,30 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 @NamedQueries({
-    @NamedQuery(name = "Users.findAll", query = "SELECT u FROM Users u"),
-    @NamedQuery(name = "Users.findById", query = "SELECT u FROM Users u WHERE u.id = :id"),
-    @NamedQuery(name = "Users.findByUsername", query = "SELECT u FROM Users u WHERE u.username = :username"),
-    @NamedQuery(name = "Users.findByEmail", query = "SELECT u FROM Users u WHERE u.email = :email"),
-    @NamedQuery(name = "Users.findByPasswordHash", query = "SELECT u FROM Users u WHERE u.passwordHash = :passwordHash"),
-    @NamedQuery(name = "Users.findByFullName", query = "SELECT u FROM Users u WHERE u.fullName = :fullName"),
-    @NamedQuery(name = "Users.findByPhone", query = "SELECT u FROM Users u WHERE u.phone = :phone"),
-    @NamedQuery(name = "Users.findByAvatarUrl", query = "SELECT u FROM Users u WHERE u.avatarUrl = :avatarUrl"),
-    @NamedQuery(name = "Users.findByEnabled", query = "SELECT u FROM Users u WHERE u.enabled = :enabled"),
-    @NamedQuery(name = "Users.findByAccountNonLocked", query = "SELECT u FROM Users u WHERE u.accountNonLocked = :accountNonLocked"),
-    @NamedQuery(name = "Users.findByCreatedAt", query = "SELECT u FROM Users u WHERE u.createdAt = :createdAt"),
-    @NamedQuery(name = "Users.findByUpdatedAt", query = "SELECT u FROM Users u WHERE u.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Users.findByActive", query = "SELECT u FROM Users u WHERE u.active = :active")})
-public class Users implements Serializable {
+    @NamedQuery(name = "User.findAll", query = "SELECT u FROM User u"),
+    @NamedQuery(name = "User.findById", query = "SELECT u FROM User u WHERE u.id = :id"),
+    @NamedQuery(name = "User.findByUsername", query = "SELECT u FROM User u WHERE u.username = :username"),
+    @NamedQuery(name = "User.findByEmail", query = "SELECT u FROM User u WHERE u.email = :email"),
+    @NamedQuery(name = "User.findByPassword", query = "SELECT u FROM User u WHERE u.password = :password"),
+    @NamedQuery(name = "User.findByFullName", query = "SELECT u FROM User u WHERE u.fullName = :fullName"),
+    @NamedQuery(name = "User.findByPhone", query = "SELECT u FROM User u WHERE u.phone = :phone"),
+    @NamedQuery(name = "User.findByAvatarUrl", query = "SELECT u FROM User u WHERE u.avatarUrl = :avatarUrl"),
+    @NamedQuery(name = "User.findByEnabled", query = "SELECT u FROM User u WHERE u.enabled = :enabled"),
+    @NamedQuery(name = "User.findByAccountNonLocked", query = "SELECT u FROM User u WHERE u.accountNonLocked = :accountNonLocked"),
+    @NamedQuery(name = "User.findByCreatedAt", query = "SELECT u FROM User u WHERE u.createdAt = :createdAt"),
+    @NamedQuery(name = "User.findByUpdatedAt", query = "SELECT u FROM User u WHERE u.updatedAt = :updatedAt"),
+    @NamedQuery(name = "User.findByActive", query = "SELECT u FROM User u WHERE u.active = :active")})
+public class User implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -65,8 +68,9 @@ public class Users implements Serializable {
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 255)
-    @Column(name = "password_hash")
-    private String passwordHash;
+    @Column(name = "password")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 100)
@@ -101,34 +105,35 @@ public class Users implements Serializable {
     @NotNull
     @Column(name = "active")
     private boolean active;
-    @ManyToMany(mappedBy = "usersCollection")
-    private Collection<Roles> rolesCollection;
+    @JsonIgnore
+    @ManyToMany(mappedBy = "userSet")
+    private Set<Role> roleSet;
     @OneToMany(mappedBy = "createdBy")
-    private Collection<Appointments> appointmentsCollection;
+    private Set<Appointment> appointmentSet;
     @OneToOne(mappedBy = "userId")
-    private Patients patients;
-    @OneToMany(mappedBy = "cashierId")
-    private Collection<Invoices> invoicesCollection;
+    private Employee employee;
     @OneToMany(mappedBy = "createdBy")
-    private Collection<InventoryTransactions> inventoryTransactionsCollection;
+    private Set<InventoryTransaction> inventoryTransactionSet;
     @OneToOne(mappedBy = "userId")
-    private Doctors doctors;
-    @OneToOne(mappedBy = "userId")
-    private Employees employees;
+    private Doctor doctor;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId")
-    private Collection<Notifications> notificationsCollection;
+    private Set<Notification> notificationSet;
+    @OneToOne(mappedBy = "userId")
+    private Patient patient;
+    @OneToMany(mappedBy = "cashierId")
+    private Set<Invoice> invoiceSet;
 
-    public Users() {
+    public User() {
     }
 
-    public Users(Long id) {
+    public User(Long id) {
         this.id = id;
     }
 
-    public Users(Long id, String username, String passwordHash, String fullName, boolean enabled, boolean accountNonLocked, Date createdAt, Date updatedAt, boolean active) {
+    public User(Long id, String username, String password, String fullName, boolean enabled, boolean accountNonLocked, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.username = username;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.fullName = fullName;
         this.enabled = enabled;
         this.accountNonLocked = accountNonLocked;
@@ -161,12 +166,12 @@ public class Users implements Serializable {
         this.email = email;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFullName() {
@@ -233,68 +238,68 @@ public class Users implements Serializable {
         this.active = active;
     }
 
-    public Collection<Roles> getRolesCollection() {
-        return rolesCollection;
+    public Set<Role> getRoleSet() {
+        return roleSet;
     }
 
-    public void setRolesCollection(Collection<Roles> rolesCollection) {
-        this.rolesCollection = rolesCollection;
+    public void setRoleSet(Set<Role> roleSet) {
+        this.roleSet = roleSet;
     }
 
-    public Collection<Appointments> getAppointmentsCollection() {
-        return appointmentsCollection;
+    public Set<Appointment> getAppointmentSet() {
+        return appointmentSet;
     }
 
-    public void setAppointmentsCollection(Collection<Appointments> appointmentsCollection) {
-        this.appointmentsCollection = appointmentsCollection;
+    public void setAppointmentSet(Set<Appointment> appointmentSet) {
+        this.appointmentSet = appointmentSet;
     }
 
-    public Patients getPatients() {
-        return patients;
+    public Employee getEmployee() {
+        return employee;
     }
 
-    public void setPatients(Patients patients) {
-        this.patients = patients;
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
     }
 
-    public Collection<Invoices> getInvoicesCollection() {
-        return invoicesCollection;
+    public Set<InventoryTransaction> getInventoryTransactionSet() {
+        return inventoryTransactionSet;
     }
 
-    public void setInvoicesCollection(Collection<Invoices> invoicesCollection) {
-        this.invoicesCollection = invoicesCollection;
+    public void setInventoryTransactionSet(Set<InventoryTransaction> inventoryTransactionSet) {
+        this.inventoryTransactionSet = inventoryTransactionSet;
     }
 
-    public Collection<InventoryTransactions> getInventoryTransactionsCollection() {
-        return inventoryTransactionsCollection;
+    public Doctor getDoctor() {
+        return doctor;
     }
 
-    public void setInventoryTransactionsCollection(Collection<InventoryTransactions> inventoryTransactionsCollection) {
-        this.inventoryTransactionsCollection = inventoryTransactionsCollection;
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
     }
 
-    public Doctors getDoctors() {
-        return doctors;
+    public Set<Notification> getNotificationSet() {
+        return notificationSet;
     }
 
-    public void setDoctors(Doctors doctors) {
-        this.doctors = doctors;
+    public void setNotificationSet(Set<Notification> notificationSet) {
+        this.notificationSet = notificationSet;
     }
 
-    public Employees getEmployees() {
-        return employees;
+    public Patient getPatient() {
+        return patient;
     }
 
-    public void setEmployees(Employees employees) {
-        this.employees = employees;
+    public void setPatient(Patient patient) {
+        this.patient = patient;
     }
 
-    public Collection<Notifications> getNotificationsCollection() {
-        return notificationsCollection;
+    public Set<Invoice> getInvoiceSet() {
+        return invoiceSet;
     }
 
-    public void setNotificationsCollection(Collection<Notifications> notificationsCollection) {
-        this.notificationsCollection = notificationsCollection;
+    public void setInvoiceSet(Set<Invoice> invoiceSet) {
+        this.invoiceSet = invoiceSet;
     }
 
     @Override
@@ -307,10 +312,10 @@ public class Users implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Users)) {
+        if (!(object instanceof User)) {
             return false;
         }
-        Users other = (Users) object;
+        User other = (User) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -319,7 +324,7 @@ public class Users implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Users[ id=" + id + " ]";
+        return "com.evercare.pojo.User[ id=" + id + " ]";
     }
     
 }

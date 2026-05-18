@@ -25,21 +25,21 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "test_results")
+@Table(name = "test_result")
 @NamedQueries({
-    @NamedQuery(name = "TestResults.findAll", query = "SELECT t FROM TestResults t"),
-    @NamedQuery(name = "TestResults.findById", query = "SELECT t FROM TestResults t WHERE t.id = :id"),
-    @NamedQuery(name = "TestResults.findByResultCode", query = "SELECT t FROM TestResults t WHERE t.resultCode = :resultCode"),
-    @NamedQuery(name = "TestResults.findByResultTitle", query = "SELECT t FROM TestResults t WHERE t.resultTitle = :resultTitle"),
-    @NamedQuery(name = "TestResults.findByFileUrl", query = "SELECT t FROM TestResults t WHERE t.fileUrl = :fileUrl"),
-    @NamedQuery(name = "TestResults.findByResultDate", query = "SELECT t FROM TestResults t WHERE t.resultDate = :resultDate"),
-    @NamedQuery(name = "TestResults.findByCreatedAt", query = "SELECT t FROM TestResults t WHERE t.createdAt = :createdAt"),
-    @NamedQuery(name = "TestResults.findByUpdatedAt", query = "SELECT t FROM TestResults t WHERE t.updatedAt = :updatedAt"),
-    @NamedQuery(name = "TestResults.findByActive", query = "SELECT t FROM TestResults t WHERE t.active = :active")})
-public class TestResults implements Serializable {
+    @NamedQuery(name = "TestResult.findAll", query = "SELECT t FROM TestResult t"),
+    @NamedQuery(name = "TestResult.findById", query = "SELECT t FROM TestResult t WHERE t.id = :id"),
+    @NamedQuery(name = "TestResult.findByResultCode", query = "SELECT t FROM TestResult t WHERE t.resultCode = :resultCode"),
+    @NamedQuery(name = "TestResult.findByResultTitle", query = "SELECT t FROM TestResult t WHERE t.resultTitle = :resultTitle"),
+    @NamedQuery(name = "TestResult.findByFileUrl", query = "SELECT t FROM TestResult t WHERE t.fileUrl = :fileUrl"),
+    @NamedQuery(name = "TestResult.findByResultDate", query = "SELECT t FROM TestResult t WHERE t.resultDate = :resultDate"),
+    @NamedQuery(name = "TestResult.findByCreatedAt", query = "SELECT t FROM TestResult t WHERE t.createdAt = :createdAt"),
+    @NamedQuery(name = "TestResult.findByUpdatedAt", query = "SELECT t FROM TestResult t WHERE t.updatedAt = :updatedAt"),
+    @NamedQuery(name = "TestResult.findByActive", query = "SELECT t FROM TestResult t WHERE t.active = :active")})
+public class TestResult implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -89,22 +89,22 @@ public class TestResults implements Serializable {
     private boolean active;
     @JoinColumn(name = "performed_by", referencedColumnName = "id")
     @ManyToOne
-    private Employees performedBy;
+    private Employee performedBy;
     @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private MedicalRecords medicalRecordId;
+    private MedicalRecord medicalRecordId;
     @JoinColumn(name = "service_id", referencedColumnName = "id")
     @ManyToOne
-    private MedicalServices serviceId;
+    private MedicalService serviceId;
 
-    public TestResults() {
+    public TestResult() {
     }
 
-    public TestResults(Long id) {
+    public TestResult(Long id) {
         this.id = id;
     }
 
-    public TestResults(Long id, String resultCode, String resultTitle, Date resultDate, Date createdAt, Date updatedAt, boolean active) {
+    public TestResult(Long id, String resultCode, String resultTitle, Date resultDate, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.resultCode = resultCode;
         this.resultTitle = resultTitle;
@@ -194,27 +194,27 @@ public class TestResults implements Serializable {
         this.active = active;
     }
 
-    public Employees getPerformedBy() {
+    public Employee getPerformedBy() {
         return performedBy;
     }
 
-    public void setPerformedBy(Employees performedBy) {
+    public void setPerformedBy(Employee performedBy) {
         this.performedBy = performedBy;
     }
 
-    public MedicalRecords getMedicalRecordId() {
+    public MedicalRecord getMedicalRecordId() {
         return medicalRecordId;
     }
 
-    public void setMedicalRecordId(MedicalRecords medicalRecordId) {
+    public void setMedicalRecordId(MedicalRecord medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
     }
 
-    public MedicalServices getServiceId() {
+    public MedicalService getServiceId() {
         return serviceId;
     }
 
-    public void setServiceId(MedicalServices serviceId) {
+    public void setServiceId(MedicalService serviceId) {
         this.serviceId = serviceId;
     }
 
@@ -228,10 +228,10 @@ public class TestResults implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof TestResults)) {
+        if (!(object instanceof TestResult)) {
             return false;
         }
-        TestResults other = (TestResults) object;
+        TestResult other = (TestResult) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -240,7 +240,7 @@ public class TestResults implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.TestResults[ id=" + id + " ]";
+        return "com.evercare.pojo.TestResult[ id=" + id + " ]";
     }
     
 }

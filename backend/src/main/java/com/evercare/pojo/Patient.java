@@ -23,34 +23,34 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "patients")
+@Table(name = "patient")
 @NamedQueries({
-    @NamedQuery(name = "Patients.findAll", query = "SELECT p FROM Patients p"),
-    @NamedQuery(name = "Patients.findById", query = "SELECT p FROM Patients p WHERE p.id = :id"),
-    @NamedQuery(name = "Patients.findByPatientCode", query = "SELECT p FROM Patients p WHERE p.patientCode = :patientCode"),
-    @NamedQuery(name = "Patients.findByFullName", query = "SELECT p FROM Patients p WHERE p.fullName = :fullName"),
-    @NamedQuery(name = "Patients.findByGender", query = "SELECT p FROM Patients p WHERE p.gender = :gender"),
-    @NamedQuery(name = "Patients.findByDateOfBirth", query = "SELECT p FROM Patients p WHERE p.dateOfBirth = :dateOfBirth"),
-    @NamedQuery(name = "Patients.findByPhone", query = "SELECT p FROM Patients p WHERE p.phone = :phone"),
-    @NamedQuery(name = "Patients.findByEmail", query = "SELECT p FROM Patients p WHERE p.email = :email"),
-    @NamedQuery(name = "Patients.findByCitizenId", query = "SELECT p FROM Patients p WHERE p.citizenId = :citizenId"),
-    @NamedQuery(name = "Patients.findByHealthInsuranceNo", query = "SELECT p FROM Patients p WHERE p.healthInsuranceNo = :healthInsuranceNo"),
-    @NamedQuery(name = "Patients.findByAddress", query = "SELECT p FROM Patients p WHERE p.address = :address"),
-    @NamedQuery(name = "Patients.findByEmergencyContactName", query = "SELECT p FROM Patients p WHERE p.emergencyContactName = :emergencyContactName"),
-    @NamedQuery(name = "Patients.findByEmergencyContactPhone", query = "SELECT p FROM Patients p WHERE p.emergencyContactPhone = :emergencyContactPhone"),
-    @NamedQuery(name = "Patients.findByBloodType", query = "SELECT p FROM Patients p WHERE p.bloodType = :bloodType"),
-    @NamedQuery(name = "Patients.findByCreatedAt", query = "SELECT p FROM Patients p WHERE p.createdAt = :createdAt"),
-    @NamedQuery(name = "Patients.findByUpdatedAt", query = "SELECT p FROM Patients p WHERE p.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Patients.findByActive", query = "SELECT p FROM Patients p WHERE p.active = :active")})
-public class Patients implements Serializable {
+    @NamedQuery(name = "Patient.findAll", query = "SELECT p FROM Patient p"),
+    @NamedQuery(name = "Patient.findById", query = "SELECT p FROM Patient p WHERE p.id = :id"),
+    @NamedQuery(name = "Patient.findByPatientCode", query = "SELECT p FROM Patient p WHERE p.patientCode = :patientCode"),
+    @NamedQuery(name = "Patient.findByFullName", query = "SELECT p FROM Patient p WHERE p.fullName = :fullName"),
+    @NamedQuery(name = "Patient.findByGender", query = "SELECT p FROM Patient p WHERE p.gender = :gender"),
+    @NamedQuery(name = "Patient.findByDateOfBirth", query = "SELECT p FROM Patient p WHERE p.dateOfBirth = :dateOfBirth"),
+    @NamedQuery(name = "Patient.findByPhone", query = "SELECT p FROM Patient p WHERE p.phone = :phone"),
+    @NamedQuery(name = "Patient.findByEmail", query = "SELECT p FROM Patient p WHERE p.email = :email"),
+    @NamedQuery(name = "Patient.findByCitizenId", query = "SELECT p FROM Patient p WHERE p.citizenId = :citizenId"),
+    @NamedQuery(name = "Patient.findByHealthInsuranceNo", query = "SELECT p FROM Patient p WHERE p.healthInsuranceNo = :healthInsuranceNo"),
+    @NamedQuery(name = "Patient.findByAddress", query = "SELECT p FROM Patient p WHERE p.address = :address"),
+    @NamedQuery(name = "Patient.findByEmergencyContactName", query = "SELECT p FROM Patient p WHERE p.emergencyContactName = :emergencyContactName"),
+    @NamedQuery(name = "Patient.findByEmergencyContactPhone", query = "SELECT p FROM Patient p WHERE p.emergencyContactPhone = :emergencyContactPhone"),
+    @NamedQuery(name = "Patient.findByBloodType", query = "SELECT p FROM Patient p WHERE p.bloodType = :bloodType"),
+    @NamedQuery(name = "Patient.findByCreatedAt", query = "SELECT p FROM Patient p WHERE p.createdAt = :createdAt"),
+    @NamedQuery(name = "Patient.findByUpdatedAt", query = "SELECT p FROM Patient p WHERE p.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Patient.findByActive", query = "SELECT p FROM Patient p WHERE p.active = :active")})
+public class Patient implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -125,25 +125,25 @@ public class Patients implements Serializable {
     @Column(name = "active")
     private boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "patientId")
-    private Collection<Appointments> appointmentsCollection;
+    private Set<MedicalRecord> medicalRecordSet;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "patientId")
-    private Collection<MedicalRecords> medicalRecordsCollection;
+    private Set<Appointment> appointmentSet;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "patientId")
+    private Set<Prescription> prescriptionSet;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @OneToOne
-    private Users userId;
+    private User userId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "patientId")
-    private Collection<Invoices> invoicesCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "patientId")
-    private Collection<Prescriptions> prescriptionsCollection;
+    private Set<Invoice> invoiceSet;
 
-    public Patients() {
+    public Patient() {
     }
 
-    public Patients(Long id) {
+    public Patient(Long id) {
         this.id = id;
     }
 
-    public Patients(Long id, String patientCode, String fullName, String phone, Date createdAt, Date updatedAt, boolean active) {
+    public Patient(Long id, String patientCode, String fullName, String phone, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.patientCode = patientCode;
         this.fullName = fullName;
@@ -297,44 +297,44 @@ public class Patients implements Serializable {
         this.active = active;
     }
 
-    public Collection<Appointments> getAppointmentsCollection() {
-        return appointmentsCollection;
+    public Set<MedicalRecord> getMedicalRecordSet() {
+        return medicalRecordSet;
     }
 
-    public void setAppointmentsCollection(Collection<Appointments> appointmentsCollection) {
-        this.appointmentsCollection = appointmentsCollection;
+    public void setMedicalRecordSet(Set<MedicalRecord> medicalRecordSet) {
+        this.medicalRecordSet = medicalRecordSet;
     }
 
-    public Collection<MedicalRecords> getMedicalRecordsCollection() {
-        return medicalRecordsCollection;
+    public Set<Appointment> getAppointmentSet() {
+        return appointmentSet;
     }
 
-    public void setMedicalRecordsCollection(Collection<MedicalRecords> medicalRecordsCollection) {
-        this.medicalRecordsCollection = medicalRecordsCollection;
+    public void setAppointmentSet(Set<Appointment> appointmentSet) {
+        this.appointmentSet = appointmentSet;
     }
 
-    public Users getUserId() {
+    public Set<Prescription> getPrescriptionSet() {
+        return prescriptionSet;
+    }
+
+    public void setPrescriptionSet(Set<Prescription> prescriptionSet) {
+        this.prescriptionSet = prescriptionSet;
+    }
+
+    public User getUserId() {
         return userId;
     }
 
-    public void setUserId(Users userId) {
+    public void setUserId(User userId) {
         this.userId = userId;
     }
 
-    public Collection<Invoices> getInvoicesCollection() {
-        return invoicesCollection;
+    public Set<Invoice> getInvoiceSet() {
+        return invoiceSet;
     }
 
-    public void setInvoicesCollection(Collection<Invoices> invoicesCollection) {
-        this.invoicesCollection = invoicesCollection;
-    }
-
-    public Collection<Prescriptions> getPrescriptionsCollection() {
-        return prescriptionsCollection;
-    }
-
-    public void setPrescriptionsCollection(Collection<Prescriptions> prescriptionsCollection) {
-        this.prescriptionsCollection = prescriptionsCollection;
+    public void setInvoiceSet(Set<Invoice> invoiceSet) {
+        this.invoiceSet = invoiceSet;
     }
 
     @Override
@@ -347,10 +347,10 @@ public class Patients implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Patients)) {
+        if (!(object instanceof Patient)) {
             return false;
         }
-        Patients other = (Patients) object;
+        Patient other = (Patient) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -359,7 +359,7 @@ public class Patients implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Patients[ id=" + id + " ]";
+        return "com.evercare.pojo.Patient[ id=" + id + " ]";
     }
     
 }

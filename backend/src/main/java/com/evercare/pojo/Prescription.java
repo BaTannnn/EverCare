@@ -5,15 +5,19 @@
 package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
@@ -21,26 +25,24 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "doctor_schedules")
+@Table(name = "prescription")
 @NamedQueries({
-    @NamedQuery(name = "DoctorSchedules.findAll", query = "SELECT d FROM DoctorSchedules d"),
-    @NamedQuery(name = "DoctorSchedules.findById", query = "SELECT d FROM DoctorSchedules d WHERE d.id = :id"),
-    @NamedQuery(name = "DoctorSchedules.findByWorkDate", query = "SELECT d FROM DoctorSchedules d WHERE d.workDate = :workDate"),
-    @NamedQuery(name = "DoctorSchedules.findByStartTime", query = "SELECT d FROM DoctorSchedules d WHERE d.startTime = :startTime"),
-    @NamedQuery(name = "DoctorSchedules.findByEndTime", query = "SELECT d FROM DoctorSchedules d WHERE d.endTime = :endTime"),
-    @NamedQuery(name = "DoctorSchedules.findByMaxPatients", query = "SELECT d FROM DoctorSchedules d WHERE d.maxPatients = :maxPatients"),
-    @NamedQuery(name = "DoctorSchedules.findByStatus", query = "SELECT d FROM DoctorSchedules d WHERE d.status = :status"),
-    @NamedQuery(name = "DoctorSchedules.findByNote", query = "SELECT d FROM DoctorSchedules d WHERE d.note = :note"),
-    @NamedQuery(name = "DoctorSchedules.findByCreatedAt", query = "SELECT d FROM DoctorSchedules d WHERE d.createdAt = :createdAt"),
-    @NamedQuery(name = "DoctorSchedules.findByUpdatedAt", query = "SELECT d FROM DoctorSchedules d WHERE d.updatedAt = :updatedAt"),
-    @NamedQuery(name = "DoctorSchedules.findByActive", query = "SELECT d FROM DoctorSchedules d WHERE d.active = :active")})
-public class DoctorSchedules implements Serializable {
+    @NamedQuery(name = "Prescription.findAll", query = "SELECT p FROM Prescription p"),
+    @NamedQuery(name = "Prescription.findById", query = "SELECT p FROM Prescription p WHERE p.id = :id"),
+    @NamedQuery(name = "Prescription.findByPrescriptionCode", query = "SELECT p FROM Prescription p WHERE p.prescriptionCode = :prescriptionCode"),
+    @NamedQuery(name = "Prescription.findByPrescribedAt", query = "SELECT p FROM Prescription p WHERE p.prescribedAt = :prescribedAt"),
+    @NamedQuery(name = "Prescription.findByStatus", query = "SELECT p FROM Prescription p WHERE p.status = :status"),
+    @NamedQuery(name = "Prescription.findByCreatedAt", query = "SELECT p FROM Prescription p WHERE p.createdAt = :createdAt"),
+    @NamedQuery(name = "Prescription.findByUpdatedAt", query = "SELECT p FROM Prescription p WHERE p.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Prescription.findByActive", query = "SELECT p FROM Prescription p WHERE p.active = :active")})
+public class Prescription implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -50,29 +52,21 @@ public class DoctorSchedules implements Serializable {
     private Long id;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "work_date")
-    @Temporal(TemporalType.DATE)
-    private Date workDate;
+    @Size(min = 1, max = 30)
+    @Column(name = "prescription_code")
+    private String prescriptionCode;
     @Basic(optional = false)
     @NotNull
-    @Column(name = "start_time")
-    @Temporal(TemporalType.TIME)
-    private Date startTime;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "end_time")
-    @Temporal(TemporalType.TIME)
-    private Date endTime;
-    @Basic(optional = false)
-    @NotNull
-    @Column(name = "max_patients")
-    private int maxPatients;
+    @Column(name = "prescribed_at")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date prescribedAt;
     @Basic(optional = false)
     @NotNull
     @Size(min = 1, max = 30)
     @Column(name = "status")
     private String status;
-    @Size(max = 255)
+    @Lob
+    @Size(max = 65535)
     @Column(name = "note")
     private String note;
     @Basic(optional = false)
@@ -91,21 +85,27 @@ public class DoctorSchedules implements Serializable {
     private boolean active;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Doctors doctorId;
+    private Doctor doctorId;
+    @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
+    @OneToOne(optional = false)
+    private MedicalRecord medicalRecordId;
+    @JoinColumn(name = "patient_id", referencedColumnName = "id")
+    @ManyToOne(optional = false)
+    private Patient patientId;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "prescriptionId")
+    private Set<PrescriptionItem> prescriptionItemSet;
 
-    public DoctorSchedules() {
+    public Prescription() {
     }
 
-    public DoctorSchedules(Long id) {
+    public Prescription(Long id) {
         this.id = id;
     }
 
-    public DoctorSchedules(Long id, Date workDate, Date startTime, Date endTime, int maxPatients, String status, Date createdAt, Date updatedAt, boolean active) {
+    public Prescription(Long id, String prescriptionCode, Date prescribedAt, String status, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
-        this.workDate = workDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.maxPatients = maxPatients;
+        this.prescriptionCode = prescriptionCode;
+        this.prescribedAt = prescribedAt;
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -120,36 +120,20 @@ public class DoctorSchedules implements Serializable {
         this.id = id;
     }
 
-    public Date getWorkDate() {
-        return workDate;
+    public String getPrescriptionCode() {
+        return prescriptionCode;
     }
 
-    public void setWorkDate(Date workDate) {
-        this.workDate = workDate;
+    public void setPrescriptionCode(String prescriptionCode) {
+        this.prescriptionCode = prescriptionCode;
     }
 
-    public Date getStartTime() {
-        return startTime;
+    public Date getPrescribedAt() {
+        return prescribedAt;
     }
 
-    public void setStartTime(Date startTime) {
-        this.startTime = startTime;
-    }
-
-    public Date getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(Date endTime) {
-        this.endTime = endTime;
-    }
-
-    public int getMaxPatients() {
-        return maxPatients;
-    }
-
-    public void setMaxPatients(int maxPatients) {
-        this.maxPatients = maxPatients;
+    public void setPrescribedAt(Date prescribedAt) {
+        this.prescribedAt = prescribedAt;
     }
 
     public String getStatus() {
@@ -192,12 +176,36 @@ public class DoctorSchedules implements Serializable {
         this.active = active;
     }
 
-    public Doctors getDoctorId() {
+    public Doctor getDoctorId() {
         return doctorId;
     }
 
-    public void setDoctorId(Doctors doctorId) {
+    public void setDoctorId(Doctor doctorId) {
         this.doctorId = doctorId;
+    }
+
+    public MedicalRecord getMedicalRecordId() {
+        return medicalRecordId;
+    }
+
+    public void setMedicalRecordId(MedicalRecord medicalRecordId) {
+        this.medicalRecordId = medicalRecordId;
+    }
+
+    public Patient getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(Patient patientId) {
+        this.patientId = patientId;
+    }
+
+    public Set<PrescriptionItem> getPrescriptionItemSet() {
+        return prescriptionItemSet;
+    }
+
+    public void setPrescriptionItemSet(Set<PrescriptionItem> prescriptionItemSet) {
+        this.prescriptionItemSet = prescriptionItemSet;
     }
 
     @Override
@@ -210,10 +218,10 @@ public class DoctorSchedules implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof DoctorSchedules)) {
+        if (!(object instanceof Prescription)) {
             return false;
         }
-        DoctorSchedules other = (DoctorSchedules) object;
+        Prescription other = (Prescription) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -222,7 +230,7 @@ public class DoctorSchedules implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.DoctorSchedules[ id=" + id + " ]";
+        return "com.evercare.pojo.Prescription[ id=" + id + " ]";
     }
     
 }

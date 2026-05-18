@@ -24,25 +24,25 @@ import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "medical_records")
+@Table(name = "medical_record")
 @NamedQueries({
-    @NamedQuery(name = "MedicalRecords.findAll", query = "SELECT m FROM MedicalRecords m"),
-    @NamedQuery(name = "MedicalRecords.findById", query = "SELECT m FROM MedicalRecords m WHERE m.id = :id"),
-    @NamedQuery(name = "MedicalRecords.findByRecordCode", query = "SELECT m FROM MedicalRecords m WHERE m.recordCode = :recordCode"),
-    @NamedQuery(name = "MedicalRecords.findByVisitDate", query = "SELECT m FROM MedicalRecords m WHERE m.visitDate = :visitDate"),
-    @NamedQuery(name = "MedicalRecords.findByPaymentStatus", query = "SELECT m FROM MedicalRecords m WHERE m.paymentStatus = :paymentStatus"),
-    @NamedQuery(name = "MedicalRecords.findByCreatedAt", query = "SELECT m FROM MedicalRecords m WHERE m.createdAt = :createdAt"),
-    @NamedQuery(name = "MedicalRecords.findByUpdatedAt", query = "SELECT m FROM MedicalRecords m WHERE m.updatedAt = :updatedAt"),
-    @NamedQuery(name = "MedicalRecords.findByActive", query = "SELECT m FROM MedicalRecords m WHERE m.active = :active")})
-public class MedicalRecords implements Serializable {
+    @NamedQuery(name = "MedicalRecord.findAll", query = "SELECT m FROM MedicalRecord m"),
+    @NamedQuery(name = "MedicalRecord.findById", query = "SELECT m FROM MedicalRecord m WHERE m.id = :id"),
+    @NamedQuery(name = "MedicalRecord.findByRecordCode", query = "SELECT m FROM MedicalRecord m WHERE m.recordCode = :recordCode"),
+    @NamedQuery(name = "MedicalRecord.findByVisitDate", query = "SELECT m FROM MedicalRecord m WHERE m.visitDate = :visitDate"),
+    @NamedQuery(name = "MedicalRecord.findByPaymentStatus", query = "SELECT m FROM MedicalRecord m WHERE m.paymentStatus = :paymentStatus"),
+    @NamedQuery(name = "MedicalRecord.findByCreatedAt", query = "SELECT m FROM MedicalRecord m WHERE m.createdAt = :createdAt"),
+    @NamedQuery(name = "MedicalRecord.findByUpdatedAt", query = "SELECT m FROM MedicalRecord m WHERE m.updatedAt = :updatedAt"),
+    @NamedQuery(name = "MedicalRecord.findByActive", query = "SELECT m FROM MedicalRecord m WHERE m.active = :active")})
+public class MedicalRecord implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -95,32 +95,32 @@ public class MedicalRecords implements Serializable {
     @NotNull
     @Column(name = "active")
     private boolean active;
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
+    private Set<MedicalRecordService> medicalRecordServiceSet;
     @JoinColumn(name = "appointment_id", referencedColumnName = "id")
     @OneToOne
-    private Appointments appointmentId;
+    private Appointment appointmentId;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Doctors doctorId;
+    private Doctor doctorId;
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Patients patientId;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
-    private Invoices invoices;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
-    private Prescriptions prescriptions;
+    private Patient patientId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
-    private Collection<TestResults> testResultsCollection;
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
-    private Collection<MedicalRecordServices> medicalRecordServicesCollection;
+    private Set<TestResult> testResultSet;
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
+    private Prescription prescription;
+    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
+    private Invoice invoice;
 
-    public MedicalRecords() {
+    public MedicalRecord() {
     }
 
-    public MedicalRecords(Long id) {
+    public MedicalRecord(Long id) {
         this.id = id;
     }
 
-    public MedicalRecords(Long id, String recordCode, Date visitDate, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public MedicalRecord(Long id, String recordCode, Date visitDate, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.recordCode = recordCode;
         this.visitDate = visitDate;
@@ -218,60 +218,60 @@ public class MedicalRecords implements Serializable {
         this.active = active;
     }
 
-    public Appointments getAppointmentId() {
+    public Set<MedicalRecordService> getMedicalRecordServiceSet() {
+        return medicalRecordServiceSet;
+    }
+
+    public void setMedicalRecordServiceSet(Set<MedicalRecordService> medicalRecordServiceSet) {
+        this.medicalRecordServiceSet = medicalRecordServiceSet;
+    }
+
+    public Appointment getAppointmentId() {
         return appointmentId;
     }
 
-    public void setAppointmentId(Appointments appointmentId) {
+    public void setAppointmentId(Appointment appointmentId) {
         this.appointmentId = appointmentId;
     }
 
-    public Doctors getDoctorId() {
+    public Doctor getDoctorId() {
         return doctorId;
     }
 
-    public void setDoctorId(Doctors doctorId) {
+    public void setDoctorId(Doctor doctorId) {
         this.doctorId = doctorId;
     }
 
-    public Patients getPatientId() {
+    public Patient getPatientId() {
         return patientId;
     }
 
-    public void setPatientId(Patients patientId) {
+    public void setPatientId(Patient patientId) {
         this.patientId = patientId;
     }
 
-    public Invoices getInvoices() {
-        return invoices;
+    public Set<TestResult> getTestResultSet() {
+        return testResultSet;
     }
 
-    public void setInvoices(Invoices invoices) {
-        this.invoices = invoices;
+    public void setTestResultSet(Set<TestResult> testResultSet) {
+        this.testResultSet = testResultSet;
     }
 
-    public Prescriptions getPrescriptions() {
-        return prescriptions;
+    public Prescription getPrescription() {
+        return prescription;
     }
 
-    public void setPrescriptions(Prescriptions prescriptions) {
-        this.prescriptions = prescriptions;
+    public void setPrescription(Prescription prescription) {
+        this.prescription = prescription;
     }
 
-    public Collection<TestResults> getTestResultsCollection() {
-        return testResultsCollection;
+    public Invoice getInvoice() {
+        return invoice;
     }
 
-    public void setTestResultsCollection(Collection<TestResults> testResultsCollection) {
-        this.testResultsCollection = testResultsCollection;
-    }
-
-    public Collection<MedicalRecordServices> getMedicalRecordServicesCollection() {
-        return medicalRecordServicesCollection;
-    }
-
-    public void setMedicalRecordServicesCollection(Collection<MedicalRecordServices> medicalRecordServicesCollection) {
-        this.medicalRecordServicesCollection = medicalRecordServicesCollection;
+    public void setInvoice(Invoice invoice) {
+        this.invoice = invoice;
     }
 
     @Override
@@ -284,10 +284,10 @@ public class MedicalRecords implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof MedicalRecords)) {
+        if (!(object instanceof MedicalRecord)) {
             return false;
         }
-        MedicalRecords other = (MedicalRecords) object;
+        MedicalRecord other = (MedicalRecord) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -296,7 +296,7 @@ public class MedicalRecords implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.MedicalRecords[ id=" + id + " ]";
+        return "com.evercare.pojo.MedicalRecord[ id=" + id + " ]";
     }
     
 }

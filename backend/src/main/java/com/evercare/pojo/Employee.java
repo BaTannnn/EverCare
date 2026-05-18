@@ -22,32 +22,32 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "employees")
+@Table(name = "employee")
 @NamedQueries({
-    @NamedQuery(name = "Employees.findAll", query = "SELECT e FROM Employees e"),
-    @NamedQuery(name = "Employees.findById", query = "SELECT e FROM Employees e WHERE e.id = :id"),
-    @NamedQuery(name = "Employees.findByEmployeeCode", query = "SELECT e FROM Employees e WHERE e.employeeCode = :employeeCode"),
-    @NamedQuery(name = "Employees.findByFullName", query = "SELECT e FROM Employees e WHERE e.fullName = :fullName"),
-    @NamedQuery(name = "Employees.findByGender", query = "SELECT e FROM Employees e WHERE e.gender = :gender"),
-    @NamedQuery(name = "Employees.findByDateOfBirth", query = "SELECT e FROM Employees e WHERE e.dateOfBirth = :dateOfBirth"),
-    @NamedQuery(name = "Employees.findByPhone", query = "SELECT e FROM Employees e WHERE e.phone = :phone"),
-    @NamedQuery(name = "Employees.findByEmail", query = "SELECT e FROM Employees e WHERE e.email = :email"),
-    @NamedQuery(name = "Employees.findByAddress", query = "SELECT e FROM Employees e WHERE e.address = :address"),
-    @NamedQuery(name = "Employees.findByPosition", query = "SELECT e FROM Employees e WHERE e.position = :position"),
-    @NamedQuery(name = "Employees.findBySalary", query = "SELECT e FROM Employees e WHERE e.salary = :salary"),
-    @NamedQuery(name = "Employees.findByHiredDate", query = "SELECT e FROM Employees e WHERE e.hiredDate = :hiredDate"),
-    @NamedQuery(name = "Employees.findByCreatedAt", query = "SELECT e FROM Employees e WHERE e.createdAt = :createdAt"),
-    @NamedQuery(name = "Employees.findByUpdatedAt", query = "SELECT e FROM Employees e WHERE e.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Employees.findByActive", query = "SELECT e FROM Employees e WHERE e.active = :active")})
-public class Employees implements Serializable {
+    @NamedQuery(name = "Employee.findAll", query = "SELECT e FROM Employee e"),
+    @NamedQuery(name = "Employee.findById", query = "SELECT e FROM Employee e WHERE e.id = :id"),
+    @NamedQuery(name = "Employee.findByEmployeeCode", query = "SELECT e FROM Employee e WHERE e.employeeCode = :employeeCode"),
+    @NamedQuery(name = "Employee.findByFullName", query = "SELECT e FROM Employee e WHERE e.fullName = :fullName"),
+    @NamedQuery(name = "Employee.findByGender", query = "SELECT e FROM Employee e WHERE e.gender = :gender"),
+    @NamedQuery(name = "Employee.findByDateOfBirth", query = "SELECT e FROM Employee e WHERE e.dateOfBirth = :dateOfBirth"),
+    @NamedQuery(name = "Employee.findByPhone", query = "SELECT e FROM Employee e WHERE e.phone = :phone"),
+    @NamedQuery(name = "Employee.findByEmail", query = "SELECT e FROM Employee e WHERE e.email = :email"),
+    @NamedQuery(name = "Employee.findByAddress", query = "SELECT e FROM Employee e WHERE e.address = :address"),
+    @NamedQuery(name = "Employee.findByPosition", query = "SELECT e FROM Employee e WHERE e.position = :position"),
+    @NamedQuery(name = "Employee.findBySalary", query = "SELECT e FROM Employee e WHERE e.salary = :salary"),
+    @NamedQuery(name = "Employee.findByHiredDate", query = "SELECT e FROM Employee e WHERE e.hiredDate = :hiredDate"),
+    @NamedQuery(name = "Employee.findByCreatedAt", query = "SELECT e FROM Employee e WHERE e.createdAt = :createdAt"),
+    @NamedQuery(name = "Employee.findByUpdatedAt", query = "SELECT e FROM Employee e WHERE e.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Employee.findByActive", query = "SELECT e FROM Employee e WHERE e.active = :active")})
+public class Employee implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -113,18 +113,18 @@ public class Employees implements Serializable {
     private boolean active;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @OneToOne
-    private Users userId;
+    private User userId;
     @OneToMany(mappedBy = "performedBy")
-    private Collection<TestResults> testResultsCollection;
+    private Set<TestResult> testResultSet;
 
-    public Employees() {
+    public Employee() {
     }
 
-    public Employees(Long id) {
+    public Employee(Long id) {
         this.id = id;
     }
 
-    public Employees(Long id, String employeeCode, String fullName, String phone, String position, Date hiredDate, Date createdAt, Date updatedAt, boolean active) {
+    public Employee(Long id, String employeeCode, String fullName, String phone, String position, Date hiredDate, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.employeeCode = employeeCode;
         this.fullName = fullName;
@@ -248,20 +248,20 @@ public class Employees implements Serializable {
         this.active = active;
     }
 
-    public Users getUserId() {
+    public User getUserId() {
         return userId;
     }
 
-    public void setUserId(Users userId) {
+    public void setUserId(User userId) {
         this.userId = userId;
     }
 
-    public Collection<TestResults> getTestResultsCollection() {
-        return testResultsCollection;
+    public Set<TestResult> getTestResultSet() {
+        return testResultSet;
     }
 
-    public void setTestResultsCollection(Collection<TestResults> testResultsCollection) {
-        this.testResultsCollection = testResultsCollection;
+    public void setTestResultSet(Set<TestResult> testResultSet) {
+        this.testResultSet = testResultSet;
     }
 
     @Override
@@ -274,10 +274,10 @@ public class Employees implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Employees)) {
+        if (!(object instanceof Employee)) {
             return false;
         }
-        Employees other = (Employees) object;
+        Employee other = (Employee) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -286,7 +286,7 @@ public class Employees implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Employees[ id=" + id + " ]";
+        return "com.evercare.pojo.Employee[ id=" + id + " ]";
     }
     
 }

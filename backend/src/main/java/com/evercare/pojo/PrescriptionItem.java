@@ -22,28 +22,28 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "prescription_items")
+@Table(name = "prescription_item")
 @NamedQueries({
-    @NamedQuery(name = "PrescriptionItems.findAll", query = "SELECT p FROM PrescriptionItems p"),
-    @NamedQuery(name = "PrescriptionItems.findById", query = "SELECT p FROM PrescriptionItems p WHERE p.id = :id"),
-    @NamedQuery(name = "PrescriptionItems.findByQuantity", query = "SELECT p FROM PrescriptionItems p WHERE p.quantity = :quantity"),
-    @NamedQuery(name = "PrescriptionItems.findByUnitPrice", query = "SELECT p FROM PrescriptionItems p WHERE p.unitPrice = :unitPrice"),
-    @NamedQuery(name = "PrescriptionItems.findByDosage", query = "SELECT p FROM PrescriptionItems p WHERE p.dosage = :dosage"),
-    @NamedQuery(name = "PrescriptionItems.findByFrequency", query = "SELECT p FROM PrescriptionItems p WHERE p.frequency = :frequency"),
-    @NamedQuery(name = "PrescriptionItems.findByDuration", query = "SELECT p FROM PrescriptionItems p WHERE p.duration = :duration"),
-    @NamedQuery(name = "PrescriptionItems.findByInstruction", query = "SELECT p FROM PrescriptionItems p WHERE p.instruction = :instruction"),
-    @NamedQuery(name = "PrescriptionItems.findByCreatedAt", query = "SELECT p FROM PrescriptionItems p WHERE p.createdAt = :createdAt"),
-    @NamedQuery(name = "PrescriptionItems.findByUpdatedAt", query = "SELECT p FROM PrescriptionItems p WHERE p.updatedAt = :updatedAt"),
-    @NamedQuery(name = "PrescriptionItems.findByActive", query = "SELECT p FROM PrescriptionItems p WHERE p.active = :active")})
-public class PrescriptionItems implements Serializable {
+    @NamedQuery(name = "PrescriptionItem.findAll", query = "SELECT p FROM PrescriptionItem p"),
+    @NamedQuery(name = "PrescriptionItem.findById", query = "SELECT p FROM PrescriptionItem p WHERE p.id = :id"),
+    @NamedQuery(name = "PrescriptionItem.findByQuantity", query = "SELECT p FROM PrescriptionItem p WHERE p.quantity = :quantity"),
+    @NamedQuery(name = "PrescriptionItem.findByUnitPrice", query = "SELECT p FROM PrescriptionItem p WHERE p.unitPrice = :unitPrice"),
+    @NamedQuery(name = "PrescriptionItem.findByDosage", query = "SELECT p FROM PrescriptionItem p WHERE p.dosage = :dosage"),
+    @NamedQuery(name = "PrescriptionItem.findByFrequency", query = "SELECT p FROM PrescriptionItem p WHERE p.frequency = :frequency"),
+    @NamedQuery(name = "PrescriptionItem.findByDuration", query = "SELECT p FROM PrescriptionItem p WHERE p.duration = :duration"),
+    @NamedQuery(name = "PrescriptionItem.findByInstruction", query = "SELECT p FROM PrescriptionItem p WHERE p.instruction = :instruction"),
+    @NamedQuery(name = "PrescriptionItem.findByCreatedAt", query = "SELECT p FROM PrescriptionItem p WHERE p.createdAt = :createdAt"),
+    @NamedQuery(name = "PrescriptionItem.findByUpdatedAt", query = "SELECT p FROM PrescriptionItem p WHERE p.updatedAt = :updatedAt"),
+    @NamedQuery(name = "PrescriptionItem.findByActive", query = "SELECT p FROM PrescriptionItem p WHERE p.active = :active")})
+public class PrescriptionItem implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -87,22 +87,22 @@ public class PrescriptionItems implements Serializable {
     @Column(name = "active")
     private boolean active;
     @OneToMany(mappedBy = "prescriptionItemId")
-    private Collection<InventoryTransactions> inventoryTransactionsCollection;
+    private Set<InventoryTransaction> inventoryTransactionSet;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Medicines medicineId;
+    private Medicine medicineId;
     @JoinColumn(name = "prescription_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Prescriptions prescriptionId;
+    private Prescription prescriptionId;
 
-    public PrescriptionItems() {
+    public PrescriptionItem() {
     }
 
-    public PrescriptionItems(Long id) {
+    public PrescriptionItem(Long id) {
         this.id = id;
     }
 
-    public PrescriptionItems(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
+    public PrescriptionItem(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
@@ -191,27 +191,27 @@ public class PrescriptionItems implements Serializable {
         this.active = active;
     }
 
-    public Collection<InventoryTransactions> getInventoryTransactionsCollection() {
-        return inventoryTransactionsCollection;
+    public Set<InventoryTransaction> getInventoryTransactionSet() {
+        return inventoryTransactionSet;
     }
 
-    public void setInventoryTransactionsCollection(Collection<InventoryTransactions> inventoryTransactionsCollection) {
-        this.inventoryTransactionsCollection = inventoryTransactionsCollection;
+    public void setInventoryTransactionSet(Set<InventoryTransaction> inventoryTransactionSet) {
+        this.inventoryTransactionSet = inventoryTransactionSet;
     }
 
-    public Medicines getMedicineId() {
+    public Medicine getMedicineId() {
         return medicineId;
     }
 
-    public void setMedicineId(Medicines medicineId) {
+    public void setMedicineId(Medicine medicineId) {
         this.medicineId = medicineId;
     }
 
-    public Prescriptions getPrescriptionId() {
+    public Prescription getPrescriptionId() {
         return prescriptionId;
     }
 
-    public void setPrescriptionId(Prescriptions prescriptionId) {
+    public void setPrescriptionId(Prescription prescriptionId) {
         this.prescriptionId = prescriptionId;
     }
 
@@ -225,10 +225,10 @@ public class PrescriptionItems implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof PrescriptionItems)) {
+        if (!(object instanceof PrescriptionItem)) {
             return false;
         }
-        PrescriptionItems other = (PrescriptionItems) object;
+        PrescriptionItem other = (PrescriptionItem) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -237,7 +237,7 @@ public class PrescriptionItems implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.PrescriptionItems[ id=" + id + " ]";
+        return "com.evercare.pojo.PrescriptionItem[ id=" + id + " ]";
     }
     
 }

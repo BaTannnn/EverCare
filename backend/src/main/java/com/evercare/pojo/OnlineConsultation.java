@@ -25,22 +25,22 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "online_consultations")
+@Table(name = "online_consultation")
 @NamedQueries({
-    @NamedQuery(name = "OnlineConsultations.findAll", query = "SELECT o FROM OnlineConsultations o"),
-    @NamedQuery(name = "OnlineConsultations.findById", query = "SELECT o FROM OnlineConsultations o WHERE o.id = :id"),
-    @NamedQuery(name = "OnlineConsultations.findByConsultationType", query = "SELECT o FROM OnlineConsultations o WHERE o.consultationType = :consultationType"),
-    @NamedQuery(name = "OnlineConsultations.findByRoomUrl", query = "SELECT o FROM OnlineConsultations o WHERE o.roomUrl = :roomUrl"),
-    @NamedQuery(name = "OnlineConsultations.findByStartedAt", query = "SELECT o FROM OnlineConsultations o WHERE o.startedAt = :startedAt"),
-    @NamedQuery(name = "OnlineConsultations.findByEndedAt", query = "SELECT o FROM OnlineConsultations o WHERE o.endedAt = :endedAt"),
-    @NamedQuery(name = "OnlineConsultations.findByStatus", query = "SELECT o FROM OnlineConsultations o WHERE o.status = :status"),
-    @NamedQuery(name = "OnlineConsultations.findByCreatedAt", query = "SELECT o FROM OnlineConsultations o WHERE o.createdAt = :createdAt"),
-    @NamedQuery(name = "OnlineConsultations.findByUpdatedAt", query = "SELECT o FROM OnlineConsultations o WHERE o.updatedAt = :updatedAt"),
-    @NamedQuery(name = "OnlineConsultations.findByActive", query = "SELECT o FROM OnlineConsultations o WHERE o.active = :active")})
-public class OnlineConsultations implements Serializable {
+    @NamedQuery(name = "OnlineConsultation.findAll", query = "SELECT o FROM OnlineConsultation o"),
+    @NamedQuery(name = "OnlineConsultation.findById", query = "SELECT o FROM OnlineConsultation o WHERE o.id = :id"),
+    @NamedQuery(name = "OnlineConsultation.findByConsultationType", query = "SELECT o FROM OnlineConsultation o WHERE o.consultationType = :consultationType"),
+    @NamedQuery(name = "OnlineConsultation.findByRoomUrl", query = "SELECT o FROM OnlineConsultation o WHERE o.roomUrl = :roomUrl"),
+    @NamedQuery(name = "OnlineConsultation.findByStartedAt", query = "SELECT o FROM OnlineConsultation o WHERE o.startedAt = :startedAt"),
+    @NamedQuery(name = "OnlineConsultation.findByEndedAt", query = "SELECT o FROM OnlineConsultation o WHERE o.endedAt = :endedAt"),
+    @NamedQuery(name = "OnlineConsultation.findByStatus", query = "SELECT o FROM OnlineConsultation o WHERE o.status = :status"),
+    @NamedQuery(name = "OnlineConsultation.findByCreatedAt", query = "SELECT o FROM OnlineConsultation o WHERE o.createdAt = :createdAt"),
+    @NamedQuery(name = "OnlineConsultation.findByUpdatedAt", query = "SELECT o FROM OnlineConsultation o WHERE o.updatedAt = :updatedAt"),
+    @NamedQuery(name = "OnlineConsultation.findByActive", query = "SELECT o FROM OnlineConsultation o WHERE o.active = :active")})
+public class OnlineConsultation implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -87,16 +87,16 @@ public class OnlineConsultations implements Serializable {
     private boolean active;
     @JoinColumn(name = "appointment_id", referencedColumnName = "id")
     @OneToOne(optional = false)
-    private Appointments appointmentId;
+    private Appointment appointmentId;
 
-    public OnlineConsultations() {
+    public OnlineConsultation() {
     }
 
-    public OnlineConsultations(Long id) {
+    public OnlineConsultation(Long id) {
         this.id = id;
     }
 
-    public OnlineConsultations(Long id, String consultationType, String status, Date createdAt, Date updatedAt, boolean active) {
+    public OnlineConsultation(Long id, String consultationType, String status, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.consultationType = consultationType;
         this.status = status;
@@ -185,11 +185,11 @@ public class OnlineConsultations implements Serializable {
         this.active = active;
     }
 
-    public Appointments getAppointmentId() {
+    public Appointment getAppointmentId() {
         return appointmentId;
     }
 
-    public void setAppointmentId(Appointments appointmentId) {
+    public void setAppointmentId(Appointment appointmentId) {
         this.appointmentId = appointmentId;
     }
 
@@ -203,10 +203,10 @@ public class OnlineConsultations implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof OnlineConsultations)) {
+        if (!(object instanceof OnlineConsultation)) {
             return false;
         }
-        OnlineConsultations other = (OnlineConsultations) object;
+        OnlineConsultation other = (OnlineConsultation) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -215,7 +215,7 @@ public class OnlineConsultations implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.OnlineConsultations[ id=" + id + " ]";
+        return "com.evercare.pojo.OnlineConsultation[ id=" + id + " ]";
     }
     
 }

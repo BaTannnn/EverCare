@@ -27,24 +27,24 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "appointments")
+@Table(name = "appointment")
 @NamedQueries({
-    @NamedQuery(name = "Appointments.findAll", query = "SELECT a FROM Appointments a"),
-    @NamedQuery(name = "Appointments.findById", query = "SELECT a FROM Appointments a WHERE a.id = :id"),
-    @NamedQuery(name = "Appointments.findByAppointmentCode", query = "SELECT a FROM Appointments a WHERE a.appointmentCode = :appointmentCode"),
-    @NamedQuery(name = "Appointments.findByAppointmentDate", query = "SELECT a FROM Appointments a WHERE a.appointmentDate = :appointmentDate"),
-    @NamedQuery(name = "Appointments.findByStartTime", query = "SELECT a FROM Appointments a WHERE a.startTime = :startTime"),
-    @NamedQuery(name = "Appointments.findByEndTime", query = "SELECT a FROM Appointments a WHERE a.endTime = :endTime"),
-    @NamedQuery(name = "Appointments.findByStatus", query = "SELECT a FROM Appointments a WHERE a.status = :status"),
-    @NamedQuery(name = "Appointments.findByReason", query = "SELECT a FROM Appointments a WHERE a.reason = :reason"),
-    @NamedQuery(name = "Appointments.findByCancelReason", query = "SELECT a FROM Appointments a WHERE a.cancelReason = :cancelReason"),
-    @NamedQuery(name = "Appointments.findByCreatedAt", query = "SELECT a FROM Appointments a WHERE a.createdAt = :createdAt"),
-    @NamedQuery(name = "Appointments.findByUpdatedAt", query = "SELECT a FROM Appointments a WHERE a.updatedAt = :updatedAt"),
-    @NamedQuery(name = "Appointments.findByActive", query = "SELECT a FROM Appointments a WHERE a.active = :active")})
-public class Appointments implements Serializable {
+    @NamedQuery(name = "Appointment.findAll", query = "SELECT a FROM Appointment a"),
+    @NamedQuery(name = "Appointment.findById", query = "SELECT a FROM Appointment a WHERE a.id = :id"),
+    @NamedQuery(name = "Appointment.findByAppointmentCode", query = "SELECT a FROM Appointment a WHERE a.appointmentCode = :appointmentCode"),
+    @NamedQuery(name = "Appointment.findByAppointmentDate", query = "SELECT a FROM Appointment a WHERE a.appointmentDate = :appointmentDate"),
+    @NamedQuery(name = "Appointment.findByStartTime", query = "SELECT a FROM Appointment a WHERE a.startTime = :startTime"),
+    @NamedQuery(name = "Appointment.findByEndTime", query = "SELECT a FROM Appointment a WHERE a.endTime = :endTime"),
+    @NamedQuery(name = "Appointment.findByStatus", query = "SELECT a FROM Appointment a WHERE a.status = :status"),
+    @NamedQuery(name = "Appointment.findByReason", query = "SELECT a FROM Appointment a WHERE a.reason = :reason"),
+    @NamedQuery(name = "Appointment.findByCancelReason", query = "SELECT a FROM Appointment a WHERE a.cancelReason = :cancelReason"),
+    @NamedQuery(name = "Appointment.findByCreatedAt", query = "SELECT a FROM Appointment a WHERE a.createdAt = :createdAt"),
+    @NamedQuery(name = "Appointment.findByUpdatedAt", query = "SELECT a FROM Appointment a WHERE a.updatedAt = :updatedAt"),
+    @NamedQuery(name = "Appointment.findByActive", query = "SELECT a FROM Appointment a WHERE a.active = :active")})
+public class Appointment implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -99,31 +99,31 @@ public class Appointments implements Serializable {
     @NotNull
     @Column(name = "active")
     private boolean active;
+    @OneToOne(mappedBy = "appointmentId")
+    private MedicalRecord medicalRecord;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Doctors doctorId;
+    private Doctor doctorId;
     @JoinColumn(name = "service_id", referencedColumnName = "id")
     @ManyToOne
-    private MedicalServices serviceId;
+    private MedicalService serviceId;
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Patients patientId;
+    private Patient patientId;
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     @ManyToOne
-    private Users createdBy;
-    @OneToOne(mappedBy = "appointmentId")
-    private MedicalRecords medicalRecords;
+    private User createdBy;
     @OneToOne(cascade = CascadeType.ALL, mappedBy = "appointmentId")
-    private OnlineConsultations onlineConsultations;
+    private OnlineConsultation onlineConsultation;
 
-    public Appointments() {
+    public Appointment() {
     }
 
-    public Appointments(Long id) {
+    public Appointment(Long id) {
         this.id = id;
     }
 
-    public Appointments(Long id, String appointmentCode, Date appointmentDate, Date startTime, String status, Date createdAt, Date updatedAt, boolean active) {
+    public Appointment(Long id, String appointmentCode, Date appointmentDate, Date startTime, String status, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.appointmentCode = appointmentCode;
         this.appointmentDate = appointmentDate;
@@ -230,52 +230,52 @@ public class Appointments implements Serializable {
         this.active = active;
     }
 
-    public Doctors getDoctorId() {
+    public MedicalRecord getMedicalRecord() {
+        return medicalRecord;
+    }
+
+    public void setMedicalRecord(MedicalRecord medicalRecord) {
+        this.medicalRecord = medicalRecord;
+    }
+
+    public Doctor getDoctorId() {
         return doctorId;
     }
 
-    public void setDoctorId(Doctors doctorId) {
+    public void setDoctorId(Doctor doctorId) {
         this.doctorId = doctorId;
     }
 
-    public MedicalServices getServiceId() {
+    public MedicalService getServiceId() {
         return serviceId;
     }
 
-    public void setServiceId(MedicalServices serviceId) {
+    public void setServiceId(MedicalService serviceId) {
         this.serviceId = serviceId;
     }
 
-    public Patients getPatientId() {
+    public Patient getPatientId() {
         return patientId;
     }
 
-    public void setPatientId(Patients patientId) {
+    public void setPatientId(Patient patientId) {
         this.patientId = patientId;
     }
 
-    public Users getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Users createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 
-    public MedicalRecords getMedicalRecords() {
-        return medicalRecords;
+    public OnlineConsultation getOnlineConsultation() {
+        return onlineConsultation;
     }
 
-    public void setMedicalRecords(MedicalRecords medicalRecords) {
-        this.medicalRecords = medicalRecords;
-    }
-
-    public OnlineConsultations getOnlineConsultations() {
-        return onlineConsultations;
-    }
-
-    public void setOnlineConsultations(OnlineConsultations onlineConsultations) {
-        this.onlineConsultations = onlineConsultations;
+    public void setOnlineConsultation(OnlineConsultation onlineConsultation) {
+        this.onlineConsultation = onlineConsultation;
     }
 
     @Override
@@ -288,10 +288,10 @@ public class Appointments implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof Appointments)) {
+        if (!(object instanceof Appointment)) {
             return false;
         }
-        Appointments other = (Appointments) object;
+        Appointment other = (Appointment) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -300,7 +300,7 @@ public class Appointments implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.Appointments[ id=" + id + " ]";
+        return "com.evercare.pojo.Appointment[ id=" + id + " ]";
     }
     
 }

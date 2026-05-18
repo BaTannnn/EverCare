@@ -26,19 +26,19 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "medical_record_services")
+@Table(name = "medical_record_service")
 @NamedQueries({
-    @NamedQuery(name = "MedicalRecordServices.findAll", query = "SELECT m FROM MedicalRecordServices m"),
-    @NamedQuery(name = "MedicalRecordServices.findById", query = "SELECT m FROM MedicalRecordServices m WHERE m.id = :id"),
-    @NamedQuery(name = "MedicalRecordServices.findByQuantity", query = "SELECT m FROM MedicalRecordServices m WHERE m.quantity = :quantity"),
-    @NamedQuery(name = "MedicalRecordServices.findByUnitPrice", query = "SELECT m FROM MedicalRecordServices m WHERE m.unitPrice = :unitPrice"),
-    @NamedQuery(name = "MedicalRecordServices.findByCreatedAt", query = "SELECT m FROM MedicalRecordServices m WHERE m.createdAt = :createdAt"),
-    @NamedQuery(name = "MedicalRecordServices.findByUpdatedAt", query = "SELECT m FROM MedicalRecordServices m WHERE m.updatedAt = :updatedAt"),
-    @NamedQuery(name = "MedicalRecordServices.findByActive", query = "SELECT m FROM MedicalRecordServices m WHERE m.active = :active")})
-public class MedicalRecordServices implements Serializable {
+    @NamedQuery(name = "MedicalRecordService.findAll", query = "SELECT m FROM MedicalRecordService m"),
+    @NamedQuery(name = "MedicalRecordService.findById", query = "SELECT m FROM MedicalRecordService m WHERE m.id = :id"),
+    @NamedQuery(name = "MedicalRecordService.findByQuantity", query = "SELECT m FROM MedicalRecordService m WHERE m.quantity = :quantity"),
+    @NamedQuery(name = "MedicalRecordService.findByUnitPrice", query = "SELECT m FROM MedicalRecordService m WHERE m.unitPrice = :unitPrice"),
+    @NamedQuery(name = "MedicalRecordService.findByCreatedAt", query = "SELECT m FROM MedicalRecordService m WHERE m.createdAt = :createdAt"),
+    @NamedQuery(name = "MedicalRecordService.findByUpdatedAt", query = "SELECT m FROM MedicalRecordService m WHERE m.updatedAt = :updatedAt"),
+    @NamedQuery(name = "MedicalRecordService.findByActive", query = "SELECT m FROM MedicalRecordService m WHERE m.active = :active")})
+public class MedicalRecordService implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -75,19 +75,19 @@ public class MedicalRecordServices implements Serializable {
     private boolean active;
     @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private MedicalRecords medicalRecordId;
+    private MedicalRecord medicalRecordId;
     @JoinColumn(name = "service_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private MedicalServices serviceId;
+    private MedicalService serviceId;
 
-    public MedicalRecordServices() {
+    public MedicalRecordService() {
     }
 
-    public MedicalRecordServices(Long id) {
+    public MedicalRecordService(Long id) {
         this.id = id;
     }
 
-    public MedicalRecordServices(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
+    public MedicalRecordService(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
         this.id = id;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
@@ -152,19 +152,19 @@ public class MedicalRecordServices implements Serializable {
         this.active = active;
     }
 
-    public MedicalRecords getMedicalRecordId() {
+    public MedicalRecord getMedicalRecordId() {
         return medicalRecordId;
     }
 
-    public void setMedicalRecordId(MedicalRecords medicalRecordId) {
+    public void setMedicalRecordId(MedicalRecord medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
     }
 
-    public MedicalServices getServiceId() {
+    public MedicalService getServiceId() {
         return serviceId;
     }
 
-    public void setServiceId(MedicalServices serviceId) {
+    public void setServiceId(MedicalService serviceId) {
         this.serviceId = serviceId;
     }
 
@@ -178,10 +178,10 @@ public class MedicalRecordServices implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof MedicalRecordServices)) {
+        if (!(object instanceof MedicalRecordService)) {
             return false;
         }
-        MedicalRecordServices other = (MedicalRecordServices) object;
+        MedicalRecordService other = (MedicalRecordService) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -190,7 +190,7 @@ public class MedicalRecordServices implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.MedicalRecordServices[ id=" + id + " ]";
+        return "com.evercare.pojo.MedicalRecordService[ id=" + id + " ]";
     }
     
 }

@@ -24,18 +24,18 @@ import java.util.Date;
 
 /**
  *
- * @author batan
+ * @author cadic
  */
 @Entity
-@Table(name = "inventory_transactions")
+@Table(name = "inventory_transaction")
 @NamedQueries({
-    @NamedQuery(name = "InventoryTransactions.findAll", query = "SELECT i FROM InventoryTransactions i"),
-    @NamedQuery(name = "InventoryTransactions.findById", query = "SELECT i FROM InventoryTransactions i WHERE i.id = :id"),
-    @NamedQuery(name = "InventoryTransactions.findByTransactionType", query = "SELECT i FROM InventoryTransactions i WHERE i.transactionType = :transactionType"),
-    @NamedQuery(name = "InventoryTransactions.findByQuantity", query = "SELECT i FROM InventoryTransactions i WHERE i.quantity = :quantity"),
-    @NamedQuery(name = "InventoryTransactions.findByTransactionDate", query = "SELECT i FROM InventoryTransactions i WHERE i.transactionDate = :transactionDate"),
-    @NamedQuery(name = "InventoryTransactions.findByNote", query = "SELECT i FROM InventoryTransactions i WHERE i.note = :note")})
-public class InventoryTransactions implements Serializable {
+    @NamedQuery(name = "InventoryTransaction.findAll", query = "SELECT i FROM InventoryTransaction i"),
+    @NamedQuery(name = "InventoryTransaction.findById", query = "SELECT i FROM InventoryTransaction i WHERE i.id = :id"),
+    @NamedQuery(name = "InventoryTransaction.findByTransactionType", query = "SELECT i FROM InventoryTransaction i WHERE i.transactionType = :transactionType"),
+    @NamedQuery(name = "InventoryTransaction.findByQuantity", query = "SELECT i FROM InventoryTransaction i WHERE i.quantity = :quantity"),
+    @NamedQuery(name = "InventoryTransaction.findByTransactionDate", query = "SELECT i FROM InventoryTransaction i WHERE i.transactionDate = :transactionDate"),
+    @NamedQuery(name = "InventoryTransaction.findByNote", query = "SELECT i FROM InventoryTransaction i WHERE i.note = :note")})
+public class InventoryTransaction implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
@@ -62,25 +62,25 @@ public class InventoryTransactions implements Serializable {
     private String note;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
-    private Medicines medicineId;
+    private Medicine medicineId;
     @JoinColumn(name = "batch_id", referencedColumnName = "id")
     @ManyToOne
-    private MedicineBatches batchId;
+    private MedicineBatch batchId;
     @JoinColumn(name = "prescription_item_id", referencedColumnName = "id")
     @ManyToOne
-    private PrescriptionItems prescriptionItemId;
+    private PrescriptionItem prescriptionItemId;
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     @ManyToOne
-    private Users createdBy;
+    private User createdBy;
 
-    public InventoryTransactions() {
+    public InventoryTransaction() {
     }
 
-    public InventoryTransactions(Long id) {
+    public InventoryTransaction(Long id) {
         this.id = id;
     }
 
-    public InventoryTransactions(Long id, String transactionType, int quantity, Date transactionDate) {
+    public InventoryTransaction(Long id, String transactionType, int quantity, Date transactionDate) {
         this.id = id;
         this.transactionType = transactionType;
         this.quantity = quantity;
@@ -127,35 +127,35 @@ public class InventoryTransactions implements Serializable {
         this.note = note;
     }
 
-    public Medicines getMedicineId() {
+    public Medicine getMedicineId() {
         return medicineId;
     }
 
-    public void setMedicineId(Medicines medicineId) {
+    public void setMedicineId(Medicine medicineId) {
         this.medicineId = medicineId;
     }
 
-    public MedicineBatches getBatchId() {
+    public MedicineBatch getBatchId() {
         return batchId;
     }
 
-    public void setBatchId(MedicineBatches batchId) {
+    public void setBatchId(MedicineBatch batchId) {
         this.batchId = batchId;
     }
 
-    public PrescriptionItems getPrescriptionItemId() {
+    public PrescriptionItem getPrescriptionItemId() {
         return prescriptionItemId;
     }
 
-    public void setPrescriptionItemId(PrescriptionItems prescriptionItemId) {
+    public void setPrescriptionItemId(PrescriptionItem prescriptionItemId) {
         this.prescriptionItemId = prescriptionItemId;
     }
 
-    public Users getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Users createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 
@@ -169,10 +169,10 @@ public class InventoryTransactions implements Serializable {
     @Override
     public boolean equals(Object object) {
         // TODO: Warning - this method won't work in the case the id fields are not set
-        if (!(object instanceof InventoryTransactions)) {
+        if (!(object instanceof InventoryTransaction)) {
             return false;
         }
-        InventoryTransactions other = (InventoryTransactions) object;
+        InventoryTransaction other = (InventoryTransaction) object;
         if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
             return false;
         }
@@ -181,7 +181,7 @@ public class InventoryTransactions implements Serializable {
 
     @Override
     public String toString() {
-        return "com.evercare.pojo.InventoryTransactions[ id=" + id + " ]";
+        return "com.evercare.pojo.InventoryTransaction[ id=" + id + " ]";
     }
     
 }
