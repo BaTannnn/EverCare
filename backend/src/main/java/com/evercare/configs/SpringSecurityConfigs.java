@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -35,7 +37,10 @@ import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
             "com.evercare.repositories",
             "com.evercare.services",}
 )
+@PropertySource("classpath:database.properties")
 public class SpringSecurityConfigs {
+    @Autowired
+    private Environment env;
 
     @Autowired
     private UserDetailsService userDetailsService;
@@ -65,9 +70,9 @@ public class SpringSecurityConfigs {
     public Cloudinary cloudinary() {
         Cloudinary cloudinary
                 = new Cloudinary(ObjectUtils.asMap(
-                        "cloud_name", "dxxwcby8l",
-                        "api_key", "792844686918347",
-                        "api_secret", "T8ys_Z9zaKSqmKWa4K1RY6DXUJg",
+                        "cloud_name", env.getProperty("cloudinary.cloud_name"),
+                        "api_key", env.getProperty("cloudinary.api_key"),
+                        "api_secret", env.getProperty("cloudinary.api_secret"),
                         "secure", true));
         return cloudinary;
     }

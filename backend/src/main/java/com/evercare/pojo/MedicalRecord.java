@@ -23,6 +23,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
@@ -33,6 +35,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "medical_record")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "MedicalRecord.findAll", query = "SELECT m FROM MedicalRecord m"),
     @NamedQuery(name = "MedicalRecord.findById", query = "SELECT m FROM MedicalRecord m WHERE m.id = :id"),
@@ -55,8 +58,6 @@ public class MedicalRecord implements Serializable {
     @Size(min = 1, max = 30)
     @Column(name = "record_code")
     private String recordCode;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "visit_date")
     @Temporal(TemporalType.TIMESTAMP)
     private Date visitDate;
@@ -76,25 +77,17 @@ public class MedicalRecord implements Serializable {
     @Size(max = 65535)
     @Column(name = "doctor_note")
     private String doctorNote;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "payment_status")
     private String paymentStatus;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
     private Set<MedicalRecordService> medicalRecordServiceSet;
     @JoinColumn(name = "appointment_id", referencedColumnName = "id")
@@ -120,14 +113,9 @@ public class MedicalRecord implements Serializable {
         this.id = id;
     }
 
-    public MedicalRecord(Long id, String recordCode, Date visitDate, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public MedicalRecord(Long id, String recordCode) {
         this.id = id;
         this.recordCode = recordCode;
-        this.visitDate = visitDate;
-        this.paymentStatus = paymentStatus;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -210,14 +198,15 @@ public class MedicalRecord implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<MedicalRecordService> getMedicalRecordServiceSet() {
         return medicalRecordServiceSet;
     }
@@ -250,6 +239,7 @@ public class MedicalRecord implements Serializable {
         this.patientId = patientId;
     }
 
+    @XmlTransient
     public Set<TestResult> getTestResultSet() {
         return testResultSet;
     }

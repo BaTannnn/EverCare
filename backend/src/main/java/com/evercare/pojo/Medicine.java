@@ -20,6 +20,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -31,6 +33,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "medicine")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Medicine.findAll", query = "SELECT m FROM Medicine m"),
     @NamedQuery(name = "Medicine.findById", query = "SELECT m FROM Medicine m WHERE m.id = :id"),
@@ -60,9 +63,7 @@ public class Medicine implements Serializable {
     @Size(min = 1, max = 150)
     @Column(name = "name")
     private String name;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "unit")
     private String unit;
     @Lob
@@ -74,28 +75,18 @@ public class Medicine implements Serializable {
     @Column(name = "usage_note")
     private String usageNote;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "unit_price")
     private BigDecimal unitPrice;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "min_stock_quantity")
-    private int minStockQuantity;
-    @Basic(optional = false)
-    @NotNull
+    private Integer minStockQuantity;
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicineId")
     private Set<MedicineBatch> medicineBatchSet;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicineId")
@@ -110,16 +101,10 @@ public class Medicine implements Serializable {
         this.id = id;
     }
 
-    public Medicine(Long id, String medicineCode, String name, String unit, BigDecimal unitPrice, int minStockQuantity, Date createdAt, Date updatedAt, boolean active) {
+    public Medicine(Long id, String medicineCode, String name) {
         this.id = id;
         this.medicineCode = medicineCode;
         this.name = name;
-        this.unit = unit;
-        this.unitPrice = unitPrice;
-        this.minStockQuantity = minStockQuantity;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -178,11 +163,11 @@ public class Medicine implements Serializable {
         this.unitPrice = unitPrice;
     }
 
-    public int getMinStockQuantity() {
+    public Integer getMinStockQuantity() {
         return minStockQuantity;
     }
 
-    public void setMinStockQuantity(int minStockQuantity) {
+    public void setMinStockQuantity(Integer minStockQuantity) {
         this.minStockQuantity = minStockQuantity;
     }
 
@@ -202,14 +187,15 @@ public class Medicine implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<MedicineBatch> getMedicineBatchSet() {
         return medicineBatchSet;
     }
@@ -218,6 +204,7 @@ public class Medicine implements Serializable {
         this.medicineBatchSet = medicineBatchSet;
     }
 
+    @XmlTransient
     public Set<InventoryTransaction> getInventoryTransactionSet() {
         return inventoryTransactionSet;
     }
@@ -226,6 +213,7 @@ public class Medicine implements Serializable {
         this.inventoryTransactionSet = inventoryTransactionSet;
     }
 
+    @XmlTransient
     public Set<PrescriptionItem> getPrescriptionItemSet() {
         return prescriptionItemSet;
     }

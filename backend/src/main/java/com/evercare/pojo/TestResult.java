@@ -20,6 +20,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -29,6 +30,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "test_result")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "TestResult.findAll", query = "SELECT t FROM TestResult t"),
     @NamedQuery(name = "TestResult.findById", query = "SELECT t FROM TestResult t WHERE t.id = :id"),
@@ -68,25 +70,17 @@ public class TestResult implements Serializable {
     @Size(max = 65535)
     @Column(name = "conclusion")
     private String conclusion;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "result_date")
     @Temporal(TemporalType.TIMESTAMP)
     private Date resultDate;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "performed_by", referencedColumnName = "id")
     @ManyToOne
     private Employee performedBy;
@@ -104,14 +98,10 @@ public class TestResult implements Serializable {
         this.id = id;
     }
 
-    public TestResult(Long id, String resultCode, String resultTitle, Date resultDate, Date createdAt, Date updatedAt, boolean active) {
+    public TestResult(Long id, String resultCode, String resultTitle) {
         this.id = id;
         this.resultCode = resultCode;
         this.resultTitle = resultTitle;
-        this.resultDate = resultDate;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -186,11 +176,11 @@ public class TestResult implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

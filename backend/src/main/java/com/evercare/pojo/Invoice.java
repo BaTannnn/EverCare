@@ -22,6 +22,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -33,6 +35,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "invoice")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Invoice.findAll", query = "SELECT i FROM Invoice i"),
     @NamedQuery(name = "Invoice.findById", query = "SELECT i FROM Invoice i WHERE i.id = :id"),
@@ -62,28 +65,18 @@ public class Invoice implements Serializable {
     @Column(name = "invoice_code")
     private String invoiceCode;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "total_service_amount")
     private BigDecimal totalServiceAmount;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "total_medicine_amount")
     private BigDecimal totalMedicineAmount;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "discount_amount")
     private BigDecimal discountAmount;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "total_amount")
     private BigDecimal totalAmount;
     @Size(max = 40)
     @Column(name = "payment_method")
     private String paymentMethod;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "payment_status")
     private String paymentStatus;
     @Column(name = "paid_at")
@@ -92,20 +85,14 @@ public class Invoice implements Serializable {
     @Size(max = 255)
     @Column(name = "note")
     private String note;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "invoiceId")
     private Set<Payment> paymentSet;
     @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
@@ -125,17 +112,9 @@ public class Invoice implements Serializable {
         this.id = id;
     }
 
-    public Invoice(Long id, String invoiceCode, BigDecimal totalServiceAmount, BigDecimal totalMedicineAmount, BigDecimal discountAmount, BigDecimal totalAmount, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Invoice(Long id, String invoiceCode) {
         this.id = id;
         this.invoiceCode = invoiceCode;
-        this.totalServiceAmount = totalServiceAmount;
-        this.totalMedicineAmount = totalMedicineAmount;
-        this.discountAmount = discountAmount;
-        this.totalAmount = totalAmount;
-        this.paymentStatus = paymentStatus;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -234,14 +213,15 @@ public class Invoice implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<Payment> getPaymentSet() {
         return paymentSet;
     }

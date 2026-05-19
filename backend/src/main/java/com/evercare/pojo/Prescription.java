@@ -23,6 +23,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
@@ -33,6 +35,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "prescription")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Prescription.findAll", query = "SELECT p FROM Prescription p"),
     @NamedQuery(name = "Prescription.findById", query = "SELECT p FROM Prescription p WHERE p.id = :id"),
@@ -55,34 +58,24 @@ public class Prescription implements Serializable {
     @Size(min = 1, max = 30)
     @Column(name = "prescription_code")
     private String prescriptionCode;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "prescribed_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date prescribedAt;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "status")
     private String status;
     @Lob
     @Size(max = 65535)
     @Column(name = "note")
     private String note;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private Doctor doctorId;
@@ -102,14 +95,9 @@ public class Prescription implements Serializable {
         this.id = id;
     }
 
-    public Prescription(Long id, String prescriptionCode, Date prescribedAt, String status, Date createdAt, Date updatedAt, boolean active) {
+    public Prescription(Long id, String prescriptionCode) {
         this.id = id;
         this.prescriptionCode = prescriptionCode;
-        this.prescribedAt = prescribedAt;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -168,11 +156,11 @@ public class Prescription implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
@@ -200,6 +188,7 @@ public class Prescription implements Serializable {
         this.patientId = patientId;
     }
 
+    @XmlTransient
     public Set<PrescriptionItem> getPrescriptionItemSet() {
         return prescriptionItemSet;
     }

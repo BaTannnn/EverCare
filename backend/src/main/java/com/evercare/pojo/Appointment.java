@@ -22,6 +22,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -31,6 +32,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "appointment")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Appointment.findAll", query = "SELECT a FROM Appointment a"),
     @NamedQuery(name = "Appointment.findById", query = "SELECT a FROM Appointment a WHERE a.id = :id"),
@@ -70,9 +72,7 @@ public class Appointment implements Serializable {
     @Column(name = "end_time")
     @Temporal(TemporalType.TIME)
     private Date endTime;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 40)
+    @Size(max = 40)
     @Column(name = "status")
     private String status;
     @Size(max = 255)
@@ -85,20 +85,14 @@ public class Appointment implements Serializable {
     @Size(max = 255)
     @Column(name = "cancel_reason")
     private String cancelReason;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToOne(mappedBy = "appointmentId")
     private MedicalRecord medicalRecord;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
@@ -123,15 +117,11 @@ public class Appointment implements Serializable {
         this.id = id;
     }
 
-    public Appointment(Long id, String appointmentCode, Date appointmentDate, Date startTime, String status, Date createdAt, Date updatedAt, boolean active) {
+    public Appointment(Long id, String appointmentCode, Date appointmentDate, Date startTime) {
         this.id = id;
         this.appointmentCode = appointmentCode;
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -222,11 +212,11 @@ public class Appointment implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

@@ -19,6 +19,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
@@ -29,6 +31,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "department")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Department.findAll", query = "SELECT d FROM Department d"),
     @NamedQuery(name = "Department.findById", query = "SELECT d FROM Department d WHERE d.id = :id"),
@@ -59,20 +62,14 @@ public class Department implements Serializable {
     @Size(max = 65535)
     @Column(name = "description")
     private String description;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(mappedBy = "departmentId")
     private Set<MedicalService> medicalServiceSet;
     @OneToMany(mappedBy = "departmentId")
@@ -85,13 +82,10 @@ public class Department implements Serializable {
         this.id = id;
     }
 
-    public Department(Long id, String code, String name, Date createdAt, Date updatedAt, boolean active) {
+    public Department(Long id, String code, String name) {
         this.id = id;
         this.code = code;
         this.name = name;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -142,14 +136,15 @@ public class Department implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<MedicalService> getMedicalServiceSet() {
         return medicalServiceSet;
     }
@@ -158,6 +153,7 @@ public class Department implements Serializable {
         this.medicalServiceSet = medicalServiceSet;
     }
 
+    @XmlTransient
     public Set<Doctor> getDoctorSet() {
         return doctorSet;
     }

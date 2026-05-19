@@ -20,6 +20,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Date;
@@ -30,6 +31,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "notification")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Notification.findAll", query = "SELECT n FROM Notification n"),
     @NamedQuery(name = "Notification.findById", query = "SELECT n FROM Notification n WHERE n.id = :id"),
@@ -58,9 +60,7 @@ public class Notification implements Serializable {
     @Size(min = 1, max = 65535)
     @Column(name = "content")
     private String content;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 50)
+    @Size(max = 50)
     @Column(name = "notification_type")
     private String notificationType;
     @Column(name = "related_id")
@@ -68,15 +68,11 @@ public class Notification implements Serializable {
     @Column(name = "read_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date readAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private User userId;
@@ -88,13 +84,10 @@ public class Notification implements Serializable {
         this.id = id;
     }
 
-    public Notification(Long id, String title, String content, String notificationType, Date createdAt, boolean active) {
+    public Notification(Long id, String title, String content) {
         this.id = id;
         this.title = title;
         this.content = content;
-        this.notificationType = notificationType;
-        this.createdAt = createdAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -153,11 +146,11 @@ public class Notification implements Serializable {
         this.createdAt = createdAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

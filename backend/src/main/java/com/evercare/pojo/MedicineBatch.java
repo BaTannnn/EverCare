@@ -20,6 +20,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -31,6 +33,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "medicine_batch")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "MedicineBatch.findAll", query = "SELECT m FROM MedicineBatch m"),
     @NamedQuery(name = "MedicineBatch.findById", query = "SELECT m FROM MedicineBatch m WHERE m.id = :id"),
@@ -57,8 +60,6 @@ public class MedicineBatch implements Serializable {
     @Size(min = 1, max = 50)
     @Column(name = "batch_code")
     private String batchCode;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "import_date")
     @Temporal(TemporalType.DATE)
     private Date importDate;
@@ -67,34 +68,24 @@ public class MedicineBatch implements Serializable {
     @Column(name = "expiry_date")
     @Temporal(TemporalType.DATE)
     private Date expiryDate;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "quantity")
-    private int quantity;
-    @Basic(optional = false)
-    @NotNull
+    private Integer quantity;
     @Column(name = "remaining_quantity")
-    private int remainingQuantity;
+    private Integer remainingQuantity;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "import_price")
     private BigDecimal importPrice;
     @Size(max = 150)
     @Column(name = "supplier_name")
     private String supplierName;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private Medicine medicineId;
@@ -108,16 +99,10 @@ public class MedicineBatch implements Serializable {
         this.id = id;
     }
 
-    public MedicineBatch(Long id, String batchCode, Date importDate, Date expiryDate, int quantity, int remainingQuantity, Date createdAt, Date updatedAt, boolean active) {
+    public MedicineBatch(Long id, String batchCode, Date expiryDate) {
         this.id = id;
         this.batchCode = batchCode;
-        this.importDate = importDate;
         this.expiryDate = expiryDate;
-        this.quantity = quantity;
-        this.remainingQuantity = remainingQuantity;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -152,19 +137,19 @@ public class MedicineBatch implements Serializable {
         this.expiryDate = expiryDate;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
-    public int getRemainingQuantity() {
+    public Integer getRemainingQuantity() {
         return remainingQuantity;
     }
 
-    public void setRemainingQuantity(int remainingQuantity) {
+    public void setRemainingQuantity(Integer remainingQuantity) {
         this.remainingQuantity = remainingQuantity;
     }
 
@@ -200,11 +185,11 @@ public class MedicineBatch implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
@@ -216,6 +201,7 @@ public class MedicineBatch implements Serializable {
         this.medicineId = medicineId;
     }
 
+    @XmlTransient
     public Set<InventoryTransaction> getInventoryTransactionSet() {
         return inventoryTransactionSet;
     }

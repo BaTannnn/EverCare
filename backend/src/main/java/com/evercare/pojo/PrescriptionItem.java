@@ -18,8 +18,9 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -31,6 +32,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "prescription_item")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "PrescriptionItem.findAll", query = "SELECT p FROM PrescriptionItem p"),
     @NamedQuery(name = "PrescriptionItem.findById", query = "SELECT p FROM PrescriptionItem p WHERE p.id = :id"),
@@ -51,13 +53,9 @@ public class PrescriptionItem implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "quantity")
-    private int quantity;
+    private Integer quantity;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "unit_price")
     private BigDecimal unitPrice;
     @Size(max = 100)
@@ -72,20 +70,14 @@ public class PrescriptionItem implements Serializable {
     @Size(max = 255)
     @Column(name = "instruction")
     private String instruction;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(mappedBy = "prescriptionItemId")
     private Set<InventoryTransaction> inventoryTransactionSet;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
@@ -102,15 +94,6 @@ public class PrescriptionItem implements Serializable {
         this.id = id;
     }
 
-    public PrescriptionItem(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
-        this.id = id;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
-    }
-
     public Long getId() {
         return id;
     }
@@ -119,11 +102,11 @@ public class PrescriptionItem implements Serializable {
         this.id = id;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
@@ -183,14 +166,15 @@ public class PrescriptionItem implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<InventoryTransaction> getInventoryTransactionSet() {
         return inventoryTransactionSet;
     }

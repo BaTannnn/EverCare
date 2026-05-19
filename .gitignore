@@ -1,4 +1,5 @@
 backend/src/main/resources/database.properties
+backend/src/main/resources/configs.properties
 *.env
 .env
 

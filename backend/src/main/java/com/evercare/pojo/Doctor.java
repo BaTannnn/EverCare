@@ -23,6 +23,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -34,6 +36,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "doctor")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Doctor.findAll", query = "SELECT d FROM Doctor d"),
     @NamedQuery(name = "Doctor.findById", query = "SELECT d FROM Doctor d WHERE d.id = :id"),
@@ -86,14 +89,10 @@ public class Doctor implements Serializable {
     @Size(max = 150)
     @Column(name = "specialization")
     private String specialization;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "doctor_type")
     private String doctorType;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "work_status")
     private String workStatus;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
@@ -105,20 +104,14 @@ public class Doctor implements Serializable {
     @Size(max = 65535)
     @Column(name = "bio")
     private String bio;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
     private Set<DoctorSchedule> doctorScheduleSet;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "doctorId")
@@ -141,15 +134,10 @@ public class Doctor implements Serializable {
         this.id = id;
     }
 
-    public Doctor(Long id, String doctorCode, String fullName, String doctorType, String workStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Doctor(Long id, String doctorCode, String fullName) {
         this.id = id;
         this.doctorCode = doctorCode;
         this.fullName = fullName;
-        this.doctorType = doctorType;
-        this.workStatus = workStatus;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -272,14 +260,15 @@ public class Doctor implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<DoctorSchedule> getDoctorScheduleSet() {
         return doctorScheduleSet;
     }
@@ -288,6 +277,7 @@ public class Doctor implements Serializable {
         this.doctorScheduleSet = doctorScheduleSet;
     }
 
+    @XmlTransient
     public Set<MedicalRecord> getMedicalRecordSet() {
         return medicalRecordSet;
     }
@@ -296,6 +286,7 @@ public class Doctor implements Serializable {
         this.medicalRecordSet = medicalRecordSet;
     }
 
+    @XmlTransient
     public Set<Appointment> getAppointmentSet() {
         return appointmentSet;
     }
@@ -320,6 +311,7 @@ public class Doctor implements Serializable {
         this.userId = userId;
     }
 
+    @XmlTransient
     public Set<Prescription> getPrescriptionSet() {
         return prescriptionSet;
     }

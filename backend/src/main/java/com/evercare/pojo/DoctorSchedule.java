@@ -19,6 +19,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -28,6 +29,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "doctor_schedule")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "DoctorSchedule.findAll", query = "SELECT d FROM DoctorSchedule d"),
     @NamedQuery(name = "DoctorSchedule.findById", query = "SELECT d FROM DoctorSchedule d WHERE d.id = :id"),
@@ -63,32 +65,22 @@ public class DoctorSchedule implements Serializable {
     @Column(name = "end_time")
     @Temporal(TemporalType.TIME)
     private Date endTime;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "max_patients")
-    private int maxPatients;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    private Integer maxPatients;
+    @Size(max = 30)
     @Column(name = "status")
     private String status;
     @Size(max = 255)
     @Column(name = "note")
     private String note;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private Doctor doctorId;
@@ -100,16 +92,11 @@ public class DoctorSchedule implements Serializable {
         this.id = id;
     }
 
-    public DoctorSchedule(Long id, Date workDate, Date startTime, Date endTime, int maxPatients, String status, Date createdAt, Date updatedAt, boolean active) {
+    public DoctorSchedule(Long id, Date workDate, Date startTime, Date endTime) {
         this.id = id;
         this.workDate = workDate;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.maxPatients = maxPatients;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -144,11 +131,11 @@ public class DoctorSchedule implements Serializable {
         this.endTime = endTime;
     }
 
-    public int getMaxPatients() {
+    public Integer getMaxPatients() {
         return maxPatients;
     }
 
-    public void setMaxPatients(int maxPatients) {
+    public void setMaxPatients(Integer maxPatients) {
         this.maxPatients = maxPatients;
     }
 
@@ -184,11 +171,11 @@ public class DoctorSchedule implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

@@ -22,6 +22,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -33,6 +35,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "medical_service")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "MedicalService.findAll", query = "SELECT m FROM MedicalService m"),
     @NamedQuery(name = "MedicalService.findById", query = "SELECT m FROM MedicalService m WHERE m.id = :id"),
@@ -66,29 +69,19 @@ public class MedicalService implements Serializable {
     @Column(name = "description")
     private String description;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "price")
     private BigDecimal price;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 50)
+    @Size(max = 50)
     @Column(name = "service_type")
     private String serviceType;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "serviceId")
     private Set<MedicalRecordService> medicalRecordServiceSet;
     @JoinColumn(name = "department_id", referencedColumnName = "id")
@@ -106,15 +99,10 @@ public class MedicalService implements Serializable {
         this.id = id;
     }
 
-    public MedicalService(Long id, String code, String name, BigDecimal price, String serviceType, Date createdAt, Date updatedAt, boolean active) {
+    public MedicalService(Long id, String code, String name) {
         this.id = id;
         this.code = code;
         this.name = name;
-        this.price = price;
-        this.serviceType = serviceType;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -181,14 +169,15 @@ public class MedicalService implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<MedicalRecordService> getMedicalRecordServiceSet() {
         return medicalRecordServiceSet;
     }
@@ -205,6 +194,7 @@ public class MedicalService implements Serializable {
         this.departmentId = departmentId;
     }
 
+    @XmlTransient
     public Set<Appointment> getAppointmentSet() {
         return appointmentSet;
     }
@@ -213,6 +203,7 @@ public class MedicalService implements Serializable {
         this.appointmentSet = appointmentSet;
     }
 
+    @XmlTransient
     public Set<TestResult> getTestResultSet() {
         return testResultSet;
     }

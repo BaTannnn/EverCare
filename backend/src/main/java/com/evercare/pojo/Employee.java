@@ -20,6 +20,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -31,6 +33,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "employee")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Employee.findAll", query = "SELECT e FROM Employee e"),
     @NamedQuery(name = "Employee.findById", query = "SELECT e FROM Employee e WHERE e.id = :id"),
@@ -92,25 +95,17 @@ public class Employee implements Serializable {
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
     @Column(name = "salary")
     private BigDecimal salary;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "hired_date")
     @Temporal(TemporalType.DATE)
     private Date hiredDate;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     @OneToOne
     private User userId;
@@ -124,16 +119,12 @@ public class Employee implements Serializable {
         this.id = id;
     }
 
-    public Employee(Long id, String employeeCode, String fullName, String phone, String position, Date hiredDate, Date createdAt, Date updatedAt, boolean active) {
+    public Employee(Long id, String employeeCode, String fullName, String phone, String position) {
         this.id = id;
         this.employeeCode = employeeCode;
         this.fullName = fullName;
         this.phone = phone;
         this.position = position;
-        this.hiredDate = hiredDate;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -240,11 +231,11 @@ public class Employee implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
@@ -256,6 +247,7 @@ public class Employee implements Serializable {
         this.userId = userId;
     }
 
+    @XmlTransient
     public Set<TestResult> getTestResultSet() {
         return testResultSet;
     }

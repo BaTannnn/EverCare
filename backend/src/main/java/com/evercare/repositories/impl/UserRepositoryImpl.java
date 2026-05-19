@@ -29,11 +29,13 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User getUserByUsername(String username) {
         Session session = this.factory.getObject().getCurrentSession();
-        Query q = session.createNamedQuery("User.findByUsername", User.class);
+        Query<User> q = session.createQuery(
+            "SELECT u FROM User u WHERE u.username = :username",
+                User.class
+        );
         q.setParameter("username", username);
 
-        return (User) q.getSingleResult();
-
+        return q.getSingleResult();
     }
 
     @Override

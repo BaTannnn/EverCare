@@ -18,8 +18,8 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -29,6 +29,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "online_consultation")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "OnlineConsultation.findAll", query = "SELECT o FROM OnlineConsultation o"),
     @NamedQuery(name = "OnlineConsultation.findById", query = "SELECT o FROM OnlineConsultation o WHERE o.id = :id"),
@@ -48,9 +49,7 @@ public class OnlineConsultation implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 20)
+    @Size(max = 20)
     @Column(name = "consultation_type")
     private String consultationType;
     @Size(max = 255)
@@ -66,25 +65,17 @@ public class OnlineConsultation implements Serializable {
     @Size(max = 65535)
     @Column(name = "summary")
     private String summary;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "status")
     private String status;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "appointment_id", referencedColumnName = "id")
     @OneToOne(optional = false)
     private Appointment appointmentId;
@@ -94,15 +85,6 @@ public class OnlineConsultation implements Serializable {
 
     public OnlineConsultation(Long id) {
         this.id = id;
-    }
-
-    public OnlineConsultation(Long id, String consultationType, String status, Date createdAt, Date updatedAt, boolean active) {
-        this.id = id;
-        this.consultationType = consultationType;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -177,11 +159,11 @@ public class OnlineConsultation implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

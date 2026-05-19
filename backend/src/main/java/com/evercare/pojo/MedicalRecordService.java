@@ -18,8 +18,8 @@ import jakarta.persistence.NamedQuery;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -30,6 +30,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "medical_record_service")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "MedicalRecordService.findAll", query = "SELECT m FROM MedicalRecordService m"),
     @NamedQuery(name = "MedicalRecordService.findById", query = "SELECT m FROM MedicalRecordService m WHERE m.id = :id"),
@@ -46,33 +47,23 @@ public class MedicalRecordService implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "quantity")
-    private int quantity;
+    private Integer quantity;
     // @Max(value=?)  @Min(value=?)//if you know range of your decimal fields consider using these annotations to enforce field validation
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "unit_price")
     private BigDecimal unitPrice;
     @Lob
     @Size(max = 65535)
     @Column(name = "result_summary")
     private String resultSummary;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "medical_record_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private MedicalRecord medicalRecordId;
@@ -87,15 +78,6 @@ public class MedicalRecordService implements Serializable {
         this.id = id;
     }
 
-    public MedicalRecordService(Long id, int quantity, BigDecimal unitPrice, Date createdAt, Date updatedAt, boolean active) {
-        this.id = id;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
-    }
-
     public Long getId() {
         return id;
     }
@@ -104,11 +86,11 @@ public class MedicalRecordService implements Serializable {
         this.id = id;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 
@@ -144,11 +126,11 @@ public class MedicalRecordService implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 

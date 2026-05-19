@@ -4,13 +4,10 @@
  */
 package com.evercare.pojo;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -24,6 +21,8 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
@@ -34,6 +33,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "user")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "User.findAll", query = "SELECT u FROM User u"),
     @NamedQuery(name = "User.findById", query = "SELECT u FROM User u WHERE u.id = :id"),
@@ -69,7 +69,6 @@ public class User implements Serializable {
     @NotNull
     @Size(min = 1, max = 255)
     @Column(name = "password")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
     @Basic(optional = false)
     @NotNull
@@ -83,29 +82,18 @@ public class User implements Serializable {
     @Size(max = 255)
     @Column(name = "avatar_url")
     private String avatarUrl;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "enabled")
-    private boolean enabled;
-    @Basic(optional = false)
-    @NotNull
+    private Boolean enabled;
     @Column(name = "account_non_locked")
-    private boolean accountNonLocked;
-    @Basic(optional = false)
-    @NotNull
+    private Boolean accountNonLocked;
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
-    @JsonIgnore
+    private Boolean active;
     @ManyToMany(mappedBy = "userSet")
     private Set<Role> roleSet;
     @OneToMany(mappedBy = "createdBy")
@@ -130,16 +118,11 @@ public class User implements Serializable {
         this.id = id;
     }
 
-    public User(Long id, String username, String password, String fullName, boolean enabled, boolean accountNonLocked, Date createdAt, Date updatedAt, boolean active) {
+    public User(Long id, String username, String password, String fullName) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.fullName = fullName;
-        this.enabled = enabled;
-        this.accountNonLocked = accountNonLocked;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -198,19 +181,19 @@ public class User implements Serializable {
         this.avatarUrl = avatarUrl;
     }
 
-    public boolean getEnabled() {
+    public Boolean getEnabled() {
         return enabled;
     }
 
-    public void setEnabled(boolean enabled) {
+    public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
     }
 
-    public boolean getAccountNonLocked() {
+    public Boolean getAccountNonLocked() {
         return accountNonLocked;
     }
 
-    public void setAccountNonLocked(boolean accountNonLocked) {
+    public void setAccountNonLocked(Boolean accountNonLocked) {
         this.accountNonLocked = accountNonLocked;
     }
 
@@ -230,14 +213,15 @@ public class User implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
+    @XmlTransient
     public Set<Role> getRoleSet() {
         return roleSet;
     }
@@ -246,6 +230,7 @@ public class User implements Serializable {
         this.roleSet = roleSet;
     }
 
+    @XmlTransient
     public Set<Appointment> getAppointmentSet() {
         return appointmentSet;
     }
@@ -262,6 +247,7 @@ public class User implements Serializable {
         this.employee = employee;
     }
 
+    @XmlTransient
     public Set<InventoryTransaction> getInventoryTransactionSet() {
         return inventoryTransactionSet;
     }
@@ -278,6 +264,7 @@ public class User implements Serializable {
         this.doctor = doctor;
     }
 
+    @XmlTransient
     public Set<Notification> getNotificationSet() {
         return notificationSet;
     }
@@ -294,6 +281,7 @@ public class User implements Serializable {
         this.patient = patient;
     }
 
+    @XmlTransient
     public Set<Invoice> getInvoiceSet() {
         return invoiceSet;
     }

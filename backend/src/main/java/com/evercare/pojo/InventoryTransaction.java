@@ -19,6 +19,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -28,6 +29,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "inventory_transaction")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "InventoryTransaction.findAll", query = "SELECT i FROM InventoryTransaction i"),
     @NamedQuery(name = "InventoryTransaction.findById", query = "SELECT i FROM InventoryTransaction i WHERE i.id = :id"),
@@ -52,8 +54,6 @@ public class InventoryTransaction implements Serializable {
     @NotNull
     @Column(name = "quantity")
     private int quantity;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "transaction_date")
     @Temporal(TemporalType.TIMESTAMP)
     private Date transactionDate;
@@ -80,11 +80,10 @@ public class InventoryTransaction implements Serializable {
         this.id = id;
     }
 
-    public InventoryTransaction(Long id, String transactionType, int quantity, Date transactionDate) {
+    public InventoryTransaction(Long id, String transactionType, int quantity) {
         this.id = id;
         this.transactionType = transactionType;
         this.quantity = quantity;
-        this.transactionDate = transactionDate;
     }
 
     public Long getId() {

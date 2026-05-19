@@ -6,6 +6,7 @@ package com.evercare.controllers;
 
 import com.evercare.pojo.User;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 /**
@@ -13,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * @author cadic
  */
 @Controller
-public class HomeContoller {
+@ControllerAdvice
+public class HomeController {
   
     @RequestMapping("/")
     public String index() {

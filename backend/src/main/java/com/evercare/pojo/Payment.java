@@ -19,6 +19,7 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -29,6 +30,7 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "payment")
+@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Payment.findAll", query = "SELECT p FROM Payment p"),
     @NamedQuery(name = "Payment.findById", query = "SELECT p FROM Payment p WHERE p.id = :id"),
@@ -54,9 +56,7 @@ public class Payment implements Serializable {
     @NotNull
     @Column(name = "amount")
     private BigDecimal amount;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 40)
+    @Size(max = 40)
     @Column(name = "payment_method")
     private String paymentMethod;
     @Size(max = 100)
@@ -65,28 +65,20 @@ public class Payment implements Serializable {
     @Size(max = 80)
     @Column(name = "payment_provider")
     private String paymentProvider;
-    @Basic(optional = false)
-    @NotNull
-    @Size(min = 1, max = 30)
+    @Size(max = 30)
     @Column(name = "payment_status")
     private String paymentStatus;
     @Column(name = "paid_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date paidAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Basic(optional = false)
-    @NotNull
     @Column(name = "active")
-    private boolean active;
+    private Boolean active;
     @JoinColumn(name = "invoice_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
     private Invoice invoiceId;
@@ -98,14 +90,9 @@ public class Payment implements Serializable {
         this.id = id;
     }
 
-    public Payment(Long id, BigDecimal amount, String paymentMethod, String paymentStatus, Date createdAt, Date updatedAt, boolean active) {
+    public Payment(Long id, BigDecimal amount) {
         this.id = id;
         this.amount = amount;
-        this.paymentMethod = paymentMethod;
-        this.paymentStatus = paymentStatus;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.active = active;
     }
 
     public Long getId() {
@@ -180,11 +167,11 @@ public class Payment implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    public boolean getActive() {
+    public Boolean getActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public void setActive(Boolean active) {
         this.active = active;
     }
 
