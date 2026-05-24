@@ -48,10 +48,8 @@ public class Department implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
     @Size(min = 1, max = 30)
-    @Column(name = "code")
+    @Column(name = "code", insertable = false, updatable = false)
     private String code;
     @Basic(optional = false)
     @NotNull

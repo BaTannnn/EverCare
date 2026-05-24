@@ -4,6 +4,7 @@
  */
 package com.evercare.services;
 
+import com.evercare.dtos.request.DepartmentRequest;
 import com.evercare.pojo.Department;
 import java.util.List;
 import java.util.Map;
@@ -13,8 +14,13 @@ import java.util.Map;
  * @author cadic
  */
 public interface DepartmentService {
-    List<Department> getDeparments(Map<String, String> params);
-    Department getDeparmentById(int id);
-    void addOrUpdateDepartment(Department d);
-    void sotfDelete(int id);
+    List<Department> getDepartments(Map<String, String> params);
+
+    Department getDepartmentById(int id);
+
+    Department createDepartment(DepartmentRequest req);
+
+    Department updateDepartment(int id, DepartmentRequest req);
+
+    void softDelete(int id);
 }

@@ -4,6 +4,8 @@
  */
 package com.evercare.services.impl;
 
+import com.evercare.dtos.request.DepartmentRequest;
+import com.evercare.mappers.DepartmentMapper;
 import com.evercare.pojo.Department;
 import com.evercare.repositories.DepartmentRepository;
 import com.evercare.services.DepartmentService;
@@ -24,52 +26,73 @@ public class DepartmentServiceImpl implements DepartmentService {
     private DepartmentRepository departmentRepo;
 
     @Override
-    public List<Department> getDeparments(Map<String, String> params) {
-        return this.departmentRepo.getDeparments(params);
+    public List<Department> getDepartments(Map<String, String> params) {
+        return this.departmentRepo.getDepartments(params);
     }
 
     @Override
-    public Department getDeparmentById(int id) {
-        return this.departmentRepo.getDeparmentById(id);
+    public Department getDepartmentById(int id) {
+        return this.departmentRepo.getDepartmentById(id);
     }
 
     @Override
-    public void addOrUpdateDepartment(Department d) {
-        validateDepartment(d);
-        if (d.getId() == null) {
-//            d.setCode("DEP" + System.currentTimeMillis());
-            d.setCreatedAt(new java.util.Date());
-            d.setUpdatedAt(new java.util.Date());
-            d.setActive(true);
-        } else {
-            Department existingDep = this.departmentRepo.getDeparmentById(d.getId().intValue());
-            d.setCode(existingDep.getCode());
-            d.setCreatedAt(existingDep.getCreatedAt());
-            d.setActive(existingDep.getActive());
+    public Department createDepartment(DepartmentRequest req) {
+        validateDepartment(req);
 
-            d.setUpdatedAt(new java.util.Date());
+        Department d = DepartmentMapper.toEntityForCreate(req);
+
+        this.departmentRepo.addDepartment(d);
+
+        return d;
+    }
+
+    @Override
+    public Department updateDepartment(int id, DepartmentRequest req) {
+        validateDepartment(req);
+
+        Department existing = this.departmentRepo.getDepartmentById(id);
+
+        if (existing == null) {
+            throw new IllegalArgumentException("Khoa không tồn tại");
         }
-        this.departmentRepo.addOrUpdateDepartment(d);
+
+        if (Boolean.FALSE.equals(existing.getActive())) {
+            throw new IllegalArgumentException("Khoa đã bị xóa hoặc ngưng hoạt động");
+        }
+
+        DepartmentMapper.updateEntity(existing, req);
+
+        this.departmentRepo.updateDepartment(existing);
+
+        return existing;
     }
 
     @Override
-    public void sotfDelete(int id) {
-        this.departmentRepo.sotfDelete(id);
+    public void softDelete(int id) {
+        Department existing = this.departmentRepo.getDepartmentById(id);
+
+        if (existing == null) {
+            throw new IllegalArgumentException("Khoa không tồn tại");
+        }
+
+        existing.setActive(false);
+
+        this.departmentRepo.updateDepartment(existing);
     }
-    
-    private void validateDepartment(Department department) {
-        if (department.getName() == null || department.getName().isBlank()) {
+
+    private void validateDepartment(DepartmentRequest req) {
+        if (req.getName() == null || req.getName().isBlank()) {
             throw new IllegalArgumentException("Tên khoa không được để trống");
         }
 
-        if (department.getName().trim().length() < 2) {
+        if (req.getName().trim().length() < 2) {
             throw new IllegalArgumentException("Tên khoa phải có ít nhất 2 ký tự");
         }
 
-        department.setName(department.getName().trim());
+        req.setName(req.getName().trim());
 
-        if (department.getDescription() != null) {
-            department.setDescription(department.getDescription().trim());
+        if (req.getDescription() != null) {
+            req.setDescription(req.getDescription().trim());
         }
     }
 }

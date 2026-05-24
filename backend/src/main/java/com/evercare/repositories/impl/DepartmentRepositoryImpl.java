@@ -31,7 +31,7 @@ public class DepartmentRepositoryImpl implements DepartmentRepository {
     private LocalSessionFactoryBean factory;
     
     @Override
-    public List<Department> getDeparments(Map<String, String> params) {
+    public List<Department> getDepartments(Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
         
         CriteriaBuilder b = session.getCriteriaBuilder();
@@ -57,23 +57,25 @@ public class DepartmentRepositoryImpl implements DepartmentRepository {
     }
     
     @Override
-    public Department getDeparmentById(int id) {
+    public Department getDepartmentById(int id) {
         Session session = this.factory.getObject().getCurrentSession();
         return session.get(Department.class, id);    
     }
 
     @Override
-    public void addOrUpdateDepartment(Department d) {
-        Session s = this.factory.getObject().getCurrentSession();
-        if (d.getId() == null) {
-            s.persist(d);
-        } else {
-            s.merge(d);
-        }
+    public void addDepartment(Department department) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.persist(department);
     }
 
     @Override
-    public void sotfDelete(int id) {
+    public void updateDepartment(Department department) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.merge(department);
+    }
+
+    @Override
+    public void softDelete(int id) {
         Session session = this.factory.getObject().getCurrentSession();
 
         Department department = session.get(Department.class, id);

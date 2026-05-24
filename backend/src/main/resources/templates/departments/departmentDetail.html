@@ -9,7 +9,6 @@
     <div th:replace="base :: header"></div>
 
     <section class="container">
-        
         <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
                 <div>
                     <h2 class="mb-1" th:text="${pageTitle}">Form khoa</h2>
@@ -24,8 +23,11 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body">
 
-                    <form th:action="@{/admin/departments}" th:object="${department}" method="post">
-
+                    <form th:action="${isEdit}
+                    ? @{/admin/departments/{id}/edit(id=${departmentId})}
+                    : @{/admin/departments}" 
+                    th:object="${department}" method="post">
+                        <div th:if="${err}" class="alert alert-danger" th:text="${err}"></div>
                         <div class="mb-3">
                             <label for="name" class="form-label">
                                 Tên khoa <span class="text-danger">*</span>

@@ -13,8 +13,9 @@ import java.util.Map;
  * @author cadic
  */
 public interface DepartmentRepository {
-    List<Department> getDeparments(Map<String, String> params);
-    Department getDeparmentById(int id);
-    void addOrUpdateDepartment(Department d);
-    void sotfDelete(int id);
+    List<Department> getDepartments(Map<String, String> params);
+    Department getDepartmentById(int id);
+    void addDepartment(Department department);
+    void updateDepartment(Department department);
+    void softDelete(int id);
 }
