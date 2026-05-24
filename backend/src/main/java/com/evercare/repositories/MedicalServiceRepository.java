@@ -1,0 +1,16 @@
+package com.evercare.repositories;
+
+import com.evercare.pojo.MedicalService;
+import java.util.List;
+import java.util.Map;
+
+public interface MedicalServiceRepository {
+
+    List<MedicalService> getServices(Map<String, String> params);
+
+    MedicalService getServiceById(int id);
+
+    void addService(MedicalService service);
+
+    void updateService(MedicalService service);
+}

@@ -17,7 +17,7 @@
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-                    <div class="collapse navbar-collapse" id="collapsibleNavbar"  sec:authorize="isAuthenticated()">
+                    <div class="collapse navbar-collapse" id="collapsibleNavbar">
                         <ul class="navbar-nav">
                             <li class="nav-item">
                                 <a class="nav-link" th:href="@{/}">Trang chủ</a>
@@ -26,9 +26,13 @@
                             <li class="nav-item">
                                 <a class="nav-link" th:href="@{/admin/departments}">Khoa</a>
                             </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" th:href="@{/admin/services}">Dịch vụ</a>
+                            </li>
                             
                             <li class="nav-item">
-                                <a class="nav-link" th:href="@{/logout}">Đăng xuất</a>
+                               <a class="nav-link" th:href="@{/logout}">Đăng xuất</a>
                             </li>
                         </ul>
                     </div>
@@ -39,5 +43,12 @@
         <footer th:fragment="footer">
             <div class="alert alert-info">everCare Website &copy; 2026</div>
         </footer>
+
+
+        <th:block th:fragment="scripts">
+            <script src="@{js/script.js}"></script>
+        </th:block>
+
+
     </body>
 </html>

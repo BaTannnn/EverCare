@@ -60,10 +60,10 @@ public class Department implements Serializable {
     @Size(max = 65535)
     @Column(name = "description")
     private String description;
-    @Column(name = "created_at")
+    @Column(name = "created_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
     @Column(name = "active")

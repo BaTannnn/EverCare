@@ -54,10 +54,8 @@ public class MedicalService implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
     @Size(min = 1, max = 30)
-    @Column(name = "code")
+    @Column(name = "code", insertable = false, updatable = false)
     private String code;
     @Basic(optional = false)
     @NotNull
@@ -74,10 +72,10 @@ public class MedicalService implements Serializable {
     @Size(max = 50)
     @Column(name = "service_type")
     private String serviceType;
-    @Column(name = "created_at")
+    @Column(name = "created_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
     @Column(name = "active")
