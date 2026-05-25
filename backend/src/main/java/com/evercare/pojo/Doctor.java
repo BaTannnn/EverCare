@@ -62,10 +62,8 @@ public class Doctor implements Serializable {
     @Basic(optional = false)
     @Column(name = "id")
     private Long id;
-    @Basic(optional = false)
-    @NotNull
     @Size(min = 1, max = 30)
-    @Column(name = "doctor_code")
+    @Column(name = "doctor_code", nullable = false, insertable = false)
     private String doctorCode;
     @Basic(optional = false)
     @NotNull
@@ -104,10 +102,10 @@ public class Doctor implements Serializable {
     @Size(max = 65535)
     @Column(name = "bio")
     private String bio;
-    @Column(name = "created_at")
+    @Column(name = "created_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", insertable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
     @Column(name = "active")
