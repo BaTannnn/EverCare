@@ -1,5 +1,7 @@
 package com.evercare.services.impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.evercare.dtos.request.DoctorRequest;
 import com.evercare.enums.DoctorType;
 import com.evercare.enums.DoctorWorkStatus;
@@ -12,10 +14,14 @@ import com.evercare.services.DoctorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Service
 @Transactional
@@ -26,6 +32,9 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Autowired
     private DepartmentRepository departmentRepo;
+
+    @Autowired
+    private Cloudinary cloudinary;
 
     @Override
     public List<Doctor> getDoctors(Map<String, String> params) {
@@ -44,6 +53,16 @@ public class DoctorServiceImpl implements DoctorService {
         Department department = loadValidDepartment(req.getDepartmentId());
 
         Doctor doctor = DoctorMapper.toEntityForCreate(req, department);
+
+        if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
+            try {
+                Map res = this.cloudinary.uploader().upload(req.getAvatarFile().getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto"));
+                doctor.setAvatarUrl(res.get("secure_url").toString());
+            } catch (IOException ex) {
+                Logger.getLogger(DoctorServiceImpl.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
         this.doctorRepo.addDoctor(doctor);
 
@@ -67,6 +86,16 @@ public class DoctorServiceImpl implements DoctorService {
         Department department = loadValidDepartment(req.getDepartmentId());
 
         DoctorMapper.updateEntity(existing, req, department);
+
+        if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
+            try {
+                Map res = this.cloudinary.uploader().upload(req.getAvatarFile().getBytes(),
+                        ObjectUtils.asMap("resource_type", "auto"));
+                existing.setAvatarUrl(res.get("secure_url").toString());
+            } catch (IOException ex) {
+                Logger.getLogger(DoctorServiceImpl.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
 
         this.doctorRepo.updateDoctor(existing);
 
@@ -120,8 +149,22 @@ public class DoctorServiceImpl implements DoctorService {
             req.setEmail(req.getEmail().trim());
         }
 
-        if (req.getAvatarUrl() != null) {
-            req.setAvatarUrl(req.getAvatarUrl().trim());
+        MultipartFile file = req.getAvatarFile();
+
+        if (file == null || file.isEmpty()) {
+            return;
+        }
+
+        String contentType = file.getContentType();
+
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("File avatar phải là hình ảnh");
+        }
+
+        long maxSize = 5 * 1024 * 1024;
+
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("File avatar không được vượt quá 5MB");
         }
 
         if (req.getQualification() != null) {

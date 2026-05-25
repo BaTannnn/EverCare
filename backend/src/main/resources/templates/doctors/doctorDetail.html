@@ -1,0 +1,196 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${pageTitle}">Form bác sĩ</title>
+    <th:block th:replace="~{base :: css}"></th:block>
+</head>
+
+<body>
+<div th:replace="~{base :: header}"></div>
+
+<section class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" th:text="${pageTitle}">Form bác sĩ</h2>
+            <p class="text-muted mb-0">Nhập thông tin hồ sơ bác sĩ.</p>
+        </div>
+
+        <a class="btn btn-outline-secondary" th:href="@{/admin/doctors}">
+            Quay lại
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div th:if="${err}" class="alert alert-danger" th:text="${err}"></div>
+
+            <form th:action="${isEdit}
+                    ? @{/admin/doctors/{id}/edit(id=${doctorId})}
+                    : @{/admin/doctors}"
+                  th:object="${doctor}"
+                  method="post"
+                  enctype="multipart/form-data">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="fullName" class="form-label">
+                            Họ tên bác sĩ <span class="text-danger">*</span>
+                        </label>
+                        <input id="fullName"
+                               class="form-control"
+                               type="text"
+                               th:field="*{fullName}"
+                               required>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="departmentId" class="form-label">
+                            Khoa <span class="text-danger">*</span>
+                        </label>
+                        <select id="departmentId"
+                                class="form-select"
+                                th:field="*{departmentId}"
+                                required>
+                            <option value="">-- Chọn khoa --</option>
+                            <option th:each="d : ${departments}"
+                                    th:value="${d.id}"
+                                    th:text="${d.name}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="phone" class="form-label">Số điện thoại</label>
+                        <input id="phone"
+                               class="form-control"
+                               type="text"
+                               th:field="*{phone}">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email"
+                               class="form-control"
+                               type="email"
+                               th:field="*{email}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="avatarFile" class="form-label">Ảnh đại diện</label>
+                    <input id="avatarFile"
+                           class="form-control"
+                           type="file"
+                           th:field="*{avatarFile}"
+                           accept="image/*">
+
+                    <div class="form-text">
+                        Chọn ảnh JPG, PNG hoặc WEBP. Nếu không chọn ảnh mới khi sửa, ảnh cũ sẽ được giữ nguyên.
+                    </div>
+
+                    <div th:if="${currentAvatarUrl != null}" class="mb-3">
+                        <label class="form-label">Ảnh hiện tại</label>
+                        <div>
+                            <img th:src="${currentAvatarUrl}"
+                                alt="avatar"
+                                class="rounded"
+                                style="width: 120px; height: 120px; object-fit: cover;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="qualification" class="form-label">Học vị / bằng cấp</label>
+                        <input id="qualification"
+                               class="form-control"
+                               type="text"
+                               th:field="*{qualification}"
+                               placeholder="Ví dụ: Thạc sĩ, Bác sĩ CKI">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="specialization" class="form-label">Chuyên môn</label>
+                        <input id="specialization"
+                               class="form-control"
+                               type="text"
+                               th:field="*{specialization}"
+                               placeholder="Ví dụ: Tim mạch, Nhi khoa">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="doctorType" class="form-label">Loại bác sĩ</label>
+                        <select id="doctorType"
+                                class="form-select"
+                                th:field="*{doctorType}">
+                            <option th:each="type : ${doctorTypes}"
+                                    th:value="${type.code}"
+                                    th:text="${type.label}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="workStatus" class="form-label">Trạng thái làm việc</label>
+                        <select id="workStatus"
+                                class="form-select"
+                                th:field="*{workStatus}">
+                            <option th:each="st : ${workStatuses}"
+                                    th:value="${st.code}"
+                                    th:text="${st.label}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="baseSalary" class="form-label">Lương cơ bản</label>
+                        <input id="baseSalary"
+                               class="form-control"
+                               type="number"
+                               min="0"
+                               step="1000"
+                               th:field="*{baseSalary}">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="hourlyRate" class="form-label">Lương theo giờ</label>
+                        <input id="hourlyRate"
+                               class="form-control"
+                               type="number"
+                               min="0"
+                               step="1000"
+                               th:field="*{hourlyRate}">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="bio" class="form-label">Giới thiệu</label>
+                    <textarea id="bio"
+                              class="form-control"
+                              rows="4"
+                              th:field="*{bio}"></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit">Lưu</button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/doctors}">Hủy</a>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</section>
+
+<div th:replace="~{base :: footer}"></div>
+</body>
+</html>

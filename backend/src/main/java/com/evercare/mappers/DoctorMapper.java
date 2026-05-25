@@ -13,7 +13,6 @@ public class DoctorMapper {
         d.setFullName(req.getFullName());
         d.setPhone(req.getPhone());
         d.setEmail(req.getEmail());
-        d.setAvatarUrl(req.getAvatarUrl());
         d.setQualification(req.getQualification());
         d.setSpecialization(req.getSpecialization());
         d.setDoctorType(req.getDoctorType());
@@ -31,7 +30,6 @@ public class DoctorMapper {
         existing.setFullName(req.getFullName());
         existing.setPhone(req.getPhone());
         existing.setEmail(req.getEmail());
-        existing.setAvatarUrl(req.getAvatarUrl());
         existing.setQualification(req.getQualification());
         existing.setSpecialization(req.getSpecialization());
         existing.setDoctorType(req.getDoctorType());

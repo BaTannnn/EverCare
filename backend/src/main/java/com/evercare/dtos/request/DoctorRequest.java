@@ -1,5 +1,7 @@
 package com.evercare.dtos.request;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 
 public class DoctorRequest {
@@ -8,7 +10,7 @@ public class DoctorRequest {
     private String fullName;
     private String phone;
     private String email;
-    private String avatarUrl;
+    private MultipartFile avatarFile;
     private String qualification;
     private String specialization;
     private String doctorType;
@@ -20,15 +22,14 @@ public class DoctorRequest {
     public DoctorRequest() {
     }
 
-    public DoctorRequest(Long departmentId, String fullName, String phone, String email,
-                         String avatarUrl, String qualification, String specialization,
-                         String doctorType, String workStatus, BigDecimal baseSalary,
+    public DoctorRequest(Long departmentId, String fullName, String phone, String email, String qualification, String specialization,
+                         MultipartFile avatarFile, String doctorType, String workStatus, BigDecimal baseSalary,
                          BigDecimal hourlyRate, String bio) {
         this.departmentId = departmentId;
         this.fullName = fullName;
         this.phone = phone;
         this.email = email;
-        this.avatarUrl = avatarUrl;
+        this.avatarFile = avatarFile;
         this.qualification = qualification;
         this.specialization = specialization;
         this.doctorType = doctorType;
@@ -66,16 +67,16 @@ public class DoctorRequest {
         return email;
     }
 
+    public MultipartFile getAvatarFile() {
+        return avatarFile;
+    }
+
+    public void setAvatarFile(MultipartFile avatarFile) {
+        this.avatarFile = avatarFile;
+    }
+
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public void setAvatarUrl(String avatarUrl) {
-        this.avatarUrl = avatarUrl;
     }
 
     public String getQualification() {
