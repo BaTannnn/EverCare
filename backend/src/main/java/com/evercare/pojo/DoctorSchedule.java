@@ -21,6 +21,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Date;
 
 /**
@@ -54,17 +56,17 @@ public class DoctorSchedule implements Serializable {
     @NotNull
     @Column(name = "work_date")
     @Temporal(TemporalType.DATE)
-    private Date workDate;
+    private LocalDate workDate;
     @Basic(optional = false)
     @NotNull
     @Column(name = "start_time")
     @Temporal(TemporalType.TIME)
-    private Date startTime;
+    private LocalTime startTime;
     @Basic(optional = false)
     @NotNull
     @Column(name = "end_time")
     @Temporal(TemporalType.TIME)
-    private Date endTime;
+    private LocalTime endTime;
     @Column(name = "max_patients")
     private Integer maxPatients;
     @Size(max = 30)
@@ -76,10 +78,10 @@ public class DoctorSchedule implements Serializable {
     @Column(name = "created_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false, insertable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
-    @Column(name = "active")
+    @Column(name = "active", nullable = false, insertable = false)
     private Boolean active;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(optional = false)
@@ -92,7 +94,7 @@ public class DoctorSchedule implements Serializable {
         this.id = id;
     }
 
-    public DoctorSchedule(Long id, Date workDate, Date startTime, Date endTime) {
+    public DoctorSchedule(Long id, LocalDate workDate, LocalTime startTime, LocalTime endTime) {
         this.id = id;
         this.workDate = workDate;
         this.startTime = startTime;
@@ -107,27 +109,27 @@ public class DoctorSchedule implements Serializable {
         this.id = id;
     }
 
-    public Date getWorkDate() {
+    public LocalDate getWorkDate() {
         return workDate;
     }
 
-    public void setWorkDate(Date workDate) {
+    public void setWorkDate(LocalDate workDate) {
         this.workDate = workDate;
     }
 
-    public Date getStartTime() {
+    public LocalTime getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(Date startTime) {
+    public void setStartTime(LocalTime startTime) {
         this.startTime = startTime;
     }
 
-    public Date getEndTime() {
+    public LocalTime getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(Date endTime) {
+    public void setEndTime(LocalTime endTime) {
         this.endTime = endTime;
     }
 
