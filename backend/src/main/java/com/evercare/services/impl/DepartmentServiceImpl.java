@@ -80,6 +80,11 @@ public class DepartmentServiceImpl implements DepartmentService {
         this.departmentRepo.updateDepartment(existing);
     }
 
+    @Override
+    public long getTotalPages(Map<String, String> params) {
+        return this.departmentRepo.getTotalPages(params);
+    }
+
     private void validateDepartment(DepartmentRequest req) {
         if (req.getName() == null || req.getName().isBlank()) {
             throw new IllegalArgumentException("Tên khoa không được để trống");

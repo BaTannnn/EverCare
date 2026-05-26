@@ -17,4 +17,6 @@ public interface MedicalServiceService {
     MedicalService updateService(int id, MedicalServiceRequest req);
 
     void softDelete(int id);
+
+    long getTotalPages(Map<String, String> params);
 }

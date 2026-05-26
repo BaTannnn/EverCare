@@ -22,4 +22,7 @@ public interface DoctorScheduleRepository {
                                       LocalTime startTime,
                                       LocalTime endTime,
                                       Long excludeId);
+
+    long countDoctorSchedules(Map<String, String> params);
+    long getTotalPages(Map<String, String> params);
 }

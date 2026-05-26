@@ -15,4 +15,7 @@ public interface DoctorRepository {
     void addDoctor(Doctor doctor);
 
     void updateDoctor(Doctor doctor);
+
+    long countDoctors(Map<String, String> params);
+    long getTotalPages(Map<String, String> params);
 }

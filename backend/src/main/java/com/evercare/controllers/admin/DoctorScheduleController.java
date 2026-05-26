@@ -37,7 +37,10 @@ public class DoctorScheduleController {
         model.addAttribute("departmentId", params.getOrDefault("departmentId", ""));
         model.addAttribute("workDate", params.getOrDefault("workDate", ""));
         model.addAttribute("status", params.getOrDefault("status", ""));
+        model.addAttribute("pages", this.doctorService.getTotalPages(params));
 
+        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        model.addAttribute("page", page);
         return "schedules/schedules";
     }
 

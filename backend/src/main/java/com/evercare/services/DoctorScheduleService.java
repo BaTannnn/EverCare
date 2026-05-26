@@ -17,4 +17,7 @@ public interface DoctorScheduleService {
     DoctorSchedule updateSchedule(int id, DoctorScheduleRequest req);
 
     void softDelete(int id);
+
+    long getTotalPages(Map<String, String> params);
+
 }

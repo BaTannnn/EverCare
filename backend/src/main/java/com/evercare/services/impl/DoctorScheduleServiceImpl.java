@@ -86,6 +86,11 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         this.scheduleRepo.updateSchedule(existing);
     }
 
+    @Override
+    public long getTotalPages(Map<String, String> params) {
+        return this.scheduleRepo.getTotalPages(params);
+    }
+
     private Doctor loadValidDoctor(Long doctorId) {
         if (doctorId == null) {
             throw new IllegalArgumentException("Vui lòng chọn bác sĩ");

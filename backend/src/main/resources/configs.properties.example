@@ -1,0 +1,5 @@
+department.pageSize = 8
+medicalService.pageSize = 8
+doctor.pageSize = 8
+doctorSchedule.pageSize = 8
+

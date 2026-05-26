@@ -23,4 +23,6 @@ public interface DepartmentService {
     Department updateDepartment(int id, DepartmentRequest req);
 
     void softDelete(int id);
+
+    long getTotalPages(Map<String, String> params);
 }

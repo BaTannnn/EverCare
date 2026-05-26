@@ -84,6 +84,11 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
         this.serviceRepo.updateService(existing);
     }
 
+    @Override
+    public long getTotalPages(Map<String, String> params) {
+        return this.serviceRepo.getTotalPages(params);
+    }
+
     private Department loadValidDepartment(Long departmentId) {
         if (departmentId == null) {
             throw new IllegalArgumentException("Vui lòng chọn khoa");
