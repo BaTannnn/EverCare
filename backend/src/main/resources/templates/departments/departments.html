@@ -1,0 +1,120 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Chuyên khoa</title>
+    <th:block th:replace="base :: css"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <section class="container mt-4">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">Quản lý khoa</h2>
+                    <p class="text-muted mb-0">Quản lý danh sách khoa/phòng ban trong hệ thống.</p>
+                </div>
+
+                <a class="btn btn-primary" th:href="@{/admin/departments/create}">
+                    + Thêm khoa
+                </a>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <form class="row g-2 mb-3" th:action="@{/admin/departments}" method="get">
+                        <div class="col-md-5">
+                            <input class="form-control"
+                                   type="text"
+                                   name="kw"
+                                   placeholder="Tìm theo tên khoa..."
+                                   th:value="${kw}">
+                        </div>
+
+                        <div class="col-auto">
+                            <button class="btn btn-outline-primary" type="submit">Tìm kiếm</button>
+                        </div>
+
+                        <div class="col-auto">
+                            <a class="btn btn-outline-secondary" th:href="@{/admin/departments}">Reset</a>
+                        </div>
+                    </form>
+
+                    <div th:if="${#lists.isEmpty(departments)}" class="text-center text-muted py-5">
+                        Chưa có khoa nào.
+                    </div>
+
+                    <div class="table-responsive" th:if="${!#lists.isEmpty(departments)}">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Mã khoa</th>
+                                <th>Tên khoa</th>
+                                <th>Mô tả</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr th:each="d : ${departments}">
+                                <td th:text="${d.code}"></td>
+
+                                <td>
+                                    <strong th:text="${d.name}"></strong>
+                                </td>
+
+                                <td class="text-muted" th:text="${d.description} ?: '—'"></td>
+
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <a class="btn btn-sm btn-outline-warning"
+                                           th:href="@{/admin/departments/{id}(id=${d.id})}">
+                                            Sửa
+                                        </a>
+
+                                        <form th:action="@{/admin/departments/{id}/delete(id=${d.id})}"
+                                              method="post"
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa khoa này?');">
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">
+                                                Xóa
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <nav th:if="${pages > 1}" class="mt-3">
+                <ul class="pagination justify-content-end">
+
+                    <li class="page-item" th:classappend="${page <= 1} ? 'disabled'">
+                        <a class="page-link" th:href="${page > 1} ? @{/admin/departments(page=${page - 1}, kw=${kw})} : '#'">Trước</a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="p : ${#numbers.sequence(1, pages)}"
+                        th:classappend="${p == page} ? 'active'">
+
+                        <a class="page-link"
+                        th:text="${p}"
+                        th:href="@{/admin/departments(page=${p}, kw=${kw})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${page >= pages} ? 'disabled'">
+                        <a class="page-link" th:href="${page < pages} ? @{/admin/departments(page=${page + 1}, kw=${kw})} : '#'">Sau</a>
+                    </li>
+
+                </ul>
+            </nav>
+        
+    </section>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>

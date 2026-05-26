@@ -11,8 +11,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.security.Principal;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -27,7 +29,14 @@ public class JwtFilter implements Filter{
         
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         
-        if (httpRequest.getRequestURI().startsWith(String.format("%s/api/secure", httpRequest.getContextPath())) == true) {
+        String contextPath = httpRequest.getContextPath();
+        String secureApiPrefix = String.format("%s/api/secure", contextPath);
+        String doctorApiPrefix = String.format("%s/api/doctor", contextPath);
+        String staffApiPrefix = String.format("%s/api/staff", contextPath);
+
+        if (httpRequest.getRequestURI().startsWith(secureApiPrefix)
+                || httpRequest.getRequestURI().startsWith(doctorApiPrefix)
+                || httpRequest.getRequestURI().startsWith(staffApiPrefix)) {
         
            
             String header = httpRequest.getHeader("Authorization");
@@ -44,8 +53,15 @@ public class JwtFilter implements Filter{
                         httpRequest.setAttribute("username", username);
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, null);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-                        
-                        chain.doFilter(request, response);
+
+                        HttpServletRequest authenticatedRequest = new HttpServletRequestWrapper(httpRequest) {
+                            @Override
+                            public Principal getUserPrincipal() {
+                                return authentication;
+                            }
+                        };
+
+                        chain.doFilter(authenticatedRequest, response);
                         return;
                     }
                 } catch (Exception e) {

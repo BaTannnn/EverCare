@@ -4,8 +4,6 @@
  */
 package com.evercare.configs;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -24,9 +22,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @ComponentScan(
         basePackages =  {
-            "com.dht.controllers",
-            "com.dht.repositories",
-            "com.dht.services",
+            "com.evercare.controllers",
+            "com.evercare.repositories",
+            "com.evercare.services",
         }
 )
 @EnableWebMvc
@@ -51,7 +49,7 @@ public class WebAppContextConfigs implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/js/**").addResourceLocations("classpath:/static/scripts/");
+        registry.addResourceHandler("/js/**").addResourceLocations("classpath:/static/js/");
     }
     
     

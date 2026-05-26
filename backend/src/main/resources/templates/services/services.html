@@ -1,0 +1,152 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Dịch vụ</title>
+    <th:block th:replace="base :: css"></th:block>
+</head>
+<body>
+
+    <div th:replace="base :: header"></div>
+
+
+    <section class="container mt-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">Quản lý dịch vụ</h2>
+                <p class="text-muted mb-0">Quản lý các dịch vụ y tế theo từng khoa.</p>
+            </div>
+
+            <a class="btn btn-primary" th:href="@{/admin/services/create}">
+                + Thêm dịch vụ
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                <form class="row g-2 mb-3" th:action="@{/admin/services}" method="get">
+                    <div class="col-md-4">
+                        <input class="form-control"
+                            type="text"
+                            name="kw"
+                            placeholder="Tìm tên hoặc mã dịch vụ..."
+                            th:value="${kw}">
+                    </div>
+
+                    <div class="col-md-3">
+                        <select class="form-select" name="departmentId">
+                            <option value="">-- Tất cả khoa --</option>
+                            <option th:each="d : ${departments}"
+                                    th:value="${d.id}"
+                                    th:text="${d.name}"
+                                    th:selected="${departmentId != null && departmentId != '' && departmentId == d.id.toString()}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <select id="serviceType" class="form-select" name="serviceType">
+                            <option value="">-- Tất cả loại --</option>
+
+                            <option th:each="type : ${serviceTypes}"
+                                    th:value="${type.code}"
+                                    th:text="${type.label}"
+                                    th:selected="${serviceType == type.code}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-auto">
+                        <button class="btn btn-outline-primary" type="submit">Tìm kiếm</button>
+                    </div>
+
+                    <div class="col-auto">
+                        <a class="btn btn-outline-secondary" th:href="@{/admin/services}">Reset</a>
+                    </div>
+                </form>
+
+                <div th:if="${#lists.isEmpty(services)}" class="text-center text-muted py-5">
+                    Chưa có dịch vụ nào.
+                </div>
+
+                <div class="table-responsive" th:if="${!#lists.isEmpty(services)}">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Mã</th>
+                            <th>Tên dịch vụ</th>
+                            <th>Khoa</th>
+                            <th>Loại</th>
+                            <th>Giá</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        <tr th:each="s : ${services}">
+                            <td th:text="${s.id}"></td>
+                            <td th:text="${s.code}"></td>
+                            <td>
+                                <strong th:text="${s.name}"></strong>
+                                <div class="text-muted small" th:text="${s.description}"></div>
+                            </td>
+                            <td th:text="${s.departmentId != null ? s.departmentId.name : '—'}"></td>
+                            <td th:text="${s.serviceType}"></td>
+                            <td th:text="${#numbers.formatDecimal(s.price, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-2">
+                                    <a class="btn btn-sm btn-outline-warning"
+                                    th:href="@{/admin/services/{id}/edit(id=${s.id})}">
+                                        Sửa
+                                    </a>
+
+                                    <form th:action="@{/admin/services/{id}/delete(id=${s.id})}"
+                                        method="post"
+                                        onsubmit="return confirm('Bạn có chắc muốn xóa dịch vụ này?');">
+                                        <button class="btn btn-sm btn-outline-danger" type="submit">
+                                            Xóa
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <nav th:if="${pages > 1}" class="mt-3">
+            <ul class="pagination justify-content-end">
+
+                <li class="page-item" th:classappend="${page <= 1} ? 'disabled'">
+                    <a class="page-link" th:href="${page > 1} ? @{/admin/services(page=${page - 1}, kw=${kw}, departmentId=${departmentId}, serviceType=${serviceType})} : '#'">Trước</a>
+                </li>
+
+                <li class="page-item"
+                    th:each="p : ${#numbers.sequence(1, pages)}"
+                    th:classappend="${p == page} ? 'active'">
+
+                    <a class="page-link"
+                    th:text="${p}"
+                    th:href="@{/admin/services(page=${p}, kw=${kw}, departmentId=${departmentId}, serviceType=${serviceType})}">
+                    </a>
+                </li>
+
+                <li class="page-item" th:classappend="${page >= pages} ? 'disabled'">
+                    <a class="page-link" th:href="${page < pages} ? @{/admin/services(page=${page + 1}, kw=${kw}, departmentId=${departmentId}, serviceType=${serviceType})} : '#'">Sau</a>
+                </li>
+
+            </ul>
+        </nav>
+
+    </section>
+
+    <div th:replace="base :: footer"></div>
+
+</body>
+</html>

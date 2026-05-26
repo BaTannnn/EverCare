@@ -5,7 +5,6 @@
 package com.evercare.configs;
 
 import org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer;
-import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 
 /**
  *

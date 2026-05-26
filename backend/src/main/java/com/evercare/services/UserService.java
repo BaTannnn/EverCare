@@ -4,7 +4,7 @@
  */
 package com.evercare.services;
 
-import com.evercare.pojo.Users;
+import com.evercare.pojo.User;
 import java.util.Map;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
  * @author huu-thanhduong
  */
 public interface UserService extends UserDetailsService {
-    Users getUserByUsername(String username);
-    Users addUser(Map<String, String> info, MultipartFile avatar);
+    User getUserByUsername(String username);
+    User addUser(Map<String, String> params, MultipartFile avatar);
     boolean authenticate(String username, String password);
 }
