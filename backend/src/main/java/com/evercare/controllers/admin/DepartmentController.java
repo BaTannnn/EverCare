@@ -31,6 +31,10 @@ public class DepartmentController {
     public String departmentView(Model model, @RequestParam Map<String, String> params) {
         model.addAttribute("departments", departmentService.getDepartments(params));
         model.addAttribute("kw", params.getOrDefault("kw", ""));
+        model.addAttribute("pages", this.departmentService.getTotalPages(params));
+
+        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        model.addAttribute("page", page);
         return "departments/departments";
     }
     

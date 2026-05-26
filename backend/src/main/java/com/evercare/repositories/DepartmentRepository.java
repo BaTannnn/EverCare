@@ -18,4 +18,6 @@ public interface DepartmentRepository {
     void addDepartment(Department department);
     void updateDepartment(Department department);
     void softDelete(int id);
+    long countDepartments(Map<String, String> params);
+    long getTotalPages(Map<String, String> params);
 }

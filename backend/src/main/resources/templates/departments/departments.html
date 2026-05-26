@@ -86,9 +86,32 @@
                             </tbody>
                         </table>
                     </div>
-
                 </div>
             </div>
+
+            <nav th:if="${pages > 1}" class="mt-3">
+                <ul class="pagination justify-content-end">
+
+                    <li class="page-item" th:classappend="${page <= 1} ? 'disabled'">
+                        <a class="page-link" th:href="${page > 1} ? @{/admin/departments(page=${page - 1}, kw=${kw})} : '#'">Trước</a>
+                    </li>
+
+                    <li class="page-item"
+                        th:each="p : ${#numbers.sequence(1, pages)}"
+                        th:classappend="${p == page} ? 'active'">
+
+                        <a class="page-link"
+                        th:text="${p}"
+                        th:href="@{/admin/departments(page=${p}, kw=${kw})}">
+                        </a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${page >= pages} ? 'disabled'">
+                        <a class="page-link" th:href="${page < pages} ? @{/admin/departments(page=${page + 1}, kw=${kw})} : '#'">Sau</a>
+                    </li>
+
+                </ul>
+            </nav>
         
     </section>
 
