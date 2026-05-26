@@ -10,6 +10,8 @@ public interface DoctorRepository {
 
     Doctor getDoctorById(int id);
 
+    Doctor getDoctorByUserId(Long userId);
+
     void addDoctor(Doctor doctor);
 
     void updateDoctor(Doctor doctor);
