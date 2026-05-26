@@ -116,6 +116,11 @@ public class DoctorServiceImpl implements DoctorService {
         this.doctorRepo.updateDoctor(existing);
     }
 
+    @Override
+    public long getTotalPages(Map<String, String> params) {
+        return this.doctorRepo.getTotalPages(params);
+    }
+
     private Department loadValidDepartment(Long departmentId) {
         if (departmentId == null) {
             throw new IllegalArgumentException("Vui lòng chọn khoa");

@@ -2,9 +2,12 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.DoctorSchedule;
 import com.evercare.repositories.DoctorScheduleRepository;
+import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.criteria.*;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,18 +21,13 @@ import java.util.Map;
 @Repository
 @Transactional
 public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
+    @Autowired
+    private Environment env;
 
     @Autowired
     private LocalSessionFactoryBean factory;
 
-    @Override
-    public List<DoctorSchedule> getSchedules(Map<String, String> params) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        CriteriaBuilder cb = session.getCriteriaBuilder();
-        CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
-        Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
-
+    private List<Predicate> getPredicates(Map<String, String> params, CriteriaBuilder cb, Root root) {
         List<Predicate> predicates = new ArrayList<>();
 
         predicates.add(cb.isTrue(root.get("active")));
@@ -64,6 +62,18 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
                 predicates.add(cb.equal(root.get("status"), status));
             }
         }
+        return predicates;
+    }
+
+    @Override
+    public List<DoctorSchedule> getSchedules(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
+        Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+
+        List<Predicate> predicates = getPredicates(params, cb, root);
 
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(
@@ -71,7 +81,18 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
                 cb.asc(root.get("startTime"))
         );
 
-        return session.createQuery(cq).getResultList();
+        Query<DoctorSchedule> query = session.createQuery(cq);
+
+        if (params != null) {
+            int pageSize = this.env.getProperty("doctorSchedule.pageSize", Integer.class);
+            int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countDoctorSchedules(params), pageSize);
+            int start = (page - 1) * pageSize;
+
+            query.setMaxResults(pageSize);
+            query.setFirstResult(start);
+        }
+
+        return query.getResultList();
     }
 
     @Override
@@ -125,5 +146,29 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         }
 
         return query.getSingleResult() > 0;
+    }
+
+    @Override
+    public long countDoctorSchedules(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+        cq.select(cb.count(root));
+
+        List<Predicate> predicates = getPredicates(params, cb, root);
+
+        cq.where(predicates.toArray(Predicate[]::new));
+
+        return session.createQuery(cq).getSingleResult();
+    }
+
+    @Override
+    public long getTotalPages(Map<String, String> params) {
+        long count = this.countDoctorSchedules(params);
+        int pageSize = Integer.parseInt(env.getProperty("doctorSchedule.pageSize"));
+
+        return (long) Math.max(1, Math.ceil((double) count / pageSize));
     }
 }

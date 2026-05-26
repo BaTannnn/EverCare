@@ -17,4 +17,6 @@ public interface DoctorService {
     Doctor updateDoctor(int id, DoctorRequest req);
 
     void softDelete(int id);
+
+    long getTotalPages(Map<String, String> params);
 }
