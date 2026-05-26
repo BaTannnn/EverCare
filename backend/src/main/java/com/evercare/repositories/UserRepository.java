@@ -12,6 +12,11 @@ import com.evercare.pojo.User;
  */
 public interface UserRepository {
     User getUserByUsername(String username);
+    User findByUsername(String username);
+    boolean existsByUsername(String username);
+    boolean existsByEmail(String email);
+    boolean existsByPhone(String phone);
     User addUser(User u);
+    User save(User u);
     boolean authenticate(String username, String password);
 }

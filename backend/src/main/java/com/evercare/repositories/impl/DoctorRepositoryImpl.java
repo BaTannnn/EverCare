@@ -101,6 +101,11 @@ public class DoctorRepositoryImpl implements DoctorRepository {
     }
 
     @Override
+    public Doctor getDoctorByUserId(Long userId) {
+        return null;
+    }
+
+    @Override
     public void addDoctor(Doctor doctor) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(doctor);
