@@ -19,7 +19,7 @@ public final class PaginationUtils {
         }
     }
 
-    public static int normalizePage(int page, long totalElements, int pageSize) {
+    public static int normalizePage(int page, long totalElements, long pageSize) {
         if (totalElements <= 0) {
             return 1;
         }

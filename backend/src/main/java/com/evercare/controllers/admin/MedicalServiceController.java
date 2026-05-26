@@ -31,6 +31,9 @@ public class MedicalServiceController {
         model.addAttribute("kw", params.getOrDefault("kw", ""));
         model.addAttribute("departmentId", params.getOrDefault("departmentId", ""));
         model.addAttribute("serviceType", params.getOrDefault("serviceType", ""));
+        model.addAttribute("pages", this.medicalServiceService.getTotalPages(params));
+        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        model.addAttribute("page", page);
         return "services/services";
     }
 

@@ -13,4 +13,8 @@ public interface MedicalServiceRepository {
     void addService(MedicalService service);
 
     void updateService(MedicalService service);
+
+    long countMedicalServices(Map<String, String> params);
+
+    long getTotalPages(Map<String, String> params);
 }
