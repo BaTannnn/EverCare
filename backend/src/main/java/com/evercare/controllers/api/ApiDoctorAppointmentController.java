@@ -1,6 +1,8 @@
 package com.evercare.controllers.api;
 
+import com.evercare.dtos.request.StartExaminationRequest;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
+import com.evercare.dtos.response.MedicalRecordResponse;
 import com.evercare.services.DoctorAppointmentService;
 import java.security.Principal;
 import java.time.LocalDate;
@@ -14,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -62,6 +66,30 @@ public class ApiDoctorAppointmentController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
         } catch (NoSuchElementException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{appointmentId}/start-examination")
+    public ResponseEntity<?> startExamination(
+            Principal principal,
+            @PathVariable("appointmentId") Long appointmentId,
+            @RequestBody(required = false) StartExaminationRequest request
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+        }
+
+        try {
+            MedicalRecordResponse result = this.doctorAppointmentService
+                    .startExamination(principal.getName(), appointmentId, request);
+
+            return ResponseEntity.ok(result);
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
         }
     }
 
