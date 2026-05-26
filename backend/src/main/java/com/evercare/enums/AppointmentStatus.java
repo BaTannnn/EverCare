@@ -49,4 +49,14 @@ public enum AppointmentStatus {
 
         return code;
     }
+
+    public static boolean canStartExamination(String code) {
+        if (code == null || code.isBlank()) {
+            return false;
+        }
+
+        String normalizedCode = code.trim();
+        return BOOKED.name().equalsIgnoreCase(normalizedCode)
+                || WAITING.name().equalsIgnoreCase(normalizedCode);
+    }
 }

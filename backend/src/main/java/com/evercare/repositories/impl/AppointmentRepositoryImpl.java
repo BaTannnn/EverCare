@@ -34,6 +34,22 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public Appointment getAppointmentById(Long appointmentId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT a FROM Appointment a
+                JOIN FETCH a.doctorId d
+                JOIN FETCH a.patientId p
+                LEFT JOIN FETCH a.medicalRecord mr
+                WHERE a.id = :appointmentId
+                    AND a.active = true
+                """, Appointment.class)
+                .setParameter("appointmentId", appointmentId)
+                .uniqueResult();
+    }
+
+    @Override
     public Appointment getAppointmentByDoctorAndId(Long doctorId, Long appointmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 
@@ -47,5 +63,11 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 .setParameter("doctorId", doctorId)
                 .setParameter("appointmentId", appointmentId)
                 .uniqueResult();
+    }
+
+    @Override
+    public void updateAppointment(Appointment appointment) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.merge(appointment);
     }
 }
