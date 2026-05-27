@@ -5,6 +5,7 @@
 package com.evercare.services;
 
 import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
 import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.pojo.User;
 import java.util.Map;
@@ -19,6 +20,6 @@ public interface UserService extends UserDetailsService {
     User getUserByUsername(String username);
     UserRegisterResponse getUserProfile(String username);
     UserRegisterResponse registerUser(UserRegisterRequest request);
-    User addUser(Map<String, String> params, MultipartFile avatar);
+    UserRegisterResponse updateUserProfile(String username, UserProfileUpdateRequest request);
     boolean authenticate(String username, String password);
 }

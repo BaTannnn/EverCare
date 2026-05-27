@@ -15,6 +15,7 @@ import java.util.Map;
  */
 public interface DepartmentService {
     List<Department> getDepartments(Map<String, String> params);
+    List<Department> listActiveDepartments();
 
     Department getDepartmentById(int id);
 

@@ -4,7 +4,6 @@ import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class UserMapper {
@@ -24,9 +23,11 @@ public class UserMapper {
         response.setRoles(user.getRoleSet() == null
                 ? Collections.emptyList()
                 : user.getRoleSet().stream().map(Role::getCode).collect(Collectors.toList()));
+        boolean activePatient = user.getPatient() != null && Boolean.TRUE.equals(user.getPatient().getActive());
+        response.setPatientId(activePatient ? user.getPatient().getId() : null);
         response.setEnabled(Boolean.TRUE.equals(user.getEnabled()));
         response.setActive(Boolean.TRUE.equals(user.getActive()));
-        response.setHasPatientProfile(hasPatientProfile);
+        response.setHasPatientProfile(activePatient);
         return response;
     }
 }

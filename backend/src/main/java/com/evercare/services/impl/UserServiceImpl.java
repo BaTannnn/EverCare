@@ -7,6 +7,7 @@ package com.evercare.services.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
 import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
@@ -98,10 +99,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateException("Số điện thoại đã tồn tại");
         }
 
-        Role patientRole = roleRepo.findByCode("ROLE_PATIENT");
-        if (patientRole == null || Boolean.FALSE.equals(patientRole.getActive())) {
-            throw new IllegalStateException("Vai trò ROLE_PATIENT chưa được khởi tạo");
-        }
+        Role patientRole = ensurePatientRole();
 
         User user = new User();
         user.setUsername(username);
@@ -112,6 +110,10 @@ public class UserServiceImpl implements UserService {
         HashSet<Role> roles = new HashSet<>();
         roles.add(patientRole);
         user.setRoleSet(roles);
+        if (patientRole.getUserSet() == null) {
+            patientRole.setUserSet(new HashSet<>());
+        }
+        patientRole.getUserSet().add(user);
         user.setActive(true);
         user.setEnabled(true);
         user.setAccountNonLocked(true);
@@ -130,19 +132,54 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User addUser(Map<String, String> params, MultipartFile avatar) {
-        UserRegisterRequest request = new UserRegisterRequest();
-        request.setUsername(params.get("username"));
-        request.setPassword(params.get("password"));
-        request.setConfirmPassword(params.get("confirmPassword"));
-        request.setEmail(params.get("email"));
-        request.setPhone(params.get("phone"));
-        request.setFullName(params.get("fullName"));
-        request.setAvatar(avatar);
-        UserRegisterResponse response = registerUser(request);
+    public UserRegisterResponse updateUserProfile(String username, UserProfileUpdateRequest request) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng đăng nhập");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu cập nhật không hợp lệ");
+        }
 
-        User user = getUserByUsername(response.getUsername());
-        return user;
+        User user = userRepo.findByUsername(username);
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy người dùng");
+        }
+
+        String email = normalizeNullableEmail(request.getEmail());
+        String phone = normalizeNullablePhone(request.getPhone());
+        String fullName = normalizeNullableFullName(request.getFullName());
+
+        if (email != null) {
+            validateEmail(email);
+            if (!email.equalsIgnoreCase(user.getEmail()) && userRepo.existsByEmail(email)) {
+                throw new IllegalStateException("Email đã tồn tại");
+            }
+            user.setEmail(email);
+        }
+
+        if (phone != null) {
+            validatePhone(phone);
+            if (!phone.equals(user.getPhone()) && userRepo.existsByPhone(phone)) {
+                throw new IllegalStateException("Số điện thoại đã tồn tại");
+            }
+            user.setPhone(phone);
+        }
+
+        if (fullName != null) {
+            validateFullName(fullName);
+            user.setFullName(fullName);
+        }
+
+        if (request.getAvatar() != null && !request.getAvatar().isEmpty()) {
+            String avatarUrl = uploadAvatar(request.getAvatar());
+            if (avatarUrl != null) {
+                user.setAvatarUrl(avatarUrl);
+            }
+        }
+
+        user.setUpdatedAt(new Date());
+        User saved = userRepo.update(user);
+        return UserMapper.toResponse(saved, saved.getPatient() != null);
     }
 
     @Override
@@ -174,9 +211,28 @@ public class UserServiceImpl implements UserService {
             Map res = this.cloudinary.uploader().upload(avatar.getBytes(),
                     ObjectUtils.asMap("resource_type", "auto"));
             return res.get("secure_url").toString();
-        } catch (IOException ex) {
-            throw new IllegalStateException("Không thể tải ảnh đại diện");
+        } catch (Exception ex) {
+            return null;
         }
+    }
+
+    private Role ensurePatientRole() {
+        Role patientRole = roleRepo.findByCode("ROLE_PATIENT");
+        if (patientRole != null) {
+            return patientRole;
+        }
+
+        Role role = new Role();
+        role.setCode("ROLE_PATIENT");
+        role.setName("Patient");
+        role.setDescription("Role for patient account");
+        role.setActive(true);
+
+        Date now = new Date();
+        role.setCreatedAt(now);
+        role.setUpdatedAt(now);
+
+        return roleRepo.save(role);
     }
 
     private String normalizeUsername(String username) {
@@ -187,12 +243,33 @@ public class UserServiceImpl implements UserService {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
+    private String normalizeNullableEmail(String email) {
+        if (email == null || email.trim().isBlank()) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
     private String normalizePhone(String phone) {
         return phone == null ? null : phone.trim();
     }
 
+    private String normalizeNullablePhone(String phone) {
+        if (phone == null || phone.trim().isBlank()) {
+            return null;
+        }
+        return phone.trim();
+    }
+
     private String normalizeFullName(String fullName) {
         return fullName == null ? null : fullName.trim();
+    }
+
+    private String normalizeNullableFullName(String fullName) {
+        if (fullName == null || fullName.trim().isBlank()) {
+            return null;
+        }
+        return fullName.trim();
     }
 
     private void validateUsername(String username) {

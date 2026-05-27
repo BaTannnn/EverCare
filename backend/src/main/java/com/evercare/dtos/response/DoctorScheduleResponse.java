@@ -10,6 +10,8 @@ public class DoctorScheduleResponse {
     private String statusLabel;
     private String note;
     private Long doctorId;
+    private Integer bookedCount;
+    private Integer remainingSlots;
     private String doctorName;
     private Long departmentId;
     private String departmentName;
@@ -52,6 +54,22 @@ public class DoctorScheduleResponse {
 
     public void setMaxPatients(Integer maxPatients) {
         this.maxPatients = maxPatients;
+    }
+
+    public Integer getBookedCount() {
+        return bookedCount;
+    }
+
+    public void setBookedCount(Integer bookedCount) {
+        this.bookedCount = bookedCount;
+    }
+
+    public Integer getRemainingSlots() {
+        return remainingSlots;
+    }
+
+    public void setRemainingSlots(Integer remainingSlots) {
+        this.remainingSlots = remainingSlots;
     }
 
     public String getStatus() {

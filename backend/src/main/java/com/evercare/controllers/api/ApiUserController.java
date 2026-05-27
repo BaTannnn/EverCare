@@ -5,6 +5,7 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
 import com.evercare.dtos.request.LoginRequest;
 import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.services.UserService;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,9 +35,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiUserController {
     @Autowired
     private UserService userService;
-    @PostMapping(path = {"/users", "/auth/register"},
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+
+    @PostMapping(path = {"/users", "/auth/register"})
     public ResponseEntity<UserRegisterResponse> create(@ModelAttribute UserRegisterRequest request) {
         UserRegisterResponse response = this.userService.registerUser(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -61,5 +62,18 @@ public class ApiUserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return new ResponseEntity<>(this.userService.getUserProfile(principal.getName()), HttpStatus.OK);
+    }
+
+    @PutMapping(path = "/secure/profile")
+    public ResponseEntity<UserRegisterResponse> updateProfile(
+            Principal principal,
+            @ModelAttribute UserProfileUpdateRequest request
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UserRegisterResponse response = this.userService.updateUserProfile(principal.getName(), request);
+        return ResponseEntity.ok(response);
     }
 }
