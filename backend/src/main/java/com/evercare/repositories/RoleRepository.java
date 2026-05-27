@@ -12,4 +12,5 @@ import com.evercare.pojo.Role;
  */
 public interface RoleRepository {
     Role getRoleByRoleName(String roleName);
+    Role findByCode(String code);
 }
