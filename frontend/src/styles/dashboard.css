@@ -1,0 +1,56 @@
+.dashboard-shell {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #f4f8fe;
+}
+
+.dashboard-panel {
+  width: min(100%, 480px);
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.1);
+  text-align: left;
+}
+
+.dashboard-panel .card-body {
+  padding: 32px;
+}
+
+.brand-mark {
+  width: fit-content;
+  margin-bottom: 18px;
+  padding: 7px 12px;
+  border: 1px solid #b8dcff;
+  border-radius: 6px;
+  color: #075fb5;
+  background: #eef6ff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dashboard-title {
+  margin: 0 0 12px;
+  color: #171d27;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.dashboard-copy {
+  margin-bottom: 24px;
+  color: #475569;
+}
+
+.btn-outline-danger {
+  color: #b91c1c;
+  background: #ffffff;
+  border-color: #fecaca;
+}
+
+.btn-outline-danger:hover,
+.btn-outline-danger:focus {
+  background: #fef2f2;
+}

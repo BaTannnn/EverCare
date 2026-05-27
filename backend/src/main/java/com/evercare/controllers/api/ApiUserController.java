@@ -33,7 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiUserController {
     @Autowired
     private UserService userService;
-    
     @PostMapping(path = {"/users", "/auth/register"},
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)

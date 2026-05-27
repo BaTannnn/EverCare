@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.NoSuchElementException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,12 +38,27 @@ public class ApiExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiErrorResponse> handleMultipart(
+            MultipartException ex,
+            HttpServletRequest request
+    ) {
+        ex.printStackTrace();
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Dữ liệu multipart không hợp lệ hoặc file vượt quá giới hạn 5MB",
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(
             Exception ex,
             HttpServletRequest request
     ) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống", request.getRequestURI());
+        ex.printStackTrace();
+        String message = ex.getClass().getSimpleName() + ": " + ex.getMessage();
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, message, request.getRequestURI());
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, String path) {
