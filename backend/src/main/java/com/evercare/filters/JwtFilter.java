@@ -33,10 +33,12 @@ public class JwtFilter implements Filter{
         String secureApiPrefix = String.format("%s/api/secure", contextPath);
         String doctorApiPrefix = String.format("%s/api/doctor", contextPath);
         String staffApiPrefix = String.format("%s/api/staff", contextPath);
+        String pharmacistApiPrefix = String.format("%s/api/pharmacist", contextPath);
 
         if (httpRequest.getRequestURI().startsWith(secureApiPrefix)
                 || httpRequest.getRequestURI().startsWith(doctorApiPrefix)
-                || httpRequest.getRequestURI().startsWith(staffApiPrefix)) {
+                || httpRequest.getRequestURI().startsWith(staffApiPrefix)
+                || httpRequest.getRequestURI().startsWith(pharmacistApiPrefix)) {
         
            
             String header = httpRequest.getHeader("Authorization");
