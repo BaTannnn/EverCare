@@ -11,6 +11,7 @@ public class UserRegisterResponse {
     private String avatarFile;
     private String avatarUrl;
     private List<String> roles;
+    private Long patientId;
     private boolean enabled;
     private boolean active;
     private boolean hasPatientProfile;
@@ -77,6 +78,14 @@ public class UserRegisterResponse {
 
     public void setRoles(List<String> roles) {
         this.roles = roles;
+    }
+
+    public Long getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(Long patientId) {
+        this.patientId = patientId;
     }
 
     public boolean isEnabled() {

@@ -6,7 +6,6 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.User;
 import com.evercare.repositories.UserRepository;
-import java.util.List;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +46,23 @@ public class UserRepositoryImpl implements UserRepository {
         );
         q.setParameter("username", username);
 
+        return q.uniqueResult();
+    }
+
+    @Override
+    public User findById(Long id) {
+        Session session = this.factory.getObject().getCurrentSession();
+        Query<User> q = session.createQuery(
+                """
+                SELECT DISTINCT u
+                FROM User u
+                LEFT JOIN FETCH u.roleSet
+                LEFT JOIN FETCH u.patient
+                WHERE u.id = :id
+                """,
+                User.class
+        );
+        q.setParameter("id", id);
         return q.uniqueResult();
     }
 
