@@ -110,10 +110,6 @@ public class DoctorRepositoryImpl implements DoctorRepository {
                 .setParameter("userId", userId)
                 .uniqueResult();
     }
-    @Override
-    public Doctor getDoctorByUserId(Long userId) {
-        return null;
-    }
 
     @Override
     public void addDoctor(Doctor doctor) {
