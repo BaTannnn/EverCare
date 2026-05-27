@@ -9,6 +9,8 @@ public interface MedicineBatchRepository {
 
     List<MedicineBatch> getBatchesByMedicineId(Long medicineId);
 
+    Long getAvailableQuantityByMedicineId(Long medicineId);
+
     List<MedicineBatch> getNearExpiryBatches(java.util.Date toDate);
 
     List<MedicineBatch> getExpiredBatches(java.util.Date today);

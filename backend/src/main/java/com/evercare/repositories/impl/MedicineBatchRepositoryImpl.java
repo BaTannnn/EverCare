@@ -67,6 +67,23 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     }
 
     @Override
+    public Long getAvailableQuantityByMedicineId(Long medicineId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        Long total = session.createQuery("""
+                SELECT COALESCE(SUM(b.remainingQuantity), 0)
+                FROM MedicineBatch b
+                WHERE b.medicineId.id = :medicineId
+                    AND b.active = true
+                    AND b.remainingQuantity > 0
+                """, Long.class)
+                .setParameter("medicineId", medicineId)
+                .getSingleResult();
+
+        return total != null ? total : 0L;
+    }
+
+    @Override
     public List<MedicineBatch> getNearExpiryBatches(Date toDate) {
         Session session = this.factory.getObject().getCurrentSession();
 
