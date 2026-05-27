@@ -25,11 +25,24 @@ public class RoleRepositoryImpl implements RoleRepository {
     
     @Override
     public Role getRoleByRoleName(String roleName) {
-        Session session = this.factory.getObject().getCurrentSession();
-        Query q = session.createNamedQuery("Role.findByCode", Role.class);
-        q.setParameter("code", roleName);
+        return findByCode(roleName);
+    }
 
-        return (Role) q.getSingleResult();
+    @Override
+    public Role findByCode(String code) {
+        Session session = this.factory.getObject().getCurrentSession();
+        Query<Role> q = session.createNamedQuery("Role.findByCode", Role.class);
+        q.setParameter("code", code);
+
+        return q.uniqueResult();
+    }
+
+    @Override
+    public Role save(Role role) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.persist(role);
+        session.flush();
+        return role;
     }
     
 }

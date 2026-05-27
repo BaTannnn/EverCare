@@ -4,6 +4,9 @@
  */
 package com.evercare.services;
 
+import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
+import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.pojo.User;
 import java.util.Map;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,6 +18,8 @@ import org.springframework.web.multipart.MultipartFile;
  */
 public interface UserService extends UserDetailsService {
     User getUserByUsername(String username);
-    User addUser(Map<String, String> params, MultipartFile avatar);
+    UserRegisterResponse getUserProfile(String username);
+    UserRegisterResponse registerUser(UserRegisterRequest request);
+    UserRegisterResponse updateUserProfile(String username, UserProfileUpdateRequest request);
     boolean authenticate(String username, String password);
 }

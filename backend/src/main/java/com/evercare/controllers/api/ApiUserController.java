@@ -4,52 +4,50 @@
  */
 package com.evercare.controllers.api;
 
-import com.evercare.pojo.User;
+import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
+import com.evercare.dtos.request.LoginRequest;
+import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.services.UserService;
 import com.evercare.utils.JwtUtils;
 import java.security.Principal;
 import java.util.Collections;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  *
  * @author cadic
  */
-@Controller
+@RestController
 @RequestMapping("/api")
 @CrossOrigin
 public class ApiUserController {
     @Autowired
     private UserService userService;
-    
-    @PostMapping(path = "/users", 
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE, 
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<User> create(@RequestParam Map<String, String> params, 
-            @RequestParam(value = "avatar") MultipartFile avatar) {
-        User u = this.userService.addUser(params, avatar);
-        
-        return new ResponseEntity<>(u, HttpStatus.CREATED);
+
+    @PostMapping(path = {"/users", "/auth/register"})
+    public ResponseEntity<UserRegisterResponse> create(@ModelAttribute UserRegisterRequest request) {
+        UserRegisterResponse response = this.userService.registerUser(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
     
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User u) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
-        if (this.userService.authenticate(u.getUsername(), u.getPassword())) {
+        if (this.userService.authenticate(request.getUsername(), request.getPassword())) {
             try {
-                String token = JwtUtils.generateToken(u.getUsername());
+                String token = JwtUtils.generateToken(request.getUsername());
                 return ResponseEntity.ok().body(Collections.singletonMap("token", token));
             } catch (Exception e) {
                 return ResponseEntity.status(500).body("Lỗi khi tạo JWT");
@@ -58,9 +56,24 @@ public class ApiUserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai thông tin đăng nhập");
     }
 
-    @RequestMapping("/secure/profile")
-    @ResponseBody
-    public ResponseEntity<User> getProfile(Principal principal) {
-        return new ResponseEntity<>(this.userService.getUserByUsername(principal.getName()), HttpStatus.OK);
+    @GetMapping("/secure/profile")
+    public ResponseEntity<UserRegisterResponse> getProfile(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return new ResponseEntity<>(this.userService.getUserProfile(principal.getName()), HttpStatus.OK);
+    }
+
+    @PutMapping(path = "/secure/profile")
+    public ResponseEntity<UserRegisterResponse> updateProfile(
+            Principal principal,
+            @ModelAttribute UserProfileUpdateRequest request
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        UserRegisterResponse response = this.userService.updateUserProfile(principal.getName(), request);
+        return ResponseEntity.ok(response);
     }
 }

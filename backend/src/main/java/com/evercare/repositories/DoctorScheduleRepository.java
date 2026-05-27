@@ -10,6 +10,7 @@ import java.util.Map;
 public interface DoctorScheduleRepository {
 
     List<DoctorSchedule> getSchedules(Map<String, String> params);
+    List<DoctorSchedule> getAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to);
 
     DoctorSchedule getScheduleById(int id);
 

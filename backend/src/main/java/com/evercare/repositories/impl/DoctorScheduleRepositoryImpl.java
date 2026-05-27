@@ -57,6 +57,16 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
                 ));
             }
 
+            String fromDate = params.get("fromDate");
+            if (fromDate != null && !fromDate.isBlank()) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("workDate"), LocalDate.parse(fromDate)));
+            }
+
+            String toDate = params.get("toDate");
+            if (toDate != null && !toDate.isBlank()) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), LocalDate.parse(toDate)));
+            }
+
             String status = params.get("status");
             if (status != null && !status.isBlank()) {
                 predicates.add(cb.equal(root.get("status"), status));
@@ -83,7 +93,7 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
 
         Query<DoctorSchedule> query = session.createQuery(cq);
 
-        if (params != null) {
+        if (params != null && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int pageSize = this.env.getProperty("doctorSchedule.pageSize", Integer.class);
             int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countDoctorSchedules(params), pageSize);
             int start = (page - 1) * pageSize;
@@ -93,6 +103,33 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         }
 
         return query.getResultList();
+    }
+
+    @Override
+    public List<DoctorSchedule> getAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
+        Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+        predicates.add(cb.equal(root.get("doctorId").get("id"), doctorId));
+        predicates.add(cb.equal(root.get("status"), "AVAILABLE"));
+
+        if (from != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("workDate"), from));
+        }
+
+        if (to != null) {
+            predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), to));
+        }
+
+        cq.where(predicates.toArray(Predicate[]::new));
+        cq.orderBy(cb.asc(root.get("workDate")), cb.asc(root.get("startTime")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
