@@ -17,5 +17,6 @@ public interface UserRepository {
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
     User save(User u);
+    User update(User u);
     boolean authenticate(String username, String password);
 }

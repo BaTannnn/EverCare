@@ -98,6 +98,14 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public User update(User u) {
+        Session session = this.factory.getObject().getCurrentSession();
+        u = (User) session.merge(u);
+        session.flush();
+        return u;
+    }
+
+    @Override
     public boolean authenticate(String username, String password) {
         User u = this.findByUsername(username);
         if (u == null) {

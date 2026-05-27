@@ -7,6 +7,7 @@ package com.evercare.services.impl;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.UserProfileUpdateRequest;
 import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
@@ -130,6 +131,58 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public UserRegisterResponse updateUserProfile(String username, UserProfileUpdateRequest request) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng đăng nhập");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu cập nhật không hợp lệ");
+        }
+
+        User user = userRepo.findByUsername(username);
+        if (user == null) {
+            throw new IllegalArgumentException("Không tìm thấy người dùng");
+        }
+
+        String email = normalizeNullableEmail(request.getEmail());
+        String phone = normalizeNullablePhone(request.getPhone());
+        String fullName = normalizeNullableFullName(request.getFullName());
+
+        if (email != null) {
+            validateEmail(email);
+            if (!email.equalsIgnoreCase(user.getEmail()) && userRepo.existsByEmail(email)) {
+                throw new IllegalStateException("Email đã tồn tại");
+            }
+            user.setEmail(email);
+        }
+
+        if (phone != null) {
+            validatePhone(phone);
+            if (!phone.equals(user.getPhone()) && userRepo.existsByPhone(phone)) {
+                throw new IllegalStateException("Số điện thoại đã tồn tại");
+            }
+            user.setPhone(phone);
+        }
+
+        if (fullName != null) {
+            validateFullName(fullName);
+            user.setFullName(fullName);
+        }
+
+        if (request.getAvatar() != null && !request.getAvatar().isEmpty()) {
+            String avatarUrl = uploadAvatar(request.getAvatar());
+            if (avatarUrl != null) {
+                user.setAvatarUrl(avatarUrl);
+            }
+        }
+
+        user.setUpdatedAt(new Date());
+        User saved = userRepo.update(user);
+        return UserMapper.toResponse(saved, saved.getPatient() != null);
+    }
+
+    @Override
     public boolean authenticate(String username, String password) {
         return this.userRepo.authenticate(username, password);
     }
@@ -190,12 +243,33 @@ public class UserServiceImpl implements UserService {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
 
+    private String normalizeNullableEmail(String email) {
+        if (email == null || email.trim().isBlank()) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
+    }
+
     private String normalizePhone(String phone) {
         return phone == null ? null : phone.trim();
     }
 
+    private String normalizeNullablePhone(String phone) {
+        if (phone == null || phone.trim().isBlank()) {
+            return null;
+        }
+        return phone.trim();
+    }
+
     private String normalizeFullName(String fullName) {
         return fullName == null ? null : fullName.trim();
+    }
+
+    private String normalizeNullableFullName(String fullName) {
+        if (fullName == null || fullName.trim().isBlank()) {
+            return null;
+        }
+        return fullName.trim();
     }
 
     private void validateUsername(String username) {
