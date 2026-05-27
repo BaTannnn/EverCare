@@ -42,7 +42,7 @@ public class ApiExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống", request.getRequestURI());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, String.format("Đã xảy ra lỗi hệ thống %s", ex.getMessage()), request.getRequestURI());
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, String path) {

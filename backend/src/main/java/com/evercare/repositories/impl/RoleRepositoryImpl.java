@@ -36,5 +36,13 @@ public class RoleRepositoryImpl implements RoleRepository {
 
         return q.uniqueResult();
     }
+
+    @Override
+    public Role save(Role role) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.persist(role);
+        session.flush();
+        return role;
+    }
     
 }

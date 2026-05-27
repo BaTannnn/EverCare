@@ -98,10 +98,7 @@ public class UserServiceImpl implements UserService {
             throw new IllegalStateException("Số điện thoại đã tồn tại");
         }
 
-        Role patientRole = roleRepo.findByCode("ROLE_PATIENT");
-        if (patientRole == null || Boolean.FALSE.equals(patientRole.getActive())) {
-            throw new IllegalStateException("Vai trò ROLE_PATIENT chưa được khởi tạo");
-        }
+        Role patientRole = ensurePatientRole();
 
         User user = new User();
         user.setUsername(username);
@@ -112,6 +109,10 @@ public class UserServiceImpl implements UserService {
         HashSet<Role> roles = new HashSet<>();
         roles.add(patientRole);
         user.setRoleSet(roles);
+        if (patientRole.getUserSet() == null) {
+            patientRole.setUserSet(new HashSet<>());
+        }
+        patientRole.getUserSet().add(user);
         user.setActive(true);
         user.setEnabled(true);
         user.setAccountNonLocked(true);
@@ -157,9 +158,28 @@ public class UserServiceImpl implements UserService {
             Map res = this.cloudinary.uploader().upload(avatar.getBytes(),
                     ObjectUtils.asMap("resource_type", "auto"));
             return res.get("secure_url").toString();
-        } catch (IOException ex) {
-            throw new IllegalStateException("Không thể tải ảnh đại diện");
+        } catch (Exception ex) {
+            return null;
         }
+    }
+
+    private Role ensurePatientRole() {
+        Role patientRole = roleRepo.findByCode("ROLE_PATIENT");
+        if (patientRole != null) {
+            return patientRole;
+        }
+
+        Role role = new Role();
+        role.setCode("ROLE_PATIENT");
+        role.setName("Patient");
+        role.setDescription("Role for patient account");
+        role.setActive(true);
+
+        Date now = new Date();
+        role.setCreatedAt(now);
+        role.setUpdatedAt(now);
+
+        return roleRepo.save(role);
     }
 
     private String normalizeUsername(String username) {
