@@ -9,6 +9,10 @@ public interface MedicineBatchRepository {
 
     List<MedicineBatch> getBatchesByMedicineId(Long medicineId);
 
+    List<MedicineBatch> getNearExpiryBatches(java.util.Date toDate);
+
+    List<MedicineBatch> getExpiredBatches(java.util.Date today);
+
     boolean existsByBatchCode(String batchCode);
 
     void addBatch(MedicineBatch batch);

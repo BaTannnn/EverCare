@@ -71,6 +71,35 @@ public class ApiPharmacistMedicineBatchController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/medicine-batches/near-expiry")
+    public ResponseEntity<?> getNearExpiryBatches(
+            Principal principal,
+            @RequestParam(value = "days", required = false) Integer days
+    ) {
+        ResponseEntity<?> authError = validatePharmacist(principal);
+        if (authError != null) {
+            return authError;
+        }
+
+        try {
+            List<MedicineBatchResponse> result = this.medicineBatchService.getNearExpiryBatches(days);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/medicine-batches/expired")
+    public ResponseEntity<?> getExpiredBatches(Principal principal) {
+        ResponseEntity<?> authError = validatePharmacist(principal);
+        if (authError != null) {
+            return authError;
+        }
+
+        List<MedicineBatchResponse> result = this.medicineBatchService.getExpiredBatches();
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/medicines/{medicineId}/batches")
     public ResponseEntity<?> getBatchesByMedicine(
             Principal principal,

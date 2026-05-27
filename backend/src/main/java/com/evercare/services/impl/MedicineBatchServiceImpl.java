@@ -111,6 +111,29 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
                 .toList();
     }
 
+    @Override
+    public List<MedicineBatchResponse> getNearExpiryBatches(Integer days) {
+        int normalizedDays = days != null ? days : 30;
+        if (normalizedDays < 0) {
+            throw new IllegalArgumentException("Số ngày cảnh báo không được âm");
+        }
+
+        LocalDate toDate = LocalDate.now().plusDays(normalizedDays);
+
+        return this.batchRepo.getNearExpiryBatches(Date.valueOf(toDate))
+                .stream()
+                .map(MedicineBatchMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<MedicineBatchResponse> getExpiredBatches() {
+        return this.batchRepo.getExpiredBatches(Date.valueOf(LocalDate.now()))
+                .stream()
+                .map(MedicineBatchMapper::toResponse)
+                .toList();
+    }
+
     private void validateRequest(MedicineBatchImportRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu nhập kho không hợp lệ");

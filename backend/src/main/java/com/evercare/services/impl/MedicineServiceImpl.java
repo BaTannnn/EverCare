@@ -1,6 +1,7 @@
 package com.evercare.services.impl;
 
 import com.evercare.dtos.request.MedicineRequest;
+import com.evercare.dtos.response.MedicineLowStockResponse;
 import com.evercare.dtos.response.MedicineResponse;
 import com.evercare.enums.MedicineUnit;
 import com.evercare.mappers.MedicineMapper;
@@ -27,6 +28,28 @@ public class MedicineServiceImpl implements MedicineService {
         return this.medicineRepo.getMedicines(params)
                 .stream()
                 .map(MedicineMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<MedicineLowStockResponse> getLowStockMedicines() {
+        return this.medicineRepo.getLowStockMedicines()
+                .stream()
+                .map(row -> {
+                    Medicine medicine = (Medicine) row[0];
+                    Number totalRemaining = (Number) row[1];
+
+                    MedicineLowStockResponse res = new MedicineLowStockResponse();
+                    res.setId(medicine.getId());
+                    res.setMedicineCode(medicine.getMedicineCode());
+                    res.setName(medicine.getName());
+                    res.setUnit(medicine.getUnit());
+                    res.setUnitPrice(medicine.getUnitPrice());
+                    res.setMinStockQuantity(medicine.getMinStockQuantity());
+                    res.setTotalRemainingQuantity(totalRemaining != null ? totalRemaining.longValue() : 0L);
+
+                    return res;
+                })
                 .toList();
     }
 

@@ -7,6 +7,8 @@ import java.util.Map;
 public interface MedicineRepository {
     List<Medicine> getMedicines(Map<String, String> params);
 
+    List<Object[]> getLowStockMedicines();
+
     Medicine getMedicineById(Long id);
 
     Medicine getMedicineByCode(String medicineCode);

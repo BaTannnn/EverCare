@@ -62,6 +62,24 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     }
 
     @Override
+    public List<Object[]> getLowStockMedicines() {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT m, COALESCE(SUM(b.remainingQuantity), 0)
+                FROM Medicine m
+                LEFT JOIN MedicineBatch b
+                    ON b.medicineId.id = m.id
+                    AND b.active = true
+                WHERE m.active = true
+                GROUP BY m
+                HAVING COALESCE(SUM(b.remainingQuantity), 0) <= COALESCE(m.minStockQuantity, 0)
+                ORDER BY m.name ASC
+                """, Object[].class)
+                .getResultList();
+    }
+
+    @Override
     public Medicine getMedicineById(Long id) {
         Session session = this.factory.getObject().getCurrentSession();
         return session.get(Medicine.class, id);

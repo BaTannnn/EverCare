@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.Session;
@@ -62,6 +63,38 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
                 ORDER BY b.expiryDate ASC, b.id ASC
                 """, MedicineBatch.class)
                 .setParameter("medicineId", medicineId)
+                .getResultList();
+    }
+
+    @Override
+    public List<MedicineBatch> getNearExpiryBatches(Date toDate) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT b FROM MedicineBatch b
+                JOIN FETCH b.medicineId m
+                WHERE b.active = true
+                    AND b.remainingQuantity > 0
+                    AND b.expiryDate <= :toDate
+                ORDER BY b.expiryDate ASC, m.name ASC, b.id ASC
+                """, MedicineBatch.class)
+                .setParameter("toDate", toDate)
+                .getResultList();
+    }
+
+    @Override
+    public List<MedicineBatch> getExpiredBatches(Date today) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT b FROM MedicineBatch b
+                JOIN FETCH b.medicineId m
+                WHERE b.active = true
+                    AND b.remainingQuantity > 0
+                    AND b.expiryDate < :today
+                ORDER BY b.expiryDate ASC, m.name ASC, b.id ASC
+                """, MedicineBatch.class)
+                .setParameter("today", today)
                 .getResultList();
     }
 

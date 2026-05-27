@@ -2,6 +2,7 @@ package com.evercare.controllers.api;
 
 import com.evercare.dtos.request.MedicineRequest;
 import com.evercare.dtos.request.MedicineStatusRequest;
+import com.evercare.dtos.response.MedicineLowStockResponse;
 import com.evercare.dtos.response.MedicineResponse;
 import com.evercare.pojo.Employee;
 import com.evercare.pojo.User;
@@ -9,6 +10,7 @@ import com.evercare.repositories.EmployeeRepository;
 import com.evercare.services.MedicineService;
 import com.evercare.services.UserService;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,17 @@ public class ApiPharmacistMedicineController {
 
     @Autowired
     private EmployeeRepository employeeRepo;
+
+    @org.springframework.web.bind.annotation.GetMapping("/low-stock")
+    public ResponseEntity<?> getLowStockMedicines(Principal principal) {
+        ResponseEntity<?> authError = validatePharmacist(principal);
+        if (authError != null) {
+            return authError;
+        }
+
+        List<MedicineLowStockResponse> result = this.medicineService.getLowStockMedicines();
+        return ResponseEntity.ok(result);
+    }
 
     @PostMapping
     public ResponseEntity<?> create(

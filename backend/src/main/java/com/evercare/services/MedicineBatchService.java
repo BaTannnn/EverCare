@@ -12,4 +12,8 @@ public interface MedicineBatchService {
     List<MedicineBatchResponse> getBatches(Map<String, String> params);
 
     List<MedicineBatchResponse> getBatchesByMedicineId(Long medicineId);
+
+    List<MedicineBatchResponse> getNearExpiryBatches(Integer days);
+
+    List<MedicineBatchResponse> getExpiredBatches();
 }
