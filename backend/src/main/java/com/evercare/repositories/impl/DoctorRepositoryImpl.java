@@ -99,10 +99,16 @@ public class DoctorRepositoryImpl implements DoctorRepository {
         Session session = this.factory.getObject().getCurrentSession();
         return session.get(Doctor.class, Long.valueOf(id));
     }
-
     @Override
     public Doctor getDoctorByUserId(Long userId) {
-        return null;
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery(
+                        "SELECT d FROM Doctor d WHERE d.userId.id = :userId",
+                        Doctor.class
+                )
+                .setParameter("userId", userId)
+                .uniqueResult();
     }
 
     @Override

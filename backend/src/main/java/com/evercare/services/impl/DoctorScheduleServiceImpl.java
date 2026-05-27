@@ -1,15 +1,17 @@
 package com.evercare.services.impl;
 
-import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.dtos.request.DoctorScheduleRequest;
+import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
+import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.services.DoctorScheduleService;
+import com.evercare.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Date;
 import java.sql.Time;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +33,8 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
     @Autowired
     private DoctorRepository doctorRepo;
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private AppointmentRepository appointmentRepo;
@@ -62,6 +66,25 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         }
 
         return result;
+    }
+
+    @Override
+    public List<DoctorScheduleResponse> getCurrentDoctorSchedules(String username, Map<String, String> params) {
+        Doctor doctor = getCurrentDoctor(username);
+        Map<String, String> filters = params != null ? new HashMap<>(params) : new HashMap<>();
+
+        String date = filters.get("date");
+        if (date != null && !date.isBlank()) {
+            filters.put("workDate", date);
+        }
+
+        filters.put("doctorId", doctor.getId().toString());
+        filters.put("noPaging", "true");
+
+        return this.scheduleRepo.getSchedules(filters)
+                .stream()
+                .map(DoctorScheduleMapper::toResponse)
+                .toList();
     }
 
     @Override
@@ -146,6 +169,21 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
         if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
             throw new IllegalArgumentException("Bác sĩ không tồn tại hoặc đã ngưng hoạt động");
+        }
+
+        return doctor;
+    }
+
+    private Doctor getCurrentDoctor(String username) {
+        if (username == null || username.isBlank()) {
+            throw new SecurityException("Vui lòng đăng nhập");
+        }
+
+        User user = this.userService.getUserByUsername(username);
+        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
+
+        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
+            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
         }
 
         return doctor;

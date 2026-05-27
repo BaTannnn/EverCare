@@ -5,6 +5,7 @@ import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Appointment;
+import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Patient;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,6 +29,15 @@ public final class AppointmentMapper {
         res.setStatus(appointment.getStatus());
         res.setStatusLabel(AppointmentStatus.labelOf(appointment.getStatus()));
         res.setPatient(toPatientResponse(appointment.getPatientId()));
+        res.setService(MedicalServiceMapper.toResponse(appointment.getServiceId()));
+
+        MedicalRecord medicalRecord = appointment.getMedicalRecord();
+        if (medicalRecord != null) {
+            res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
+            if (medicalRecord.getPrescription() != null) {
+                res.setPrescription(PrescriptionMapper.toResponse(medicalRecord.getPrescription(), null));
+            }
+        }
 
         return res;
     }

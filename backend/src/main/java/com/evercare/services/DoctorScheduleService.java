@@ -13,6 +13,8 @@ public interface DoctorScheduleService {
     List<DoctorSchedule> getSchedules(Map<String, String> params);
     List<DoctorScheduleResponse> listAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to);
 
+    List<DoctorScheduleResponse> getCurrentDoctorSchedules(String username, Map<String, String> params);
+
     DoctorSchedule getScheduleById(int id);
 
     DoctorSchedule createSchedule(DoctorScheduleRequest req);

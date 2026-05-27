@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiUserController {
     @Autowired
     private UserService userService;
-    
+
     @PostMapping(path = {"/users", "/auth/register"})
     public ResponseEntity<UserRegisterResponse> create(@ModelAttribute UserRegisterRequest request) {
         UserRegisterResponse response = this.userService.registerUser(request);

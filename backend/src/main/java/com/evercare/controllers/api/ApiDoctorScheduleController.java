@@ -1,13 +1,14 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.DoctorScheduleResponse;
-import com.evercare.pojo.Doctor;
-import com.evercare.services.DoctorService;
 import com.evercare.services.DoctorScheduleService;
+import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import com.evercare.pojo.Doctor;
 import java.util.List;
 import java.util.Map;
+import com.evercare.services.DoctorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,20 +23,47 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 @CrossOrigin
 public class ApiDoctorScheduleController {
-
     @Autowired
-    private DoctorScheduleService doctorScheduleService;
-
+    private DoctorScheduleService scheduleService;
     @Autowired
     private DoctorService doctorService;
 
-    @GetMapping("/doctors/{doctorId}/schedules")
+    @GetMapping({"/doctors/schedules", "/doctor/schedules"})
     public ResponseEntity<?> list(
+            Principal principal,
+            @RequestParam Map<String, String> params
+    ) {
+        return currentDoctorSchedules(principal, params);
+    }
+
+    @GetMapping({"/doctors/schedules/today", "/doctor/schedules/today"})
+    public ResponseEntity<?> today(Principal principal) {
+        return currentDoctorSchedules(principal, Map.of("date", LocalDate.now().toString()));
+    }
+
+    private ResponseEntity<?> currentDoctorSchedules(Principal principal, Map<String, String> params) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+        }
+
+        try {
+            List<DoctorScheduleResponse> result = this.scheduleService
+                    .getCurrentDoctorSchedules(principal.getName(), params);
+
+            return ResponseEntity.ok(result);
+        } catch (DateTimeParseException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Ngày không hợp lệ, định dạng đúng là yyyy-MM-dd"));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    @GetMapping("/doctors/{doctorId}/schedules")
+    public ResponseEntity<?> list (
             @PathVariable("doctorId") Long doctorId,
             @RequestParam(value = "from", required = false) String from,
             @RequestParam(value = "to", required = false) String to
-    ) {
-
+    ){
         Doctor doctor = this.doctorService.getDoctorById(doctorId.intValue());
 
         if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
@@ -62,7 +90,7 @@ public class ApiDoctorScheduleController {
             return ResponseEntity.badRequest().body(Map.of("message", "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu"));
         }
 
-        List<DoctorScheduleResponse> result = this.doctorScheduleService
+        List<DoctorScheduleResponse> result = this.scheduleService
                 .listAvailableSchedulesByDoctorId(doctorId, fromDate, toDate);
 
         return ResponseEntity.ok(result);

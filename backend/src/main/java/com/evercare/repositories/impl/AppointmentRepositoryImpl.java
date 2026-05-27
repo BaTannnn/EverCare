@@ -2,10 +2,11 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.Appointment;
 import com.evercare.repositories.AppointmentRepository;
-import java.sql.Time;
+import java.util.HashMap;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.sql.Time;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,30 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 .setParameter("doctorId", doctorId)
                 .setParameter("appointmentDate", appointmentDate)
                 .getResultList();
+    }
+
+    @Override
+    public Map<String, Long> countAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        List<Object[]> rows = session.createQuery("""
+                SELECT a.status, COUNT(a.id)
+                FROM Appointment a
+                WHERE a.doctorId.id = :doctorId
+                    AND a.appointmentDate = :appointmentDate
+                    AND a.active = true
+                GROUP BY a.status
+                """, Object[].class)
+                .setParameter("doctorId", doctorId)
+                .setParameter("appointmentDate", appointmentDate)
+                .getResultList();
+
+        Map<String, Long> counts = new HashMap<>();
+        for (Object[] row : rows) {
+            counts.put((String) row[0], (Long) row[1]);
+        }
+
+        return counts;
     }
 
     @Override
@@ -189,7 +214,11 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 SELECT a FROM Appointment a
                 JOIN FETCH a.doctorId d
                 JOIN FETCH a.patientId p
+                LEFT JOIN FETCH a.serviceId s
                 LEFT JOIN FETCH a.medicalRecord mr
+                LEFT JOIN FETCH mr.prescription pr
+                LEFT JOIN FETCH pr.prescriptionItemSet item
+                LEFT JOIN FETCH item.medicineId medicine
                 WHERE a.id = :appointmentId
                     AND a.active = true
                 """, Appointment.class)
@@ -204,6 +233,11 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         return session.createQuery("""
                 SELECT a FROM Appointment a
                 JOIN FETCH a.patientId p
+                LEFT JOIN FETCH a.serviceId s
+                LEFT JOIN FETCH a.medicalRecord mr
+                LEFT JOIN FETCH mr.prescription pr
+                LEFT JOIN FETCH pr.prescriptionItemSet item
+                LEFT JOIN FETCH item.medicineId medicine
                 WHERE a.doctorId.id = :doctorId
                     AND a.id = :appointmentId
                     AND a.active = true

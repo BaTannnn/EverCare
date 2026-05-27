@@ -57,6 +57,16 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
                 ));
             }
 
+            String fromDate = params.get("fromDate");
+            if (fromDate != null && !fromDate.isBlank()) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("workDate"), LocalDate.parse(fromDate)));
+            }
+
+            String toDate = params.get("toDate");
+            if (toDate != null && !toDate.isBlank()) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), LocalDate.parse(toDate)));
+            }
+
             String status = params.get("status");
             if (status != null && !status.isBlank()) {
                 predicates.add(cb.equal(root.get("status"), status));
@@ -83,7 +93,7 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
 
         Query<DoctorSchedule> query = session.createQuery(cq);
 
-        if (params != null) {
+        if (params != null && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int pageSize = this.env.getProperty("doctorSchedule.pageSize", Integer.class);
             int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countDoctorSchedules(params), pageSize);
             int start = (page - 1) * pageSize;

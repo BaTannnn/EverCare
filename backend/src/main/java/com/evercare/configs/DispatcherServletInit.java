@@ -39,10 +39,10 @@ public class DispatcherServletInit extends AbstractAnnotationConfigDispatcherSer
 
     @Override
     protected void customizeRegistration(ServletRegistration.Dynamic registration) {
-        String location = "/";
+        String location = System.getProperty("java.io.tmpdir");
         long maxFileSize = 5242880; // 5MB
         long maxRequestSize = 20971520; // 20MB
-        int fileSizeThreshold = 0;
+        int fileSizeThreshold = 1048576; // 1MB
 
         registration.setMultipartConfig(new MultipartConfigElement(location, maxFileSize, maxRequestSize, fileSizeThreshold));
     }
@@ -52,4 +52,3 @@ public class DispatcherServletInit extends AbstractAnnotationConfigDispatcherSer
         return new Filter[] { new JwtFilter() }; // Filter sẽ áp dụng cho mọi request
     }
 }
-
