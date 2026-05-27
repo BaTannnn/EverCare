@@ -129,23 +129,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional
-    public User addUser(Map<String, String> params, MultipartFile avatar) {
-        UserRegisterRequest request = new UserRegisterRequest();
-        request.setUsername(params.get("username"));
-        request.setPassword(params.get("password"));
-        request.setConfirmPassword(params.get("confirmPassword"));
-        request.setEmail(params.get("email"));
-        request.setPhone(params.get("phone"));
-        request.setFullName(params.get("fullName"));
-        request.setAvatar(avatar);
-        UserRegisterResponse response = registerUser(request);
-
-        User user = getUserByUsername(response.getUsername());
-        return user;
-    }
-
-    @Override
     public boolean authenticate(String username, String password) {
         return this.userRepo.authenticate(username, password);
     }
