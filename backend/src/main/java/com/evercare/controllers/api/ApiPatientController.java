@@ -3,6 +3,7 @@ package com.evercare.controllers.api;
 import com.evercare.dtos.request.PatientRequest;
 import com.evercare.dtos.response.PatientResponse;
 import com.evercare.services.PatientService;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,25 +24,20 @@ public class ApiPatientController {
     @Autowired
     private PatientService patientService;
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping
     public ResponseEntity<PatientResponse> create(@RequestBody PatientRequest request) {
         PatientResponse response = this.patientService.createProfile(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping(value = "/{patientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PatientResponse> getMyProfile(
-            @PathVariable("patientId") Long patientId
-    ) {
+    @GetMapping("/profile")
+    public ResponseEntity<PatientResponse> retrieve() {
         PatientResponse response = this.patientService.getMyProfile();
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping(value = "/{patientId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PatientResponse> update(
-            @PathVariable("patientId") Long patientId,
-            @RequestBody PatientRequest request
-    ) {
+    @PutMapping("/profile")
+    public ResponseEntity<PatientResponse> update(@RequestBody PatientRequest request) {
         PatientResponse response = this.patientService.updateMyProfile(request);
         return ResponseEntity.ok(response);
     }

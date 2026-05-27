@@ -36,9 +36,7 @@ public class ApiUserController {
     @Autowired
     private UserService userService;
     
-    @PostMapping(path = {"/users", "/auth/register"},
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = {"/users", "/auth/register"})
     public ResponseEntity<UserRegisterResponse> create(@ModelAttribute UserRegisterRequest request) {
         UserRegisterResponse response = this.userService.registerUser(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
@@ -66,9 +64,7 @@ public class ApiUserController {
         return new ResponseEntity<>(this.userService.getUserProfile(principal.getName()), HttpStatus.OK);
     }
 
-    @PutMapping(path = "/secure/profile",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(path = "/secure/profile")
     public ResponseEntity<UserRegisterResponse> updateProfile(
             Principal principal,
             @ModelAttribute UserProfileUpdateRequest request
