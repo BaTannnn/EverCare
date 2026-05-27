@@ -96,6 +96,33 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
     }
 
     @Override
+    public List<DoctorSchedule> getAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
+        Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+        predicates.add(cb.equal(root.get("doctorId").get("id"), doctorId));
+        predicates.add(cb.equal(root.get("status"), "AVAILABLE"));
+
+        if (from != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("workDate"), from));
+        }
+
+        if (to != null) {
+            predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), to));
+        }
+
+        cq.where(predicates.toArray(Predicate[]::new));
+        cq.orderBy(cb.asc(root.get("workDate")), cb.asc(root.get("startTime")));
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
     public DoctorSchedule getScheduleById(int id) {
         Session session = this.factory.getObject().getCurrentSession();
         return session.get(DoctorSchedule.class, Long.valueOf(id));

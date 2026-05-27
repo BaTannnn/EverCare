@@ -4,6 +4,7 @@ import com.evercare.pojo.Appointment;
 import com.evercare.repositories.AppointmentRepository;
 import java.util.Date;
 import java.util.List;
+import java.sql.Time;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
@@ -31,6 +32,27 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 .setParameter("doctorId", doctorId)
                 .setParameter("appointmentDate", appointmentDate)
                 .getResultList();
+    }
+
+    @Override
+    public long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT COUNT(a.id)
+                FROM Appointment a
+                WHERE a.doctorId.id = :doctorId
+                    AND a.appointmentDate = :appointmentDate
+                    AND a.active = true
+                    AND (a.status IS NULL OR (a.status <> 'CANCELLED' AND a.status <> 'NO_SHOW'))
+                    AND a.startTime >= :startTime
+                    AND a.startTime < :endTime
+                """, Long.class)
+                .setParameter("doctorId", doctorId)
+                .setParameter("appointmentDate", appointmentDate)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .uniqueResult();
     }
 
     @Override

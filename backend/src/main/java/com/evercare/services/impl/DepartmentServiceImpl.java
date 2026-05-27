@@ -31,6 +31,11 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    public List<Department> listActiveDepartments() {
+        return this.departmentRepo.getDepartments(null);
+    }
+
+    @Override
     public Department getDepartmentById(int id) {
         return this.departmentRepo.getDepartmentById(id);
     }

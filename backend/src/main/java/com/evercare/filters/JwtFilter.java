@@ -35,7 +35,8 @@ public class JwtFilter implements Filter{
         String staffApiPrefix = String.format("%s/api/staff", contextPath);
 
         if (httpRequest.getRequestURI().startsWith(secureApiPrefix)
-                || httpRequest.getRequestURI().startsWith(doctorApiPrefix)
+                || httpRequest.getRequestURI().equals(doctorApiPrefix)
+                || httpRequest.getRequestURI().startsWith(doctorApiPrefix + "/")
                 || httpRequest.getRequestURI().startsWith(staffApiPrefix)) {
         
            

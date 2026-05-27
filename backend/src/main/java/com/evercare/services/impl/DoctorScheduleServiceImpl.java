@@ -1,10 +1,12 @@
 package com.evercare.services.impl;
 
+import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.dtos.request.DoctorScheduleRequest;
 import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
+import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.services.DoctorScheduleService;
@@ -12,7 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +32,36 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     @Autowired
     private DoctorRepository doctorRepo;
 
+    @Autowired
+    private AppointmentRepository appointmentRepo;
+
     @Override
     public List<DoctorSchedule> getSchedules(Map<String, String> params) {
         return this.scheduleRepo.getSchedules(params);
+    }
+
+    @Override
+    public List<DoctorScheduleResponse> listAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to) {
+        if (doctorId == null) {
+            throw new IllegalArgumentException("Vui lòng chọn bác sĩ");
+        }
+
+        LocalDate startDate = from != null ? from : LocalDate.now();
+        LocalDate endDate = to != null ? to : startDate.plusDays(7);
+
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+        }
+
+        List<DoctorSchedule> schedules = this.scheduleRepo.getAvailableSchedulesByDoctorId(doctorId, startDate, endDate);
+        List<DoctorScheduleResponse> result = new ArrayList<>();
+
+        for (DoctorSchedule schedule : schedules) {
+            int bookedCount = countBookedAppointments(schedule);
+            result.add(DoctorScheduleMapper.toResponse(schedule, bookedCount));
+        }
+
+        return result;
     }
 
     @Override
@@ -89,6 +122,19 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     @Override
     public long getTotalPages(Map<String, String> params) {
         return this.scheduleRepo.getTotalPages(params);
+    }
+
+    private int countBookedAppointments(DoctorSchedule schedule) {
+        if (schedule == null || schedule.getDoctorId() == null || schedule.getWorkDate() == null) {
+            return 0;
+        }
+
+        return (int) this.appointmentRepo.countBookedAppointmentsByDoctorAndDateAndWindow(
+                schedule.getDoctorId().getId(),
+                Date.valueOf(schedule.getWorkDate()),
+                Time.valueOf(schedule.getStartTime()),
+                Time.valueOf(schedule.getEndTime())
+        );
     }
 
     private Doctor loadValidDoctor(Long doctorId) {
