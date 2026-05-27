@@ -55,8 +55,12 @@ function LoginPage() {
           saveAuthCookie("role", profile.roles);
         }
       }
+
+      return profile;
     } catch {
-      saveAuthCookie("user", JSON.stringify({ username: form.username.trim() }));
+      const fallbackProfile = { username: form.username.trim() };
+      saveAuthCookie("user", JSON.stringify(fallbackProfile));
+      return fallbackProfile;
     }
   };
 
@@ -83,8 +87,10 @@ function LoginPage() {
       }
 
       saveAuthCookie("token", token);
-      await loadProfile();
-      navigate("/admin/dashboard", { replace: true });
+      const profile = await loadProfile();
+      const roles = profile?.roles || [];
+      const isDoctor = roles.includes("DOCTOR") || roles.includes("ROLE_DOCTOR");
+      navigate(isDoctor ? "/doctor/dashboard" : "/admin/dashboard", { replace: true });
     } catch (err) {
       setError(err.response ? getErrorMessage(err) : err.message);
     } finally {

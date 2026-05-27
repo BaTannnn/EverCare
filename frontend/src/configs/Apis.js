@@ -7,6 +7,18 @@ export const endpoints = {
   login: "/login",
   register: "/auth/register",
   profile: "/secure/profile",
+  "doctor-dashboard-summary": "/doctor/dashboard/summary",
+  "doctor-appointments-today": "/doctor/appointments/today",
+  "doctor-appointments": "/doctor/appointments",
+  "doctor-appointment-detail": (id) => `/doctor/appointments/${id}`,
+  "doctor-start-examination": (id) => `/doctor/appointments/${id}/start-examination`,
+  "doctor-schedules": "/doctor/schedules",
+  "doctor-schedules-today": "/doctor/schedules/today",
+  "doctor-medical-record": (id) => `/doctor/medical-records/${id}`,
+  "doctor-medical-record-services": (id) => `/doctor/medical-records/${id}/services`,
+  "medical-services": "/medical-services",
+  medicines: "/medicines",
+  "medicine-detail": (id) => `/medicines/${id}`,
 };
 
 export const authApis = () => {
