@@ -2,6 +2,7 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.Appointment;
 import com.evercare.repositories.AppointmentRepository;
+import com.evercare.utils.PaginationUtils;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.List;
@@ -10,15 +11,21 @@ import java.sql.Time;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
+@PropertySource("classpath:configs.properties")
 @Transactional
 public class AppointmentRepositoryImpl implements AppointmentRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
+
+    @Autowired
+    private Environment env;
 
     @Override
     public List<Appointment> getAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate) {
@@ -112,17 +119,14 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 query.setParameter("toDate", java.sql.Date.valueOf(java.time.LocalDate.parse(to)));
             }
 
-            String pageRaw = params.get("page");
-            String sizeRaw = params.get("size");
-            if (sizeRaw != null && !sizeRaw.isBlank()) {
-                int size = Integer.parseInt(sizeRaw);
-                int page = pageRaw == null || pageRaw.isBlank() ? 1 : Integer.parseInt(pageRaw);
-                if (page < 1) {
-                    page = 1;
-                }
-                query.setFirstResult((page - 1) * size);
-                query.setMaxResults(size);
-            }
+            int pageSize = this.env.getProperty("appointment.pageSize", Integer.class);
+            int page = PaginationUtils.normalizePage(
+                    PaginationUtils.getPage(params),
+                    countAppointmentsByPatient(patientId, params),
+                    pageSize
+            );
+            query.setFirstResult((page - 1) * pageSize);
+            query.setMaxResults(pageSize);
         }
 
         return query.getResultList();
@@ -245,6 +249,56 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 .setParameter("doctorId", doctorId)
                 .setParameter("appointmentId", appointmentId)
                 .uniqueResult();
+    }
+
+    private long countAppointmentsByPatient(Long patientId, Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        StringBuilder hql = new StringBuilder("""
+                SELECT COUNT(DISTINCT a.id)
+                FROM Appointment a
+                WHERE a.active = true
+                  AND a.patientId.id = :patientId
+                """);
+
+        if (params != null) {
+            String status = params.get("status");
+            if (status != null && !status.isBlank()) {
+                hql.append(" AND a.status = :status");
+            }
+
+            String from = params.get("from");
+            if (from != null && !from.isBlank()) {
+                hql.append(" AND a.appointmentDate >= :fromDate");
+            }
+
+            String to = params.get("to");
+            if (to != null && !to.isBlank()) {
+                hql.append(" AND a.appointmentDate <= :toDate");
+            }
+        }
+
+        Query<Long> query = session.createQuery(hql.toString(), Long.class)
+                .setParameter("patientId", patientId);
+
+        if (params != null) {
+            String status = params.get("status");
+            if (status != null && !status.isBlank()) {
+                query.setParameter("status", status.trim().toUpperCase());
+            }
+
+            String from = params.get("from");
+            if (from != null && !from.isBlank()) {
+                query.setParameter("fromDate", java.sql.Date.valueOf(java.time.LocalDate.parse(from)));
+            }
+
+            String to = params.get("to");
+            if (to != null && !to.isBlank()) {
+                query.setParameter("toDate", java.sql.Date.valueOf(java.time.LocalDate.parse(to)));
+            }
+        }
+
+        Long count = query.uniqueResult();
+        return count != null ? count : 0L;
     }
 
     @Override
