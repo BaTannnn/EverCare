@@ -84,6 +84,43 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     }
 
     @Override
+    public Long getAvailableNonExpiredQuantityByMedicineId(Long medicineId, Date today) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        Long total = session.createQuery("""
+                SELECT COALESCE(SUM(b.remainingQuantity), 0)
+                FROM MedicineBatch b
+                WHERE b.medicineId.id = :medicineId
+                    AND b.active = true
+                    AND b.remainingQuantity > 0
+                    AND b.expiryDate >= :today
+                """, Long.class)
+                .setParameter("medicineId", medicineId)
+                .setParameter("today", today)
+                .getSingleResult();
+
+        return total != null ? total : 0L;
+    }
+
+    @Override
+    public List<MedicineBatch> getDispensableBatchesByMedicineId(Long medicineId, Date today) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT b FROM MedicineBatch b
+                JOIN FETCH b.medicineId m
+                WHERE m.id = :medicineId
+                    AND b.active = true
+                    AND b.remainingQuantity > 0
+                    AND b.expiryDate >= :today
+                ORDER BY b.expiryDate ASC, b.id ASC
+                """, MedicineBatch.class)
+                .setParameter("medicineId", medicineId)
+                .setParameter("today", today)
+                .getResultList();
+    }
+
+    @Override
     public List<MedicineBatch> getNearExpiryBatches(Date toDate) {
         Session session = this.factory.getObject().getCurrentSession();
 
@@ -134,5 +171,11 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(batch);
         session.flush();
+    }
+
+    @Override
+    public void updateBatch(MedicineBatch batch) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.merge(batch);
     }
 }

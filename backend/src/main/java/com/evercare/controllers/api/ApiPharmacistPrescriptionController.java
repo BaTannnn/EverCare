@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +62,25 @@ public class ApiPharmacistPrescriptionController {
             return ResponseEntity.ok(this.prescriptionService.getPrescriptionById(id));
         } catch (NoSuchElementException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/dispense")
+    public ResponseEntity<?> dispense(
+            Principal principal,
+            @PathVariable("id") Long id
+    ) {
+        ResponseEntity<?> authError = validatePharmacist(principal);
+        if (authError != null) {
+            return authError;
+        }
+
+        try {
+            return ResponseEntity.ok(this.prescriptionService.dispensePrescription(principal.getName(), id));
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
         }
     }
 

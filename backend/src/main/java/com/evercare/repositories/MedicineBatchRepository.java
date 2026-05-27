@@ -11,6 +11,10 @@ public interface MedicineBatchRepository {
 
     Long getAvailableQuantityByMedicineId(Long medicineId);
 
+    Long getAvailableNonExpiredQuantityByMedicineId(Long medicineId, java.util.Date today);
+
+    List<MedicineBatch> getDispensableBatchesByMedicineId(Long medicineId, java.util.Date today);
+
     List<MedicineBatch> getNearExpiryBatches(java.util.Date toDate);
 
     List<MedicineBatch> getExpiredBatches(java.util.Date today);
@@ -18,4 +22,6 @@ public interface MedicineBatchRepository {
     boolean existsByBatchCode(String batchCode);
 
     void addBatch(MedicineBatch batch);
+
+    void updateBatch(MedicineBatch batch);
 }

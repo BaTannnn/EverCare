@@ -55,4 +55,10 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
                 .setParameter("id", id)
                 .uniqueResult();
     }
+
+    @Override
+    public void updatePrescription(Prescription prescription) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.merge(prescription);
+    }
 }

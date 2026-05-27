@@ -8,4 +8,6 @@ public interface PrescriptionService {
     List<PrescriptionResponse> getPrescriptions(Map<String, String> params);
 
     PrescriptionResponse getPrescriptionById(Long id);
+
+    PrescriptionResponse dispensePrescription(String username, Long id);
 }
