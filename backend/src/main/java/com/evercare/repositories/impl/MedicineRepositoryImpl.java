@@ -39,6 +39,10 @@ public class MedicineRepositoryImpl implements MedicineRepository {
             }
 
             String kw = params.get("kw");
+            if ((kw == null || kw.isBlank()) && params.get("keyword") != null) {
+                kw = params.get("keyword");
+            }
+
             if (kw != null && !kw.isBlank()) {
                 String keyword = "%" + kw.trim().toLowerCase() + "%";
                 predicates.add(cb.or(

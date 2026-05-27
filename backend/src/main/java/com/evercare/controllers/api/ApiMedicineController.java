@@ -1,8 +1,6 @@
 package com.evercare.controllers.api;
 
-import com.evercare.dtos.response.MedicineResponse;
 import com.evercare.services.MedicineService;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +21,12 @@ public class ApiMedicineController {
     private MedicineService medicineService;
 
     @GetMapping
-    public ResponseEntity<List<MedicineResponse>> list(@RequestParam Map<String, String> params) {
+    public ResponseEntity<?> list(@RequestParam Map<String, String> params) {
+        String keyword = params.get("keyword");
+        if (keyword != null && !keyword.isBlank()) {
+            return ResponseEntity.ok(this.medicineService.searchMedicines(params));
+        }
+
         return ResponseEntity.ok(this.medicineService.getMedicines(params));
     }
 

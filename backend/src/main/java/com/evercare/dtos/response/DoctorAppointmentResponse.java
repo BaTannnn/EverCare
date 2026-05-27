@@ -11,6 +11,9 @@ public class DoctorAppointmentResponse {
     private String status;
     private String statusLabel;
     private AppointmentPatientResponse patient;
+    private MedicalServiceResponse service;
+    private MedicalRecordResponse medicalRecord;
+    private PrescriptionResponse prescription;
 
     public Long getId() {
         return id;
@@ -90,5 +93,29 @@ public class DoctorAppointmentResponse {
 
     public void setPatient(AppointmentPatientResponse patient) {
         this.patient = patient;
+    }
+
+    public MedicalServiceResponse getService() {
+        return service;
+    }
+
+    public void setService(MedicalServiceResponse service) {
+        this.service = service;
+    }
+
+    public MedicalRecordResponse getMedicalRecord() {
+        return medicalRecord;
+    }
+
+    public void setMedicalRecord(MedicalRecordResponse medicalRecord) {
+        this.medicalRecord = medicalRecord;
+    }
+
+    public PrescriptionResponse getPrescription() {
+        return prescription;
+    }
+
+    public void setPrescription(PrescriptionResponse prescription) {
+        this.prescription = prescription;
     }
 }

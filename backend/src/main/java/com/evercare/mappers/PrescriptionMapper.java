@@ -59,7 +59,9 @@ public final class PrescriptionMapper {
         PrescriptionItemResponse res = new PrescriptionItemResponse();
         Medicine medicine = item.getMedicineId();
         Long medicineId = medicine != null ? medicine.getId() : null;
-        Long availableQuantity = medicineId != null ? availableQuantityResolver.apply(medicineId) : 0L;
+        Long availableQuantity = medicineId != null && availableQuantityResolver != null
+                ? availableQuantityResolver.apply(medicineId)
+                : null;
         int requiredQuantity = item.getQuantity() != null ? item.getQuantity() : 0;
 
         res.setId(item.getId());
@@ -69,7 +71,7 @@ public final class PrescriptionMapper {
         res.setUnit(medicine != null ? medicine.getUnit() : null);
         res.setQuantity(item.getQuantity());
         res.setAvailableQuantity(availableQuantity);
-        res.setEnoughStock(availableQuantity >= requiredQuantity);
+        res.setEnoughStock(availableQuantity != null ? availableQuantity >= requiredQuantity : null);
         res.setUnitPrice(item.getUnitPrice());
         res.setDosage(item.getDosage());
         res.setFrequency(item.getFrequency());

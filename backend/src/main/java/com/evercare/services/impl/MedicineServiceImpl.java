@@ -3,12 +3,15 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.MedicineRequest;
 import com.evercare.dtos.response.MedicineLowStockResponse;
 import com.evercare.dtos.response.MedicineResponse;
+import com.evercare.dtos.response.MedicineSearchResponse;
 import com.evercare.enums.MedicineUnit;
 import com.evercare.mappers.MedicineMapper;
 import com.evercare.pojo.Medicine;
+import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.MedicineRepository;
 import com.evercare.services.MedicineService;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -22,12 +25,35 @@ import org.springframework.transaction.annotation.Transactional;
 public class MedicineServiceImpl implements MedicineService {
     @Autowired
     private MedicineRepository medicineRepo;
+    @Autowired
+    private MedicineBatchRepository batchRepo;
 
     @Override
     public List<MedicineResponse> getMedicines(Map<String, String> params) {
         return this.medicineRepo.getMedicines(params)
                 .stream()
                 .map(MedicineMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<MedicineSearchResponse> searchMedicines(Map<String, String> params) {
+        Date today = java.sql.Date.valueOf(LocalDate.now());
+
+        return this.medicineRepo.getMedicines(params)
+                .stream()
+                .map(medicine -> {
+                    MedicineSearchResponse res = new MedicineSearchResponse();
+                    res.setMedicineId(medicine.getId());
+                    res.setMedicineName(medicine.getName());
+                    res.setUnit(medicine.getUnit());
+                    res.setUnitPrice(medicine.getUnitPrice());
+                    res.setAvailableQuantity(
+                            this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicine.getId(), today)
+                    );
+
+                    return res;
+                })
                 .toList();
     }
 
