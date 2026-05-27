@@ -11,6 +11,7 @@ public interface DoctorScheduleRepository {
 
     List<DoctorSchedule> getSchedules(Map<String, String> params);
     List<DoctorSchedule> getAvailableSchedulesByDoctorId(Long doctorId, LocalDate from, LocalDate to);
+    DoctorSchedule getScheduleCoveringAppointmentTime(Long doctorId, LocalDate workDate, LocalTime startTime, LocalTime endTime);
 
     DoctorSchedule getScheduleById(int id);
 

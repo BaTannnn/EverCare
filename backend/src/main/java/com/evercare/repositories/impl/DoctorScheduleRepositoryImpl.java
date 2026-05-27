@@ -123,6 +123,30 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
     }
 
     @Override
+    public DoctorSchedule getScheduleCoveringAppointmentTime(Long doctorId, LocalDate workDate, LocalTime startTime, LocalTime endTime) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT s
+                FROM DoctorSchedule s
+                JOIN FETCH s.doctorId d
+                WHERE d.id = :doctorId
+                    AND s.workDate = :workDate
+                    AND s.active = true
+                    AND s.status = 'AVAILABLE'
+                    AND s.startTime <= :startTime
+                    AND s.endTime >= :endTime
+                ORDER BY s.startTime ASC
+                """, DoctorSchedule.class)
+                .setParameter("doctorId", doctorId)
+                .setParameter("workDate", workDate)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .setMaxResults(1)
+                .uniqueResult();
+    }
+
+    @Override
     public DoctorSchedule getScheduleById(int id) {
         Session session = this.factory.getObject().getCurrentSession();
         return session.get(DoctorSchedule.class, Long.valueOf(id));
