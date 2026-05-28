@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import PatientLayout from "./components/patient/layout/PatientLayout";
 import DoctorLayout from "./components/doctor/layout/DoctorLayout";
+import PharmacistLayout from "./components/pharmacist/layout/PharmacistLayout";
 import StaffLayout from "./components/staff/layout/StaffLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import DoctorAppointmentDetailPage from "./pages/doctor/DoctorAppointmentDetailPage";
@@ -28,6 +29,13 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientProfile from "./pages/patient/PatientProfile";
 import PatientPrescriptions from "./pages/patient/PatientPrescriptions";
 import PatientTestResults from "./pages/patient/PatientTestResults";
+import PharmacistBatchesPage from "./pages/pharmacist/PharmacistBatchesPage";
+import PharmacistDashboardPage from "./pages/pharmacist/PharmacistDashboardPage";
+import PharmacistInventoryPage from "./pages/pharmacist/PharmacistInventoryPage";
+import PharmacistMedicinesPage from "./pages/pharmacist/PharmacistMedicinesPage";
+import PharmacistPrescriptionDetailPage from "./pages/pharmacist/PharmacistPrescriptionDetailPage";
+import PharmacistPrescriptionsPage from "./pages/pharmacist/PharmacistPrescriptionsPage";
+import PharmacistSettingsPage from "./pages/pharmacist/PharmacistSettingsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicOnlyRoute from "./routes/PublicOnlyRoute";
 import "./App.css";
@@ -74,7 +82,20 @@ function App() {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "PHARMACIST", "ROLE_PHARMACIST", "MANAGER", "ROLE_MANAGER"]} />}>
+      <Route element={<ProtectedRoute roles={["PHARMACIST", "ROLE_PHARMACIST"]} />}>
+        <Route path="/pharmacist" element={<PharmacistLayout />}>
+          <Route index element={<Navigate to="/pharmacist/dashboard" replace />} />
+          <Route path="dashboard" element={<PharmacistDashboardPage />} />
+          <Route path="prescriptions" element={<PharmacistPrescriptionsPage />} />
+          <Route path="prescriptions/:prescriptionId" element={<PharmacistPrescriptionDetailPage />} />
+          <Route path="medicines" element={<PharmacistMedicinesPage />} />
+          <Route path="batches" element={<PharmacistBatchesPage />} />
+          <Route path="inventory" element={<PharmacistInventoryPage />} />
+          <Route path="settings" element={<PharmacistSettingsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "MANAGER", "ROLE_MANAGER"]} />}>
         <Route path="/staff" element={<StaffLayout />}>
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboardPage />} />

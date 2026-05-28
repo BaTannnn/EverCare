@@ -46,7 +46,11 @@ export const getDashboardPath = (roles) => {
     return "/doctor/dashboard";
   }
 
-  if (hasAnyRole(normalizedRoles, ["RECEPTIONIST", "CASHIER", "PHARMACIST", "MANAGER", "LAB_TECH"])) {
+  if (hasAnyRole(normalizedRoles, ["PHARMACIST"])) {
+    return "/pharmacist/dashboard";
+  }
+
+  if (hasAnyRole(normalizedRoles, ["RECEPTIONIST", "CASHIER", "MANAGER", "LAB_TECH"])) {
     return "/staff/dashboard";
   }
 

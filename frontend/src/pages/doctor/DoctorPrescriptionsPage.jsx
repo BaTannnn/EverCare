@@ -38,16 +38,19 @@ function DoctorPrescriptionsPage() {
     <>
       <PageHeader
         title="Đơn thuốc"
-        description="Bác sĩ chỉ xem lại đơn đã kê, không cấp phát và không trừ kho."
+        description="Bác sĩ xem lại đơn đã kê; kê đơn mới trong màn khám của từng bệnh án."
       />
 
       <Alert variant="info" className="small-alert">
-        Chức năng đang chờ API riêng cho bác sĩ.
+        Bác sĩ chỉ kê đơn và xem lại đơn đã kê. Việc cấp phát thuốc và trừ kho do dược sĩ thực hiện.
       </Alert>
 
       <Card className="doctor-card">
         <Card.Header>
           <h2>Danh sách đơn thuốc</h2>
+          <Button type="button" variant="outline-primary" onClick={() => navigate("/doctor/examination")}>
+            Vào màn khám bệnh
+          </Button>
         </Card.Header>
         <Card.Body className="p-0">
           {loading ? (
@@ -55,7 +58,10 @@ function DoctorPrescriptionsPage() {
           ) : error ? (
             <ErrorState message={error} onRetry={loadPrescriptions} />
           ) : prescriptions.length === 0 ? (
-            <EmptyState title="Chưa có đơn thuốc" description="Đơn đã kê sẽ xuất hiện khi backend bổ sung API." />
+            <EmptyState
+              title="Chưa có đơn thuốc"
+              description="Để kê đơn, vào Khám bệnh, chọn lịch đang khám, rồi dùng tab Đơn thuốc trong bệnh án."
+            />
           ) : (
             <Table responsive hover className="doctor-table mb-0">
               <thead>

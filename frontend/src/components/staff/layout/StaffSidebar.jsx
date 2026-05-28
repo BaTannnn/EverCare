@@ -4,7 +4,6 @@ import cookies from "react-cookies";
 const menuItems = [
   { to: "/staff/dashboard", icon: "▦", label: "Tổng quan", active: (path) => path === "/staff/dashboard" },
   { to: "/staff/test-requests", icon: "□", label: "Chỉ định chờ xử lý", active: (path) => path === "/staff/test-requests" },
-  { to: "/staff/test-requests", icon: "+", label: "Nhập kết quả", active: (path) => path.startsWith("/staff/test-requests/") },
   { to: "/staff/test-results", icon: "▤", label: "Lịch sử kết quả", active: (path) => path === "/staff/test-results" },
   { to: "/staff/settings", icon: "⚙", label: "Cài đặt", active: (path) => path === "/staff/settings" },
 ];
