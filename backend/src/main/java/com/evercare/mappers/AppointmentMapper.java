@@ -1,6 +1,7 @@
 package com.evercare.mappers;
 
 import com.evercare.dtos.response.AppointmentPatientResponse;
+import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Appointment;
@@ -36,6 +37,39 @@ public final class AppointmentMapper {
             if (medicalRecord.getPrescription() != null) {
                 res.setPrescription(PrescriptionMapper.toResponse(medicalRecord.getPrescription(), null));
             }
+        }
+
+        return res;
+    }
+
+    public static AppointmentResponse toPatientResponse(Appointment appointment) {
+        if (appointment == null) {
+            return null;
+        }
+
+        AppointmentResponse res = new AppointmentResponse();
+        res.setId(appointment.getId());
+        res.setAppointmentCode(appointment.getAppointmentCode());
+        res.setAppointmentDate(format(appointment.getAppointmentDate(), DATE_PATTERN));
+        res.setStartTime(format(appointment.getStartTime(), TIME_PATTERN));
+        res.setEndTime(format(appointment.getEndTime(), TIME_PATTERN));
+        res.setStatus(appointment.getStatus());
+        res.setStatusLabel(AppointmentStatus.labelOf(appointment.getStatus()));
+        res.setReason(appointment.getReason());
+        res.setSymptomNote(appointment.getSymptomNote());
+        res.setCancelReason(appointment.getCancelReason());
+
+        if (appointment.getDoctorId() != null) {
+            res.setDoctorId(appointment.getDoctorId().getId());
+            res.setDoctorName(appointment.getDoctorId().getFullName());
+            if (appointment.getDoctorId().getDepartmentId() != null) {
+                res.setDepartmentName(appointment.getDoctorId().getDepartmentId().getName());
+            }
+        }
+
+        if (appointment.getServiceId() != null) {
+            res.setServiceId(appointment.getServiceId().getId());
+            res.setServiceName(appointment.getServiceId().getName());
         }
 
         return res;
