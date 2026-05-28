@@ -5,6 +5,7 @@ import com.evercare.repositories.TestResultRepository;
 import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
@@ -73,6 +74,49 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     public void updateTestResult(TestResult testResult) {
         Session session = this.factory.getObject().getCurrentSession();
         session.merge(testResult);
+    }
+
+    @Override
+    public List<TestResult> getTestResults(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<TestResult> cq = cb.createQuery(TestResult.class);
+        Root<TestResult> root = cq.from(TestResult.class);
+
+        root.fetch("medicalRecordId");
+        root.fetch("serviceId", JoinType.LEFT);
+        root.fetch("performedBy", JoinType.LEFT);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+
+        if (params != null) {
+            String recordId = params.get("recordId");
+            if (recordId != null && !recordId.isBlank()) {
+                predicates.add(cb.equal(root.get("medicalRecordId").get("id"), Long.parseLong(recordId)));
+            }
+
+            String serviceId = params.get("serviceId");
+            if (serviceId != null && !serviceId.isBlank()) {
+                predicates.add(cb.equal(root.get("serviceId").get("id"), Long.parseLong(serviceId)));
+            }
+
+            String fromDate = params.get("fromDate");
+            if (fromDate != null && !fromDate.isBlank()) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(fromDate).atStartOfDay())));
+            }
+
+            String toDate = params.get("toDate");
+            if (toDate != null && !toDate.isBlank()) {
+                predicates.add(cb.lessThan(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(toDate).plusDays(1).atStartOfDay())));
+            }
+        }
+
+        cq.select(root).distinct(true);
+        cq.where(predicates.toArray(Predicate[]::new));
+        cq.orderBy(cb.desc(root.get("resultDate")), cb.desc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
