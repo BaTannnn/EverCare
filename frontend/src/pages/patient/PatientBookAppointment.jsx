@@ -4,6 +4,7 @@ import { BsArrowLeft, BsArrowRight, BsCalendar2Plus, BsCheckCircle, BsClock, BsS
 import { useNavigate } from "react-router-dom";
 import { bookPatientAppointment } from "../../services/patient/patientAppointmentApi";
 import { getPatientDoctors, getPatientMedicalServices } from "../../services/patient/patientCatalogApi";
+import { payPatientInvoice } from "../../services/patient/patientInvoiceApi";
 import { formatCurrency } from "./patientPageUtils";
 
 const steps = ["Chuyên khoa", "Dịch vụ", "Bác sĩ", "Thời gian", "Xác nhận"];
@@ -24,6 +25,8 @@ function PatientBookAppointment() {
   const [startTime, setStartTime] = useState(timeSlots[1]);
   const [reason, setReason] = useState("");
   const [symptomNote, setSymptomNote] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("VNPAY");
+  const [paymentChannel, setPaymentChannel] = useState("QR");
   const [minimumRating, setMinimumRating] = useState(4.5);
   const [maximumServicePrice, setMaximumServicePrice] = useState(1000000);
   const [loading, setLoading] = useState(true);
@@ -107,7 +110,7 @@ function PatientBookAppointment() {
     setError("");
 
     try {
-      await bookPatientAppointment({
+      const response = await bookPatientAppointment({
         doctorId: selectedDoctor?.id,
         serviceId: selectedService?.id,
         appointmentDate,
@@ -116,6 +119,25 @@ function PatientBookAppointment() {
         reason,
         symptomNote,
       });
+
+      const bookedAppointment = response?.data || {};
+      const invoiceId = bookedAppointment.invoiceId || bookedAppointment.invoice?.id || null;
+      const invoicePaymentUrl = bookedAppointment.paymentUrl || bookedAppointment.invoice?.paymentUrl || "";
+
+      if (invoiceId) {
+        const paymentResponse = await payPatientInvoice(invoiceId, {
+          paymentMethod,
+          paymentChannel,
+          returnUrl: `${window.location.origin}/patient/invoices`,
+          cancelUrl: `${window.location.origin}/patient/book-appointment`,
+        });
+
+        const payment = paymentResponse?.data || {};
+        const nextPaymentUrl = payment.paymentUrl || invoicePaymentUrl;
+        if (nextPaymentUrl) {
+          window.open(nextPaymentUrl, "_blank", "noopener,noreferrer");
+        }
+      }
 
       navigate("/patient/appointments");
     } catch (bookError) {
@@ -382,8 +404,24 @@ function PatientBookAppointment() {
                   </div>
                 </div>
 
+                <Form.Group className="patient-form-group mt-3">
+                  <Form.Label>Phương thức thanh toán</Form.Label>
+                  <Form.Select
+                    value={paymentMethod}
+                    onChange={(event) => {
+                      const nextMethod = event.target.value;
+                      setPaymentMethod(nextMethod);
+                      setPaymentChannel(nextMethod === "VNPAY" ? "QR" : "WALLET");
+                    }}
+                  >
+                    <option value="VNPAY">VNPay - QR</option>
+                    <option value="MOMO">MoMo - Ví điện tử</option>
+                    <option value="ZALOPAY">ZaloPay - Ví điện tử</option>
+                  </Form.Select>
+                </Form.Group>
+
                 <Alert variant="info" className="mt-3 mb-0">
-                  Hệ thống sẽ gọi API thật để tạo lịch hẹn. Nếu backend trả lỗi, bạn sẽ không bị reload trang.
+                  Hệ thống sẽ gọi API thật để tạo lịch hẹn. Nếu backend trả về hóa đơn, EverCare sẽ khởi tạo thanh toán ngay mà không reload trang.
                 </Alert>
               </Card.Body>
             </Card>

@@ -90,6 +90,12 @@ export const mapAppointment = (rawAppointment) => {
     statusLabel: normalizeText(appointment.statusLabel, deriveStatusLabel(appointment.status)),
     reason: normalizeText(appointment.reason, ""),
     symptomNote: normalizeText(appointment.symptomNote, ""),
+    invoiceId: appointment.invoiceId || appointment.invoice?.id || null,
+    invoiceCode: normalizeText(appointment.invoiceCode, appointment.invoice?.invoiceCode || ""),
+    paymentMethod: normalizeText(appointment.paymentMethod, appointment.invoice?.paymentMethod || ""),
+    paymentProvider: normalizeText(appointment.paymentProvider, ""),
+    paymentStatus: normalizeText(appointment.paymentStatus, appointment.invoice?.paymentStatus || ""),
+    paymentUrl: normalizeText(appointment.paymentUrl, appointment.invoice?.paymentUrl || ""),
   };
 };
 
@@ -216,6 +222,49 @@ export const mapNotification = (rawNotification) => {
     createdAt: notification.createdAt || "",
     time: notification.createdAt ? formatShortDate(notification.createdAt) : "",
     read,
+  };
+};
+
+export const mapInvoice = (rawInvoice) => {
+  const invoice = unwrapObject(rawInvoice) || {};
+  const paymentStatus = normalizeText(invoice.paymentStatus, "UNPAID");
+
+  return {
+    id: invoice.id || invoice.invoiceCode,
+    invoiceCode: normalizeText(invoice.invoiceCode, invoice.id || ""),
+    createdAt: invoice.createdAt || "",
+    serviceAmount: normalizeCurrency(invoice.totalServiceAmount),
+    medicineAmount: normalizeCurrency(invoice.totalMedicineAmount),
+    testAmount: normalizeCurrency(invoice.totalTestAmount),
+    discountAmount: normalizeCurrency(invoice.discountAmount),
+    totalAmount: normalizeCurrency(invoice.totalAmount),
+    paymentMethod: normalizeText(invoice.paymentMethod, ""),
+    paymentStatus,
+    status: paymentStatus,
+    paidAt: normalizeText(invoice.paidAt, ""),
+    note: normalizeText(invoice.note, ""),
+    medicalRecordId: invoice.medicalRecordId,
+    patientId: invoice.patientId,
+  };
+};
+
+export const mapPaymentResult = (rawPayment) => {
+  const payment = unwrapObject(rawPayment) || {};
+
+  return {
+    id: payment.id || payment.transactionCode,
+    invoiceId: payment.invoiceId,
+    invoiceCode: normalizeText(payment.invoiceCode, ""),
+    amount: normalizeCurrency(payment.amount),
+    paymentMethod: normalizeText(payment.paymentMethod, ""),
+    paymentProvider: normalizeText(payment.paymentProvider, ""),
+    transactionCode: normalizeText(payment.transactionCode, ""),
+    paymentStatus: normalizeText(payment.paymentStatus, ""),
+    paidAt: normalizeText(payment.paidAt, ""),
+    createdAt: normalizeText(payment.createdAt, ""),
+    updatedAt: normalizeText(payment.updatedAt, ""),
+    active: payment.active ?? true,
+    paymentUrl: normalizeText(payment.paymentUrl, ""),
   };
 };
 

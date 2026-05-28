@@ -1,15 +1,19 @@
-import Apis, { endpoints } from "../../configs/Apis";
-import { createPatientGet, createPatientPost } from "./patientApiHelpers";
-import { patientInvoices } from "../../data/patientMockData";
+import Apis, { endpoints, authApis } from "../../configs/Apis";
+import { unwrapPatientList } from "./patientApiHelpers";
+import { mapInvoice, mapPaymentResult } from "./patientMappers";
 
 export const getPatientInvoices = () => {
-  // TODO: Backend currently has no invoice controller. Keep this UI fallback only.
-  return createPatientGet(endpoints["patient-invoices"], patientInvoices, "patient-invoices");
+  return authApis().get(endpoints["patient-invoices"]).then((response) => ({
+    ...response,
+    data: unwrapPatientList(response).map(mapInvoice),
+  }));
 };
 
 export const payPatientInvoice = (invoiceId, payload) => {
-  // TODO: Backend currently has no payment controller. Keep this UI fallback only.
-  return createPatientPost(endpoints["patient-invoice-detail"](invoiceId), payload, { invoiceId, ...payload }, "patient-invoice-payment");
+  return authApis().post(`${endpoints["patient-invoice-detail"](invoiceId)}/payments`, payload).then((response) => ({
+    ...response,
+    data: mapPaymentResult(response.data),
+  }));
 };
 
 export default Apis;
