@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import EmptyState from "../../components/common/EmptyState";
@@ -10,6 +10,7 @@ import StatusBadge from "../../components/common/StatusBadge";
 import { getAppointmentDetail } from "../../services/doctor/doctorAppointmentApi";
 import {
   addMedicalRecordService,
+  completeMedicalRecord,
   getMedicalRecordServices,
   updateMedicalRecord,
 } from "../../services/doctor/doctorMedicalRecordApi";
@@ -52,6 +53,13 @@ const emptyPrescriptionLine = {
   instruction: "",
 };
 
+const prescriptionPresets = {
+  dosage: ["1 viên/lần", "2 viên/lần", "5ml/lần", "10ml/lần", "1 gói/lần"],
+  frequency: ["Ngày 1 lần", "Ngày 2 lần", "Ngày 3 lần", "Mỗi 8 giờ", "Khi đau/sốt"],
+  duration: ["3 ngày", "5 ngày", "7 ngày", "10 ngày", "14 ngày"],
+  instruction: ["Uống sau ăn", "Uống trước ăn", "Uống nhiều nước", "Không tự ý ngưng thuốc", "Tái khám nếu không đỡ"],
+};
+
 function ExaminationWorkspacePage() {
   const { appointmentId } = useParams();
   const navigate = useNavigate();
@@ -67,17 +75,34 @@ function ExaminationWorkspacePage() {
   const [prescription, setPrescription] = useState(null);
   const [medicineKeyword, setMedicineKeyword] = useState("");
   const [medicineResults, setMedicineResults] = useState([]);
+  const [activePresetField, setActivePresetField] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingRecord, setSavingRecord] = useState(false);
+  const [completingRecord, setCompletingRecord] = useState(false);
   const [savingService, setSavingService] = useState(false);
   const [savingPrescription, setSavingPrescription] = useState(false);
   const [medicineLoading, setMedicineLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [completeModal, setCompleteModal] = useState(false);
+  const [completeError, setCompleteError] = useState("");
 
   const medicalRecord = appointment?.medicalRecord;
   const editable = editableStatuses.includes(appointment?.status);
+  const prescriptionStatus = String(prescription?.status || "DRAFT").toUpperCase();
+  const hasPrescription = Boolean(prescription?.id);
+  const prescriptionDispensed = prescriptionStatus === "DISPENSED";
+  const prescriptionEditable = editable && !prescriptionDispensed;
+  const prescriptionStatusLabel = prescriptionDispensed
+    ? "Đã cấp phát"
+    : hasPrescription
+      ? "Chờ cấp phát"
+      : "Đơn mới";
+  const prescriptionStatusVariant = prescriptionDispensed ? "success" : hasPrescription ? "warning" : "secondary";
+  const prescriptionStockWarnings = (prescription?.items || []).filter((item) => {
+    const availableQuantity = Number(item.availableQuantity);
+    return Number.isFinite(availableQuantity) && Number(item.quantity || 0) > availableQuantity;
+  });
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -197,6 +222,37 @@ function ExaminationWorkspacePage() {
       }
     } finally {
       setSavingRecord(false);
+    }
+  };
+
+  const handleCompleteRecord = async () => {
+    if (!medicalRecord?.id) {
+      setCompleteError("Vui lòng bắt đầu khám trước khi hoàn tất bệnh án.");
+      return;
+    }
+
+    if (!recordForm.diagnosis.trim()) {
+      setCompleteError("Vui lòng nhập chẩn đoán trước khi hoàn tất bệnh án.");
+      return;
+    }
+
+    setCompletingRecord(true);
+    setNotice("");
+    setCompleteError("");
+
+    try {
+      await updateMedicalRecord(medicalRecord.id, recordForm);
+      await completeMedicalRecord(medicalRecord.id);
+      setCompleteModal(false);
+      setNotice("Đã hoàn tất bệnh án.");
+      loadWorkspace();
+    } catch (err) {
+      setCompleteError(getErrorMessage(err));
+      if (err.response?.status === 401) {
+        navigate("/login", { replace: true });
+      }
+    } finally {
+      setCompletingRecord(false);
     }
   };
 
@@ -335,7 +391,7 @@ function ExaminationWorkspacePage() {
       medicineId,
       medicineName,
       unit: medicine.unit,
-      unitPrice: medicine.unitPrice,
+      unitPrice: medicine.unitPrice ?? medicine.price,
       availableQuantity: medicine.availableQuantity,
     };
 
@@ -350,7 +406,7 @@ function ExaminationWorkspacePage() {
     }));
     setMedicineKeyword("");
     setMedicineResults([]);
-    setNotice(`Đã thêm ${medicineName || "thuốc"} vào đơn. Bấm Lưu đơn thuốc để cập nhật.`);
+    setNotice(`Đã thêm ${medicineName || "thuốc"} vào đơn. Bấm lưu đơn thuốc để cập nhật.`);
   };
 
   const updatePrescriptionItem = (index, field, value) => {
@@ -360,6 +416,11 @@ function ExaminationWorkspacePage() {
         itemIndex === index ? { ...item, [field]: value } : item
       ),
     }));
+  };
+
+  const applyPrescriptionPreset = (index, field, value) => {
+    updatePrescriptionItem(index, field, value);
+    setActivePresetField(null);
   };
 
   const removePrescriptionItem = (index) => {
@@ -374,6 +435,11 @@ function ExaminationWorkspacePage() {
 
     if (!medicalRecord?.id) {
       setNotice("Vui lòng bắt đầu khám trước khi lưu đơn thuốc.");
+      return;
+    }
+
+    if (!prescriptionEditable) {
+      setNotice("Đơn thuốc hiện không thể chỉnh sửa.");
       return;
     }
 
@@ -414,7 +480,7 @@ function ExaminationWorkspacePage() {
         ...current,
         prescription: response.data,
       }));
-      setNotice("Đã lưu đơn thuốc.");
+      setNotice(prescription?.id ? "Đã cập nhật đơn thuốc." : "Đã lưu đơn thuốc.");
     } catch (err) {
       setNotice(getErrorMessage(err));
       if (err.response?.status === 409) {
@@ -735,107 +801,236 @@ function ExaminationWorkspacePage() {
           <Card className="doctor-card exam-section-card">
             <Card.Header>
               <h2>Đơn thuốc</h2>
+              <Badge bg={prescriptionStatusVariant}>{prescriptionStatusLabel}</Badge>
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleSavePrescription}>
-                <Form.Group className="mb-3" controlId="medicineSearch">
-                  <Form.Label>Tìm thuốc</Form.Label>
-                  <Form.Control
-                    value={medicineKeyword}
-                    onChange={(e) => setMedicineKeyword(e.target.value)}
-                    placeholder="Nhập tên thuốc"
-                    disabled={!editable || savingPrescription}
-                  />
-                </Form.Group>
-                {medicineLoading && <LoadingState message="Đang tìm thuốc..." />}
-                {medicineResults.length > 0 && (
-                  <div className="medicine-results">
-                    {medicineResults.map((medicine) => (
-                      <div className="medicine-result" key={medicine.medicineId}>
-                        <div>
-                          <strong>{medicine.medicineName}</strong>
-                          <span>
-                            {medicine.unit} · {formatMoney(medicine.unitPrice)} · Tồn {medicine.availableQuantity}
-                          </span>
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => addMedicineToPrescription(medicine)}
-                          disabled={!editable || savingPrescription}
-                        >
-                          Thêm
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                {!editable && (
+                  <Alert variant="info">
+                    Lịch khám không ở trạng thái đang khám, đơn thuốc chỉ được xem nếu đã có.
+                  </Alert>
                 )}
-                <Form.Group className="mb-3" controlId="prescriptionNote">
-                  <Form.Label>Ghi chú đơn thuốc</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={2}
-                    value={prescription?.note || ""}
-                    onChange={(e) =>
-                      setPrescription((current) => ({
-                        id: current?.id,
-                        prescriptionCode: current?.prescriptionCode,
-                        status: current?.status || "PRESCRIBED",
-                        note: e.target.value,
-                        medicalRecordId: medicalRecord?.id,
-                        patientName: appointment?.patient?.fullName,
-                        items: current?.items || [],
-                      }))
-                    }
-                    placeholder="Dặn dò thêm cho đơn thuốc..."
-                    disabled={!editable || savingPrescription}
-                  />
-                </Form.Group>
-                {(prescription?.items || []).length === 0 ? (
-                  <EmptyState title="Chưa có thuốc trong đơn" description="Tìm thuốc và thêm vào đơn kê." />
-                ) : (
-                  <div className="prescription-list">
-                    {(prescription?.items || []).map((item, index) => (
-                      <div className="prescription-item" key={`${item.medicineId}-${index}`}>
-                        <div className="prescription-item-title">
-                          <strong>{item.medicineName}</strong>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline-danger"
-                            onClick={() => removePrescriptionItem(index)}
-                            disabled={!editable || savingPrescription}
-                          >
-                            Xóa
-                          </Button>
-                        </div>
-                        <Row className="g-2">
-                          {[
-                            ["quantity", "Số lượng", "number"],
-                            ["dosage", "Liều dùng", "text"],
-                            ["frequency", "Tần suất", "text"],
-                            ["duration", "Thời gian dùng", "text"],
-                            ["instruction", "Hướng dẫn", "text"],
-                          ].map(([field, label, type]) => (
-                            <Col md={field === "instruction" ? 4 : 2} key={field}>
-                              <Form.Label>{label}</Form.Label>
-                              <Form.Control
-                                type={type}
-                                min={field === "quantity" ? "1" : undefined}
-                                value={item[field] || ""}
-                                onChange={(e) => updatePrescriptionItem(index, field, e.target.value)}
-                                disabled={!editable || savingPrescription}
-                              />
-                            </Col>
-                          ))}
-                        </Row>
-                      </div>
-                    ))}
-                  </div>
+                {prescriptionDispensed && (
+                  <Alert variant="warning">
+                    Đơn thuốc đã được dược sĩ cấp phát, không thể chỉnh sửa.
+                  </Alert>
                 )}
-                <Button type="submit" disabled={!editable || savingPrescription}>
-                  {savingPrescription ? "Đang lưu..." : "Lưu đơn thuốc"}
-                </Button>
+                {prescriptionStockWarnings.length > 0 && (
+                  <Alert variant="warning">
+                    Số lượng kê vượt tồn khả dụng.
+                  </Alert>
+                )}
+
+                <Card className="prescription-subcard">
+                  <Card.Header>
+                    <h3>Thông tin đơn thuốc</h3>
+                  </Card.Header>
+                  <Card.Body>
+                    <Row className="g-3">
+                      <Col md={4}>
+                        <Form.Group controlId="prescriptionCode">
+                          <Form.Label>Mã đơn thuốc</Form.Label>
+                          <Form.Control value={prescription?.prescriptionCode || "Tạo sau khi lưu"} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group controlId="prescriptionStatus">
+                          <Form.Label>Trạng thái</Form.Label>
+                          <div>
+                            <Badge bg={prescriptionStatusVariant}>{prescriptionStatusLabel}</Badge>
+                          </div>
+                        </Form.Group>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Group controlId="prescriptionDate">
+                          <Form.Label>Ngày kê</Form.Label>
+                          <Form.Control value={formatDate(prescription?.prescribedAt)} disabled />
+                        </Form.Group>
+                      </Col>
+                      <Col xs={12}>
+                        <Form.Group controlId="prescriptionNote">
+                          <Form.Label>Ghi chú đơn thuốc</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={2}
+                            value={prescription?.note || ""}
+                            onChange={(e) =>
+                              setPrescription((current) => ({
+                                id: current?.id,
+                                prescriptionCode: current?.prescriptionCode,
+                                prescribedAt: current?.prescribedAt,
+                                status: current?.status || "PRESCRIBED",
+                                note: e.target.value,
+                                medicalRecordId: medicalRecord?.id,
+                                patientName: appointment?.patient?.fullName,
+                                items: current?.items || [],
+                              }))
+                            }
+                            placeholder="Dặn dò thêm cho đơn thuốc..."
+                            disabled={!prescriptionEditable || savingPrescription}
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
+
+                {prescriptionEditable && (
+                  <Card className="prescription-subcard">
+                    <Card.Header>
+                      <h3>Tìm thuốc</h3>
+                    </Card.Header>
+                    <Card.Body>
+                      <Form.Group controlId="medicineSearch">
+                        <Form.Label>Tìm thuốc</Form.Label>
+                        <Form.Control
+                          value={medicineKeyword}
+                          onChange={(e) => setMedicineKeyword(e.target.value)}
+                          placeholder="Nhập tên thuốc"
+                          disabled={savingPrescription}
+                        />
+                      </Form.Group>
+                      {medicineLoading && <LoadingState message="Đang tìm thuốc..." />}
+                      {medicineResults.length > 0 && (
+                        <div className="medicine-results">
+                          {medicineResults.map((medicine) => {
+                            const medicineId = medicine.medicineId ?? medicine.id;
+                            const medicineName = medicine.medicineName ?? medicine.name;
+                            const unitPrice = medicine.unitPrice ?? medicine.price;
+
+                            return (
+                              <div className="medicine-result" key={medicineId}>
+                                <div>
+                                  <strong>{medicineName}</strong>
+                                  <span>
+                                    {medicine.unit || "--"} · {formatMoney(unitPrice)} · Tồn {medicine.availableQuantity ?? "--"}
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => addMedicineToPrescription(medicine)}
+                                  disabled={savingPrescription}
+                                >
+                                  Thêm
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                )}
+
+                <Card className="prescription-subcard">
+                  <Card.Header>
+                    <h3>Danh sách thuốc trong đơn</h3>
+                  </Card.Header>
+                  <Card.Body className="p-0">
+                    {(prescription?.items || []).length === 0 ? (
+                      <EmptyState title="Chưa có thuốc trong đơn" description="Tìm thuốc và thêm vào đơn kê." />
+                    ) : (
+                      <Table responsive className="doctor-table mb-0">
+                        <thead>
+                          <tr>
+                            <th>Thuốc</th>
+                            <th>Số lượng</th>
+                            <th>Liều dùng</th>
+                            <th>Tần suất</th>
+                            <th>Thời gian dùng</th>
+                            <th>Hướng dẫn</th>
+                            <th>Tồn khả dụng</th>
+                            {prescriptionEditable && <th>Thao tác</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(prescription?.items || []).map((item, index) => {
+                            const overStock = Number.isFinite(Number(item.availableQuantity))
+                              && Number(item.quantity || 0) > Number(item.availableQuantity);
+
+                            return (
+                              <tr key={`${item.medicineId}-${index}`}>
+                                <td>
+                                  <strong>{item.medicineName}</strong>
+                                  <span className="muted-cell">{item.unit || "--"} · {formatMoney(item.unitPrice)}</span>
+                                </td>
+                                {[
+                                  ["quantity", "Số lượng", "number"],
+                                  ["dosage", "Liều dùng", "text"],
+                                  ["frequency", "Tần suất", "text"],
+                                  ["duration", "Thời gian dùng", "text"],
+                                  ["instruction", "Hướng dẫn", "text"],
+                                ].map(([field, label, type]) => (
+                                  <td key={field}>
+                                    <div
+                                      className="prescription-preset-field"
+                                      onBlur={(e) => {
+                                        if (!e.currentTarget.contains(e.relatedTarget)) {
+                                          setActivePresetField(null);
+                                        }
+                                      }}
+                                    >
+                                      <Form.Control
+                                        type={type}
+                                        min={field === "quantity" ? "1" : undefined}
+                                        value={item[field] || ""}
+                                        onFocus={() => setActivePresetField(`${index}-${field}`)}
+                                        onChange={(e) => updatePrescriptionItem(index, field, e.target.value)}
+                                        disabled={!prescriptionEditable || savingPrescription}
+                                        aria-label={label}
+                                        isInvalid={field === "quantity" && overStock}
+                                      />
+                                      {prescriptionPresets[field] && activePresetField === `${index}-${field}` && prescriptionEditable && (
+                                        <div className="prescription-preset-menu">
+                                          {prescriptionPresets[field].map((preset) => (
+                                            <button
+                                              type="button"
+                                              key={preset}
+                                              onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                applyPrescriptionPreset(index, field, preset);
+                                              }}
+                                              disabled={savingPrescription}
+                                            >
+                                              {preset}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                ))}
+                                <td className={overStock ? "text-danger fw-bold" : ""}>
+                                  {item.availableQuantity ?? "--"}
+                                </td>
+                                {prescriptionEditable && (
+                                  <td>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline-danger"
+                                      onClick={() => removePrescriptionItem(index)}
+                                      disabled={savingPrescription}
+                                    >
+                                      Xóa
+                                    </Button>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    )}
+                  </Card.Body>
+                </Card>
+
+                {prescriptionEditable && (
+                  <Button type="submit" disabled={savingPrescription}>
+                    {savingPrescription ? "Đang lưu..." : prescription?.id ? "Cập nhật đơn thuốc" : "Lưu đơn thuốc"}
+                  </Button>
+                )}
               </Form>
             </Card.Body>
           </Card>
@@ -846,36 +1041,39 @@ function ExaminationWorkspacePage() {
       <div className="exam-action-bar">
         <Button
           type="button"
-          variant="outline-secondary"
-          onClick={() =>
-            setRecordForm({
-              chiefComplaint: medicalRecord?.chiefComplaint || "",
-              diagnosis: medicalRecord?.diagnosis || "",
-              treatmentPlan: medicalRecord?.treatmentPlan || "",
-              doctorNote: medicalRecord?.doctorNote || "",
-            })
-          }
+          disabled={!editable || completingRecord}
+          onClick={() => {
+            setCompleteError("");
+            setCompleteModal(true);
+          }}
         >
-          Hủy thay đổi
-        </Button>
-        <Button type="submit" form="medical-record-form" variant="outline-primary" disabled={!editable || savingRecord}>
-          {savingRecord ? "Đang lưu..." : "Lưu nháp"}
-        </Button>
-        <Button type="button" variant="outline-primary" disabled={!editable}>
-          Kê đơn thuốc
-        </Button>
-        <Button type="button" disabled={!editable} onClick={() => setCompleteModal(true)}>
-          Hoàn tất bệnh án
+          {completingRecord ? "Đang hoàn tất..." : "Hoàn tất bệnh án"}
         </Button>
       </div>
 
       <ConfirmModal
         show={completeModal}
-        title="Hoàn tất khám"
-        message="Backend chưa có API hoàn tất khám, nên thao tác này chưa cập nhật trạng thái thật."
-        confirmText="Đã hiểu"
-        onConfirm={() => setCompleteModal(false)}
-        onHide={() => setCompleteModal(false)}
+        title="Hoàn tất bệnh án"
+        message={(
+          <>
+            <p className="mb-0">
+              Bệnh án sẽ được lưu và lịch khám chuyển sang trạng thái đã khám xong. Sau khi hoàn tất, bạn không thể chỉnh sửa bệnh án này.
+            </p>
+            {completeError && (
+              <Alert variant="danger" className="mt-3 mb-0">
+                {completeError}
+              </Alert>
+            )}
+          </>
+        )}
+        confirmText="Hoàn tất"
+        confirmVariant="primary"
+        loading={completingRecord}
+        onConfirm={handleCompleteRecord}
+        onHide={() => {
+          setCompleteError("");
+          setCompleteModal(false);
+        }}
       />
     </>
   );

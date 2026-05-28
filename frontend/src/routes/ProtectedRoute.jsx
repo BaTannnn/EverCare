@@ -1,7 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import cookies from "react-cookies";
-
-const getSavedRole = () => cookies.load("role");
+import { isAllowedRole } from "./authRouteUtils";
 
 function ProtectedRoute({ children, roles }) {
   const token = cookies.load("token");
@@ -11,10 +10,9 @@ function ProtectedRoute({ children, roles }) {
   }
 
   if (roles?.length) {
-    const savedRole = getSavedRole();
-    const userRoles = Array.isArray(savedRole) ? savedRole : [savedRole].filter(Boolean);
+    const savedRole = cookies.load("role");
 
-    if (!userRoles.some((role) => roles.includes(role))) {
+    if (!isAllowedRole(savedRole, roles)) {
       return <Navigate to="/login" replace />;
     }
   }

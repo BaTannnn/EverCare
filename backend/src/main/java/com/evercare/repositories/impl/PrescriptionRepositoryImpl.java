@@ -73,6 +73,38 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     }
 
     @Override
+    public List<Prescription> getPrescriptionsByDoctorId(Long doctorId, Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        StringBuilder hql = new StringBuilder("""
+                SELECT DISTINCT p FROM Prescription p
+                JOIN FETCH p.doctorId d
+                JOIN FETCH p.patientId patient
+                JOIN FETCH p.medicalRecordId mr
+                LEFT JOIN FETCH mr.appointmentId appointment
+                LEFT JOIN FETCH p.prescriptionItemSet item
+                LEFT JOIN FETCH item.medicineId medicine
+                WHERE p.active = true
+                    AND d.id = :doctorId
+                """);
+
+        String status = params != null ? params.get("status") : null;
+        if (status != null && !status.isBlank()) {
+            hql.append(" AND p.status = :status");
+        }
+
+        hql.append(" ORDER BY p.prescribedAt DESC, p.id DESC");
+
+        Query<Prescription> query = session.createQuery(hql.toString(), Prescription.class)
+                .setParameter("doctorId", doctorId);
+
+        if (status != null && !status.isBlank()) {
+            query.setParameter("status", status.trim().toUpperCase());
+        }
+
+        return query.getResultList();
+    }
+
+    @Override
     public List<Prescription> getPrescriptionsByPatientId(Long patientId, String status, LocalDate from, LocalDate to, Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();

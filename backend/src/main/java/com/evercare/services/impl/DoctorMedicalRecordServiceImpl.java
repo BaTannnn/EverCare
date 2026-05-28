@@ -14,6 +14,7 @@ import com.evercare.pojo.MedicalRecordService;
 import com.evercare.pojo.MedicalService;
 import com.evercare.pojo.TestResult;
 import com.evercare.pojo.User;
+import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.MedicalRecordServiceRepository;
@@ -36,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordService {
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
+
+    @Autowired
+    private AppointmentRepository appointmentRepo;
 
     @Autowired
     private MedicalRecordServiceRepository medicalRecordServiceRepo;
@@ -67,6 +71,39 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         medicalRecord.setUpdatedAt(new java.util.Date());
 
         this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
+
+        return MedicalRecordMapper.toResponse(medicalRecord);
+    }
+
+    @Override
+    public MedicalRecordResponse completeMedicalRecord(String username, Long recordId) {
+        Doctor doctor = getCurrentDoctor(username);
+        MedicalRecord medicalRecord = loadMedicalRecordForDoctor(doctor, recordId);
+        Appointment appointment = medicalRecord.getAppointmentId();
+
+        if (appointment == null) {
+            throw new IllegalStateException("Bệnh án chưa gắn với lịch hẹn");
+        }
+
+        if (AppointmentStatus.COMPLETED.getCode().equalsIgnoreCase(appointment.getStatus())) {
+            return MedicalRecordMapper.toResponse(medicalRecord);
+        }
+
+        if (!AppointmentStatus.IN_PROGRESS.getCode().equalsIgnoreCase(appointment.getStatus())) {
+            throw new IllegalStateException("Chỉ có thể hoàn tất bệnh án khi lịch khám đang IN_PROGRESS");
+        }
+
+        if (medicalRecord.getDiagnosis() == null || medicalRecord.getDiagnosis().isBlank()) {
+            throw new IllegalStateException("Vui lòng nhập chẩn đoán trước khi hoàn tất bệnh án");
+        }
+
+        Date now = new Date();
+        appointment.setStatus(AppointmentStatus.COMPLETED.getCode());
+        appointment.setUpdatedAt(now);
+        medicalRecord.setUpdatedAt(now);
+
+        this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
+        this.appointmentRepo.updateAppointment(appointment);
 
         return MedicalRecordMapper.toResponse(medicalRecord);
     }

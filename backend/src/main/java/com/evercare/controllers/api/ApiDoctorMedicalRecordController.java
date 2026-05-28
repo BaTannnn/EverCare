@@ -52,6 +52,29 @@ public class ApiDoctorMedicalRecordController {
         }
     }
 
+    @PostMapping("/{recordId}/complete")
+    public ResponseEntity<?> complete(
+            Principal principal,
+            @PathVariable("recordId") Long recordId
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+        }
+
+        try {
+            MedicalRecordResponse result = this.doctorMedicalRecordService
+                    .completeMedicalRecord(principal.getName(), recordId);
+
+            return ResponseEntity.ok(result);
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/{recordId}/services")
     public ResponseEntity<?> addService(
             Principal principal,

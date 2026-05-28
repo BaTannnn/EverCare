@@ -89,6 +89,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             throw new IllegalStateException("Đơn thuốc không có thuốc để cấp phát");
         }
 
+        if (prescription.getMedicalRecordId() == null
+                || !"PAID".equalsIgnoreCase(prescription.getMedicalRecordId().getPaymentStatus())) {
+            throw new IllegalStateException("Bệnh nhân chưa thanh toán, chưa thể cấp phát thuốc");
+        }
+
         Date today = Date.valueOf(LocalDate.now());
         validateEnoughStock(prescription, today);
         java.util.Date now = new java.util.Date();

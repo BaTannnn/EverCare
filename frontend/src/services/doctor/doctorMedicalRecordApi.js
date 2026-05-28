@@ -4,6 +4,10 @@ export const updateMedicalRecord = (recordId, payload) => {
   return authApis().put(endpoints["doctor-medical-record"](recordId), payload);
 };
 
+export const completeMedicalRecord = (recordId) => {
+  return authApis().post(endpoints["doctor-complete-medical-record"](recordId));
+};
+
 export const getMedicalRecordServices = (recordId) => {
   return authApis().get(endpoints["doctor-medical-record-services"](recordId));
 };

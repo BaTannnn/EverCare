@@ -9,6 +9,9 @@ public class PrescriptionResponse {
     private String status;
     private String note;
     private Long medicalRecordId;
+    private Long appointmentId;
+    private String diagnosis;
+    private String paymentStatus;
     private Long doctorId;
     private String doctorName;
     private Long patientId;
@@ -62,6 +65,30 @@ public class PrescriptionResponse {
 
     public void setMedicalRecordId(Long medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
+    }
+
+    public Long getAppointmentId() {
+        return appointmentId;
+    }
+
+    public void setAppointmentId(Long appointmentId) {
+        this.appointmentId = appointmentId;
+    }
+
+    public String getDiagnosis() {
+        return diagnosis;
+    }
+
+    public void setDiagnosis(String diagnosis) {
+        this.diagnosis = diagnosis;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 
     public Long getDoctorId() {

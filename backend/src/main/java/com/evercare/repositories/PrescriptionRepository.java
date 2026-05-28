@@ -7,6 +7,7 @@ import java.util.Map;
 
 public interface PrescriptionRepository {
     List<Prescription> getPrescriptions(Map<String, String> params);
+    List<Prescription> getPrescriptionsByDoctorId(Long doctorId, Map<String, String> params);
     List<Prescription> getPrescriptionsByPatientId(Long patientId, String status, LocalDate from, LocalDate to, Map<String, String> params);
 
     Prescription getPrescriptionById(Long id);
