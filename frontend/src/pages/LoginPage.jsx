@@ -3,6 +3,7 @@ import { Alert, Button, Form, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import cookies from "react-cookies";
 import Apis, { authApis, endpoints } from "../configs/Apis";
+import { getDashboardPath, normalizeRoles } from "../routes/authRouteUtils";
 import authBackground from "../assets/auth-medical-bg.png";
 
 const getErrorMessage = (error) => {
@@ -13,6 +14,12 @@ const getErrorMessage = (error) => {
   }
 
   return data?.message || "Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.";
+};
+
+const clearAuthCookies = () => {
+  cookies.remove("token", { path: "/" });
+  cookies.remove("user", { path: "/" });
+  cookies.remove("role", { path: "/" });
 };
 
 function LoginPage() {
@@ -51,16 +58,16 @@ function LoginPage() {
       if (profile) {
         saveAuthCookie("user", JSON.stringify(profile));
 
-        if (profile.roles?.length) {
-          saveAuthCookie("role", profile.roles);
+        const roles = normalizeRoles(profile.roles);
+
+        if (roles.length) {
+          saveAuthCookie("role", JSON.stringify(roles));
         }
       }
 
       return profile;
-    } catch {
-      const fallbackProfile = { username: form.username.trim() };
-      saveAuthCookie("user", JSON.stringify(fallbackProfile));
-      return fallbackProfile;
+    } catch (err) {
+      throw new Error(err.response ? getErrorMessage(err) : "Không tải được hồ sơ sau khi đăng nhập.", { cause: err });
     }
   };
 
@@ -88,16 +95,15 @@ function LoginPage() {
 
       saveAuthCookie("token", token);
       const profile = await loadProfile();
-      const roles = profile?.roles || [];
-      const isDoctor = roles.includes("DOCTOR") || roles.includes("ROLE_DOCTOR");
-      const isStaff =
-        roles.includes("LAB_TECH")
-        || roles.includes("ROLE_LAB_TECH");
+      const dashboardPath = getDashboardPath(profile?.roles);
 
-      navigate(isDoctor ? "/doctor/dashboard" : isStaff ? "/staff/dashboard" : "/admin/dashboard", { replace: true });
-      const isAdmin = roles.includes("ADMIN") || roles.includes("ROLE_ADMIN");
-      navigate(isDoctor ? "/doctor/dashboard" : isAdmin ? "/admin/dashboard" : "/patient/dashboard", { replace: true });
+      if (!dashboardPath) {
+        throw new Error("Tài khoản chưa được gán quyền truy cập giao diện.");
+      }
+
+      navigate(dashboardPath, { replace: true });
     } catch (err) {
+      clearAuthCookies();
       setError(err.response ? getErrorMessage(err) : err.message);
     } finally {
       setSubmitting(false);

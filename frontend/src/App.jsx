@@ -67,14 +67,14 @@ function App() {
           <Route path="appointments" element={<DoctorAppointmentsPage />} />
           <Route path="appointments/:appointmentId" element={<DoctorAppointmentDetailPage />} />
           <Route path="patient-appointments" element={<DoctorPatientAppointmentsPage />} />
-          <Route path="examination" element={<DoctorExaminationIndexPage />} />
+          <Route path="examination" element={<DoctorExaminationEntryPage />} />
           <Route path="examination/:appointmentId" element={<ExaminationWorkspacePage />} />
           <Route path="prescriptions" element={<DoctorPrescriptionsPage />} />
           <Route path="settings" element={<DoctorSettingsPage />} />
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH"]} />}>
+      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "PHARMACIST", "ROLE_PHARMACIST", "MANAGER", "ROLE_MANAGER"]} />}>
         <Route path="/staff" element={<StaffLayout />}>
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboardPage />} />
