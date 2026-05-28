@@ -201,22 +201,26 @@ public class PrescriptionItem implements Serializable {
 
     @Override
     public int hashCode() {
-        int hash = 0;
-        hash += (id != null ? id.hashCode() : 0);
-        return hash;
+        return getClass().hashCode();
     }
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
+        if (this == object) {
+            return true;
+        }
+
         if (!(object instanceof PrescriptionItem)) {
             return false;
         }
+
         PrescriptionItem other = (PrescriptionItem) object;
-        if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
+
+        if (this.id == null || other.id == null) {
             return false;
         }
-        return true;
+
+        return this.id.equals(other.id);
     }
 
     @Override

@@ -82,9 +82,12 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
         Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+        Fetch<DoctorSchedule, ?> doctorFetch = root.fetch("doctorId", JoinType.LEFT);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = getPredicates(params, cb, root);
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(
                 cb.desc(root.get("workDate")),
@@ -112,6 +115,8 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
         Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+        Fetch<DoctorSchedule, ?> doctorFetch = root.fetch("doctorId", JoinType.LEFT);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -126,10 +131,35 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
             predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), to));
         }
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.asc(root.get("workDate")), cb.asc(root.get("startTime")));
 
         return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    public DoctorSchedule getScheduleCoveringAppointmentTime(Long doctorId, LocalDate workDate, LocalTime startTime, LocalTime endTime) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT s
+                FROM DoctorSchedule s
+                JOIN FETCH s.doctorId d
+                WHERE d.id = :doctorId
+                    AND s.workDate = :workDate
+                    AND s.active = true
+                    AND s.status = 'AVAILABLE'
+                    AND s.startTime <= :startTime
+                    AND s.endTime >= :endTime
+                ORDER BY s.startTime ASC
+                """, DoctorSchedule.class)
+                .setParameter("doctorId", doctorId)
+                .setParameter("workDate", workDate)
+                .setParameter("startTime", startTime)
+                .setParameter("endTime", endTime)
+                .setMaxResults(1)
+                .uniqueResult();
     }
 
     @Override
