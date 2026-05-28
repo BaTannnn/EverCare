@@ -90,7 +90,13 @@ function LoginPage() {
       const profile = await loadProfile();
       const roles = profile?.roles || [];
       const isDoctor = roles.includes("DOCTOR") || roles.includes("ROLE_DOCTOR");
-      navigate(isDoctor ? "/doctor/dashboard" : "/admin/dashboard", { replace: true });
+      const isStaff =
+        roles.includes("LAB_TECH")
+        || roles.includes("ROLE_LAB_TECH");
+
+      navigate(isDoctor ? "/doctor/dashboard" : isStaff ? "/staff/dashboard" : "/admin/dashboard", { replace: true });
+      const isAdmin = roles.includes("ADMIN") || roles.includes("ROLE_ADMIN");
+      navigate(isDoctor ? "/doctor/dashboard" : isAdmin ? "/admin/dashboard" : "/patient/dashboard", { replace: true });
     } catch (err) {
       setError(err.response ? getErrorMessage(err) : err.message);
     } finally {

@@ -32,8 +32,13 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         Session session = this.factory.getObject().getCurrentSession();
 
         return session.createQuery("""
-                SELECT a FROM Appointment a
+                SELECT DISTINCT a FROM Appointment a
                 JOIN FETCH a.patientId p
+                LEFT JOIN FETCH a.serviceId s
+                LEFT JOIN FETCH a.medicalRecord mr
+                LEFT JOIN FETCH mr.prescription pr
+                LEFT JOIN FETCH pr.prescriptionItemSet item
+                LEFT JOIN FETCH item.medicineId medicine
                 WHERE a.doctorId.id = :doctorId
                     AND a.appointmentDate = :appointmentDate
                     AND a.active = true

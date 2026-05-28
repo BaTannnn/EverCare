@@ -1489,6 +1489,29 @@
   background: #f8fbff;
 }
 
+.exam-service-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #e6edf5;
+  background: #ffffff;
+}
+
+.exam-service-actions span {
+  color: #536275;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.exam-service-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .service-autocomplete {
   position: relative;
   min-width: 0;
@@ -1539,7 +1562,7 @@
 }
 
 .exam-table {
-  min-width: 720px;
+  min-width: 860px;
 }
 
 .exam-table thead th {
@@ -1547,6 +1570,34 @@
   color: #334155;
   font-size: 12px;
   text-transform: uppercase;
+}
+
+.service-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.service-state.is-pending {
+  color: #975a16;
+  background: #fff7e6;
+}
+
+.service-state.is-confirmed {
+  color: #0f766e;
+  background: #e6fffb;
+}
+
+.service-table-placeholder,
+.service-locked-text {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .exam-side-column {
@@ -1823,6 +1874,16 @@
 
   .exam-patient-banner .card-body,
   .exam-inline-form {
+    grid-template-columns: 1fr;
+  }
+
+  .exam-service-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exam-service-action-buttons {
+    display: grid;
     grid-template-columns: 1fr;
   }
 

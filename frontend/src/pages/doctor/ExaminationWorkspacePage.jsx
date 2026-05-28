@@ -16,11 +16,16 @@ import {
 import { searchMedicalServices } from "../../services/doctor/doctorMedicalServiceApi";
 import { searchMedicines } from "../../services/doctor/doctorMedicineApi";
 import {
+  createDoctorPrescription,
+  updateDoctorPrescription,
+} from "../../services/doctor/doctorPrescriptionApi";
+import {
   canStartExamination,
   editableStatuses,
   formatDate,
   formatMoney,
   getErrorMessage,
+  isDoctorVisibleAppointment,
 } from "./doctorPageUtils";
 
 const emptyRecordForm = {
@@ -32,6 +37,10 @@ const emptyRecordForm = {
 
 const emptyServiceForm = {
   serviceId: "",
+  serviceCode: "",
+  serviceName: "",
+  serviceType: "",
+  unitPrice: null,
   resultSummary: "",
 };
 
@@ -49,6 +58,7 @@ function ExaminationWorkspacePage() {
   const [appointment, setAppointment] = useState(null);
   const [recordForm, setRecordForm] = useState(emptyRecordForm);
   const [services, setServices] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
   const [serviceForm, setServiceForm] = useState(emptyServiceForm);
   const [serviceKeyword, setServiceKeyword] = useState("");
   const [serviceOptions, setServiceOptions] = useState([]);
@@ -60,6 +70,7 @@ function ExaminationWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [savingRecord, setSavingRecord] = useState(false);
   const [savingService, setSavingService] = useState(false);
+  const [savingPrescription, setSavingPrescription] = useState(false);
   const [medicineLoading, setMedicineLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -76,6 +87,13 @@ function ExaminationWorkspacePage() {
     try {
       const response = await getAppointmentDetail(appointmentId);
       const detail = response.data;
+
+      if (!isDoctorVisibleAppointment(detail)) {
+        setAppointment(null);
+        setError("Lịch hẹn này chưa sẵn sàng cho bác sĩ xử lý.");
+        return;
+      }
+
       setAppointment(detail);
       setRecordForm({
         chiefComplaint: detail?.medicalRecord?.chiefComplaint || "",
@@ -88,8 +106,10 @@ function ExaminationWorkspacePage() {
       if (detail?.medicalRecord?.id) {
         const serviceResponse = await getMedicalRecordServices(detail.medicalRecord.id);
         setServices(serviceResponse.data || []);
+        setSelectedServiceIds([]);
       } else {
         setServices([]);
+        setSelectedServiceIds([]);
       }
     } catch (err) {
       if (err.response?.status === 401) {
@@ -193,9 +213,38 @@ function ExaminationWorkspacePage() {
       return;
     }
 
-    const isDuplicateService = services.some((item) => Number(item.serviceId) === Number(serviceForm.serviceId));
-    if (isDuplicateService) {
-      setNotice("Dịch vụ này đã được chỉ định trong bệnh án.");
+    setNotice("");
+    setServices((current) => [
+      {
+        id: `pending-${Date.now()}-${serviceForm.serviceId}`,
+        serviceId: Number(serviceForm.serviceId),
+        serviceCode: serviceForm.serviceCode,
+        serviceName: serviceForm.serviceName || serviceKeyword,
+        serviceType: serviceForm.serviceType,
+        quantity: 1,
+        unitPrice: serviceForm.unitPrice,
+        resultSummary: serviceForm.resultSummary,
+        testResults: [],
+        pending: true,
+      },
+      ...current,
+    ]);
+    setSelectedServiceIds([]);
+    setServiceForm(emptyServiceForm);
+    setServiceKeyword("");
+    setServiceDropdownOpen(false);
+    setNotice("Đã thêm dịch vụ vào danh sách chờ xác nhận.");
+  };
+
+  const handleConfirmServices = async () => {
+    if (!medicalRecord?.id) {
+      setNotice("Vui lòng bắt đầu khám trước khi xác nhận dịch vụ.");
+      return;
+    }
+
+    const pendingServices = services.filter((item) => item.pending);
+    if (pendingServices.length === 0) {
+      setNotice("Không có dịch vụ mới cần xác nhận.");
       return;
     }
 
@@ -203,15 +252,25 @@ function ExaminationWorkspacePage() {
     setNotice("");
 
     try {
-      const response = await addMedicalRecordService(medicalRecord.id, {
-        serviceId: Number(serviceForm.serviceId),
-        quantity: 1,
-        resultSummary: serviceForm.resultSummary,
-      });
-      setServices((current) => [response.data, ...current]);
-      setServiceForm(emptyServiceForm);
-      setServiceKeyword("");
-      setNotice("Đã thêm chỉ định.");
+      const confirmedServices = await Promise.all(
+        pendingServices.map((item) =>
+          addMedicalRecordService(medicalRecord.id, {
+            serviceId: Number(item.serviceId),
+            quantity: item.quantity || 1,
+            resultSummary: item.resultSummary,
+          }).then((response) => response.data)
+        )
+      );
+
+      const confirmedByPendingId = new Map(
+        pendingServices.map((item, index) => [item.id, confirmedServices[index]])
+      );
+
+      setServices((current) =>
+        current.map((item) => (item.pending ? confirmedByPendingId.get(item.id) || item : item))
+      );
+      setSelectedServiceIds([]);
+      setNotice("Đã xác nhận dịch vụ.");
     } catch (err) {
       setNotice(getErrorMessage(err));
       if (err.response?.status === 409) {
@@ -222,20 +281,59 @@ function ExaminationWorkspacePage() {
     }
   };
 
+  const removePendingService = (serviceId) => {
+    setServices((current) => current.filter((item) => item.id !== serviceId || !item.pending));
+    setSelectedServiceIds((current) => current.filter((id) => id !== serviceId));
+  };
+
+  const removeSelectedPendingServices = () => {
+    if (selectedServiceIds.length === 0) {
+      setNotice("Vui lòng chọn dịch vụ cần xóa.");
+      return;
+    }
+
+    const selectedIdSet = new Set(selectedServiceIds);
+    setServices((current) => current.filter((item) => !item.pending || !selectedIdSet.has(item.id)));
+    setSelectedServiceIds([]);
+    setNotice("Đã xóa dịch vụ chưa xác nhận.");
+  };
+
+  const toggleServiceSelection = (serviceId, checked) => {
+    setSelectedServiceIds((current) =>
+      checked ? [...current, serviceId] : current.filter((id) => id !== serviceId)
+    );
+  };
+
+  const toggleAllPendingServices = (checked) => {
+    setSelectedServiceIds(checked ? services.filter((item) => item.pending).map((item) => item.id) : []);
+  };
+
   const selectMedicalService = (service) => {
     setServiceForm((current) => ({
       ...current,
       serviceId: service.id,
+      serviceCode: service.code,
+      serviceName: service.name,
+      serviceType: service.serviceType,
+      unitPrice: service.price,
     }));
     setServiceKeyword(service.name || "");
     setServiceDropdownOpen(false);
   };
 
   const addMedicineToPrescription = (medicine) => {
+    const medicineId = medicine.medicineId ?? medicine.id;
+    const medicineName = medicine.medicineName ?? medicine.name;
+
+    if (!medicineId) {
+      setNotice("Không xác định được thuốc cần thêm.");
+      return;
+    }
+
     const newItem = {
       ...emptyPrescriptionLine,
-      medicineId: medicine.medicineId,
-      medicineName: medicine.medicineName,
+      medicineId,
+      medicineName,
       unit: medicine.unit,
       unitPrice: medicine.unitPrice,
       availableQuantity: medicine.availableQuantity,
@@ -250,6 +348,9 @@ function ExaminationWorkspacePage() {
       patientName: appointment?.patient?.fullName,
       items: [...(current?.items || []), newItem],
     }));
+    setMedicineKeyword("");
+    setMedicineResults([]);
+    setNotice(`Đã thêm ${medicineName || "thuốc"} vào đơn. Bấm Lưu đơn thuốc để cập nhật.`);
   };
 
   const updatePrescriptionItem = (index, field, value) => {
@@ -270,13 +371,68 @@ function ExaminationWorkspacePage() {
 
   const handleSavePrescription = async (e) => {
     e.preventDefault();
-    setNotice("Backend chưa có API bác sĩ tạo/cập nhật đơn thuốc.");
+
+    if (!medicalRecord?.id) {
+      setNotice("Vui lòng bắt đầu khám trước khi lưu đơn thuốc.");
+      return;
+    }
+
+    const items = prescription?.items || [];
+    if (items.length === 0) {
+      setNotice("Vui lòng thêm ít nhất một thuốc vào đơn.");
+      return;
+    }
+
+    const invalidItem = items.find((item) => !item.medicineId || Number(item.quantity) <= 0);
+    if (invalidItem) {
+      setNotice("Vui lòng kiểm tra thuốc và số lượng trước khi lưu đơn.");
+      return;
+    }
+
+    const payload = {
+      note: prescription?.note || "",
+      items: items.map((item) => ({
+        medicineId: Number(item.medicineId),
+        quantity: Number(item.quantity),
+        dosage: item.dosage || "",
+        frequency: item.frequency || "",
+        duration: item.duration || "",
+        instruction: item.instruction || "",
+      })),
+    };
+
+    setSavingPrescription(true);
+    setNotice("");
+
+    try {
+      const response = prescription?.id
+        ? await updateDoctorPrescription(prescription.id, payload)
+        : await createDoctorPrescription(medicalRecord.id, payload);
+
+      setPrescription(response.data);
+      setAppointment((current) => ({
+        ...current,
+        prescription: response.data,
+      }));
+      setNotice("Đã lưu đơn thuốc.");
+    } catch (err) {
+      setNotice(getErrorMessage(err));
+      if (err.response?.status === 409) {
+        loadWorkspace();
+      }
+    } finally {
+      setSavingPrescription(false);
+    }
   };
 
   const allResults = useMemo(
     () => services.flatMap((item) => item.testResults || []),
     [services]
   );
+  const pendingServices = useMemo(() => services.filter((item) => item.pending), [services]);
+  const pendingServiceCount = pendingServices.length;
+  const selectedPendingCount = selectedServiceIds.length;
+  const allPendingSelected = pendingServiceCount > 0 && selectedPendingCount === pendingServiceCount;
 
   if (loading) {
     return <LoadingState />;
@@ -443,30 +599,97 @@ function ExaminationWorkspacePage() {
                   disabled={!editable || savingService}
                 />
                 <Button type="submit" disabled={!editable || savingService}>
-                  {savingService ? "Đang thêm..." : "Thêm dịch vụ"}
+                  Thêm dịch vụ
                 </Button>
               </Form>
+              {pendingServiceCount > 0 && (
+                <div className="exam-service-actions">
+                  <span>
+                    {pendingServiceCount} dịch vụ chờ xác nhận
+                    {selectedPendingCount > 0 ? ` · Đã chọn ${selectedPendingCount}` : ""}
+                  </span>
+                  <div className="exam-service-action-buttons">
+                    <Button
+                      type="button"
+                      variant="outline-danger"
+                      onClick={removeSelectedPendingServices}
+                      disabled={!editable || savingService || selectedPendingCount === 0}
+                    >
+                      Xóa đã chọn
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleConfirmServices}
+                      disabled={!editable || savingService || pendingServiceCount === 0}
+                    >
+                      {savingService ? "Đang xác nhận..." : "Xác nhận dịch vụ"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {services.length === 0 ? (
                 <EmptyState title="Chưa có dịch vụ" description="Nhấn thêm dịch vụ để ghi nhận dịch vụ phát sinh." />
               ) : (
                 <Table responsive className="doctor-table exam-table mb-0">
                   <thead>
                     <tr>
+                      <th>
+                        <Form.Check
+                          aria-label="Chọn tất cả dịch vụ chưa xác nhận"
+                          checked={allPendingSelected}
+                          disabled={!editable || savingService || pendingServiceCount === 0}
+                          onChange={(e) => toggleAllPendingServices(e.target.checked)}
+                        />
+                      </th>
+                      <th>Trạng thái</th>
                       <th>Tên dịch vụ</th>
                       <th>Loại</th>
                       <th>Giá</th>
                       <th>Ghi chú</th>
                       <th>Kết quả</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {services.map((item) => (
                       <tr key={item.id}>
+                        <td>
+                          {item.pending ? (
+                            <Form.Check
+                              aria-label={`Chọn ${item.serviceName}`}
+                              checked={selectedServiceIds.includes(item.id)}
+                              disabled={savingService}
+                              onChange={(e) => toggleServiceSelection(item.id, e.target.checked)}
+                            />
+                          ) : (
+                            <span className="service-table-placeholder">--</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`service-state ${item.pending ? "is-pending" : "is-confirmed"}`}>
+                            {item.pending ? "Chưa xác nhận" : "Đã xác nhận"}
+                          </span>
+                        </td>
                         <td>{item.serviceName}</td>
                         <td>{item.serviceType}</td>
                         <td>{formatMoney(item.unitPrice)}</td>
                         <td>{item.resultSummary || "--"}</td>
                         <td>{(item.testResults || []).length ? "Đã có" : "Chưa có"}</td>
+                        <td>
+                          {item.pending ? (
+                            <Button
+                              type="button"
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => removePendingService(item.id)}
+                              disabled={savingService}
+                            >
+                              Xóa
+                            </Button>
+                          ) : (
+                            <span className="service-locked-text">Đã khóa</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -512,9 +735,6 @@ function ExaminationWorkspacePage() {
           <Card className="doctor-card exam-section-card">
             <Card.Header>
               <h2>Đơn thuốc</h2>
-              <Alert variant="info" className="small-alert mb-0">
-                Backend chưa có API bác sĩ tạo/cập nhật đơn thuốc.
-              </Alert>
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleSavePrescription}>
@@ -524,7 +744,7 @@ function ExaminationWorkspacePage() {
                     value={medicineKeyword}
                     onChange={(e) => setMedicineKeyword(e.target.value)}
                     placeholder="Nhập tên thuốc"
-                    disabled={!editable}
+                    disabled={!editable || savingPrescription}
                   />
                 </Form.Group>
                 {medicineLoading && <LoadingState message="Đang tìm thuốc..." />}
@@ -538,13 +758,39 @@ function ExaminationWorkspacePage() {
                             {medicine.unit} · {formatMoney(medicine.unitPrice)} · Tồn {medicine.availableQuantity}
                           </span>
                         </div>
-                        <Button type="button" size="sm" onClick={() => addMedicineToPrescription(medicine)} disabled={!editable}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => addMedicineToPrescription(medicine)}
+                          disabled={!editable || savingPrescription}
+                        >
                           Thêm
                         </Button>
                       </div>
                     ))}
                   </div>
                 )}
+                <Form.Group className="mb-3" controlId="prescriptionNote">
+                  <Form.Label>Ghi chú đơn thuốc</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={prescription?.note || ""}
+                    onChange={(e) =>
+                      setPrescription((current) => ({
+                        id: current?.id,
+                        prescriptionCode: current?.prescriptionCode,
+                        status: current?.status || "PRESCRIBED",
+                        note: e.target.value,
+                        medicalRecordId: medicalRecord?.id,
+                        patientName: appointment?.patient?.fullName,
+                        items: current?.items || [],
+                      }))
+                    }
+                    placeholder="Dặn dò thêm cho đơn thuốc..."
+                    disabled={!editable || savingPrescription}
+                  />
+                </Form.Group>
                 {(prescription?.items || []).length === 0 ? (
                   <EmptyState title="Chưa có thuốc trong đơn" description="Tìm thuốc và thêm vào đơn kê." />
                 ) : (
@@ -553,7 +799,13 @@ function ExaminationWorkspacePage() {
                       <div className="prescription-item" key={`${item.medicineId}-${index}`}>
                         <div className="prescription-item-title">
                           <strong>{item.medicineName}</strong>
-                          <Button type="button" size="sm" variant="outline-danger" onClick={() => removePrescriptionItem(index)} disabled={!editable}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline-danger"
+                            onClick={() => removePrescriptionItem(index)}
+                            disabled={!editable || savingPrescription}
+                          >
                             Xóa
                           </Button>
                         </div>
@@ -572,7 +824,7 @@ function ExaminationWorkspacePage() {
                                 min={field === "quantity" ? "1" : undefined}
                                 value={item[field] || ""}
                                 onChange={(e) => updatePrescriptionItem(index, field, e.target.value)}
-                                disabled={!editable}
+                                disabled={!editable || savingPrescription}
                               />
                             </Col>
                           ))}
@@ -581,8 +833,8 @@ function ExaminationWorkspacePage() {
                     ))}
                   </div>
                 )}
-                <Button type="submit" disabled={!editable}>
-                  Lưu đơn thuốc
+                <Button type="submit" disabled={!editable || savingPrescription}>
+                  {savingPrescription ? "Đang lưu..." : "Lưu đơn thuốc"}
                 </Button>
               </Form>
             </Card.Body>

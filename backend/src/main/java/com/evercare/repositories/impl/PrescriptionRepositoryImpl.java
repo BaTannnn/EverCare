@@ -166,6 +166,13 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     }
 
     @Override
+    public void addPrescription(Prescription prescription) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.persist(prescription);
+        session.flush();
+    }
+
+    @Override
     public void updatePrescription(Prescription prescription) {
         Session session = this.factory.getObject().getCurrentSession();
         session.merge(prescription);

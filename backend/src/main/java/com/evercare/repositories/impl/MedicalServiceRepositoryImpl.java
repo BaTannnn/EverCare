@@ -65,9 +65,11 @@ public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<MedicalService> cq = cb.createQuery(MedicalService.class);
         Root<MedicalService> root = cq.from(MedicalService.class);
+        root.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = getPredicates(params, cb, root);
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.asc(root.get("name")));
 

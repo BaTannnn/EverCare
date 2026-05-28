@@ -7,4 +7,6 @@ public interface MedicalRecordServiceRepository {
     void addMedicalRecordService(MedicalRecordService medicalRecordService);
 
     List<MedicalRecordService> getServicesByMedicalRecordId(Long recordId);
+
+    List<MedicalRecordService> getPendingTestRequests();
 }

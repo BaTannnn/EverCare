@@ -82,9 +82,12 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
         Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+        Fetch<DoctorSchedule, ?> doctorFetch = root.fetch("doctorId", JoinType.LEFT);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = getPredicates(params, cb, root);
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(
                 cb.desc(root.get("workDate")),
@@ -112,6 +115,8 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<DoctorSchedule> cq = cb.createQuery(DoctorSchedule.class);
         Root<DoctorSchedule> root = cq.from(DoctorSchedule.class);
+        Fetch<DoctorSchedule, ?> doctorFetch = root.fetch("doctorId", JoinType.LEFT);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -126,6 +131,7 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
             predicates.add(cb.lessThanOrEqualTo(root.get("workDate"), to));
         }
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.asc(root.get("workDate")), cb.asc(root.get("startTime")));
 

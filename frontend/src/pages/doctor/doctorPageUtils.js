@@ -20,7 +20,12 @@ export const statusFilterLabels = {
 
 export const editableStatuses = ["IN_PROGRESS"];
 
-export const canStartExamination = (status) => ["BOOKED", "WAITING"].includes(status);
+export const doctorVisibleAppointmentStatuses = ["WAITING", "IN_PROGRESS", "COMPLETED"];
+
+export const isDoctorVisibleAppointment = (appointment) =>
+  doctorVisibleAppointmentStatuses.includes(appointment?.status);
+
+export const canStartExamination = (status) => status === "WAITING";
 
 export const canEnterExamination = (status) => ["IN_PROGRESS", "COMPLETED"].includes(status);
 

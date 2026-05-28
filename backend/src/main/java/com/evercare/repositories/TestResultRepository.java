@@ -12,6 +12,8 @@ public interface TestResultRepository {
 
     void updateTestResult(TestResult testResult);
 
+    List<TestResult> getTestResults(Map<String, String> params);
+
     List<TestResult> getTestResultsByMedicalRecordId(Long recordId);
     List<TestResult> getTestResultsByPatientId(Long patientId, LocalDate from, LocalDate to, Map<String, String> params);
 }

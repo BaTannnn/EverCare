@@ -37,4 +37,27 @@ public class MedicalRecordServiceRepositoryImpl implements MedicalRecordServiceR
                 .setParameter("recordId", recordId)
                 .getResultList();
     }
+
+    @Override
+    public List<MedicalRecordService> getPendingTestRequests() {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT mrs FROM MedicalRecordService mrs
+                JOIN FETCH mrs.medicalRecordId mr
+                JOIN FETCH mr.patientId patient
+                JOIN FETCH mr.doctorId doctor
+                JOIN FETCH mrs.serviceId service
+                WHERE mrs.active = true
+                    AND mr.active = true
+                    AND NOT EXISTS (
+                        SELECT tr.id FROM TestResult tr
+                        WHERE tr.active = true
+                            AND tr.medicalRecordId.id = mr.id
+                            AND tr.serviceId.id = service.id
+                    )
+                ORDER BY mrs.createdAt ASC, mrs.id ASC
+                """, MedicalRecordService.class)
+                .getResultList();
+    }
 }

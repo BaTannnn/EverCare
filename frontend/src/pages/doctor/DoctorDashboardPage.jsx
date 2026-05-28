@@ -7,12 +7,13 @@ import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
 import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
-import { getDoctorDashboardSummary, getTodayAppointments } from "../../services/doctor/doctorDashboardApi";
+import { getTodayAppointments } from "../../services/doctor/doctorDashboardApi";
 import {
   canEnterExamination,
   canStartExamination,
   formatTime,
   getErrorMessage,
+  isDoctorVisibleAppointment,
 } from "./doctorPageUtils";
 
 const defaultSummary = {
@@ -25,10 +26,10 @@ const defaultSummary = {
 
 const buildSummaryFromAppointments = (appointments) => ({
   todayAppointments: appointments.length,
-  waitingAppointments: appointments.filter((item) => ["BOOKED", "WAITING"].includes(item.status)).length,
+  waitingAppointments: appointments.filter((item) => item.status === "WAITING").length,
   inProgressAppointments: appointments.filter((item) => item.status === "IN_PROGRESS").length,
   completedAppointments: appointments.filter((item) => item.status === "COMPLETED").length,
-  cancelledAppointments: appointments.filter((item) => item.status === "CANCELLED").length,
+  cancelledAppointments: 0,
 });
 
 function DoctorDashboardPage() {
@@ -43,14 +44,10 @@ function DoctorDashboardPage() {
     setError("");
 
     try {
-      const [summaryResponse, appointmentsResponse] = await Promise.all([
-        getDoctorDashboardSummary(),
-        getTodayAppointments(),
-      ]);
-
-      const todayAppointments = appointmentsResponse.data || [];
+      const appointmentsResponse = await getTodayAppointments();
+      const todayAppointments = (appointmentsResponse.data || []).filter(isDoctorVisibleAppointment);
       setAppointments(todayAppointments);
-      setSummary(summaryResponse.data || buildSummaryFromAppointments(todayAppointments));
+      setSummary(buildSummaryFromAppointments(todayAppointments));
     } catch (err) {
       if (err.response?.status === 401) {
         navigate("/login", { replace: true });
@@ -68,7 +65,7 @@ function DoctorDashboardPage() {
   }, [loadDashboard]);
 
   const nextAppointment = useMemo(
-    () => appointments.find((item) => ["BOOKED", "WAITING", "IN_PROGRESS"].includes(item.status)),
+    () => appointments.find((item) => ["WAITING", "IN_PROGRESS"].includes(item.status)),
     [appointments]
   );
 
@@ -102,7 +99,6 @@ function DoctorDashboardPage() {
           ["Bệnh nhân đang chờ", summary.waitingAppointments, "rose"],
           ["Ca đang khám", summary.inProgressAppointments, "mint"],
           ["Ca đã khám xong", summary.completedAppointments, "green"],
-          ["Ca đã hủy", summary.cancelledAppointments, "gray"],
         ].map(([label, value, tone]) => (
           <Card className={`summary-card ${tone}`} key={label}>
             <Card.Body>
