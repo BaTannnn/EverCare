@@ -5,7 +5,7 @@ import { getPatientInvoices } from "../../services/patient/patientInvoiceApi";
 import { patientInvoices as fallbackInvoices } from "../../data/patientMockData";
 import { countByStatus, formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
 
-function Invoices() {
+function PatientInvoices() {
   const [invoices, setInvoices] = useState(fallbackInvoices);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("Thẻ ngân hàng");
@@ -213,4 +213,4 @@ function Invoices() {
   );
 }
 
-export default Invoices;
+export default PatientInvoices;

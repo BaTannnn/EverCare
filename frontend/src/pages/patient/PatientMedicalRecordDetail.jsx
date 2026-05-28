@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getPatientMedicalRecordById } from "../../services/patient/patientMedicalRecordApi";
 import { formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
 
-function MedicalRecordDetail() {
+function PatientMedicalRecordDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [record, setRecord] = useState(null);
@@ -161,4 +161,4 @@ function MedicalRecordDetail() {
   );
 }
 
-export default MedicalRecordDetail;
+export default PatientMedicalRecordDetail;

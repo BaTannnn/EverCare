@@ -6,7 +6,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import DoctorAppointmentDetailPage from "./pages/doctor/DoctorAppointmentDetailPage";
 import DoctorAppointmentsPage from "./pages/doctor/DoctorAppointmentsPage";
 import DoctorDashboardPage from "./pages/doctor/DoctorDashboardPage";
-import DoctorExaminationIndexPage from "./pages/doctor/DoctorExaminationIndexPage";
+import DoctorExaminationEntryPage from "./pages/doctor/DoctorExaminationEntryPage";
 import DoctorPatientAppointmentsPage from "./pages/doctor/DoctorPatientAppointmentsPage";
 import DoctorPrescriptionsPage from "./pages/doctor/DoctorPrescriptionsPage";
 import DoctorSettingsPage from "./pages/doctor/DoctorSettingsPage";
@@ -18,16 +18,16 @@ import StaffSettingsPage from "./pages/staff/StaffSettingsPage";
 import StaffTestRequestDetailPage from "./pages/staff/StaffTestRequestDetailPage";
 import StaffTestRequestsPage from "./pages/staff/StaffTestRequestsPage";
 import StaffTestResultsPage from "./pages/staff/StaffTestResultsPage";
-import BookAppointment from "./pages/patient/BookAppointment";
-import Invoices from "./pages/patient/Invoices";
-import MedicalRecordDetail from "./pages/patient/MedicalRecordDetail";
-import MedicalRecords from "./pages/patient/MedicalRecords";
-import Notifications from "./pages/patient/Notifications";
+import PatientBookAppointment from "./pages/patient/PatientBookAppointment";
+import PatientInvoices from "./pages/patient/PatientInvoices";
+import PatientMedicalRecordDetail from "./pages/patient/PatientMedicalRecordDetail";
+import PatientMedicalRecords from "./pages/patient/PatientMedicalRecords";
+import PatientNotifications from "./pages/patient/PatientNotifications";
 import PatientAppointments from "./pages/patient/PatientAppointments";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientProfile from "./pages/patient/PatientProfile";
-import Prescriptions from "./pages/patient/Prescriptions";
-import TestResults from "./pages/patient/TestResults";
+import PatientPrescriptions from "./pages/patient/PatientPrescriptions";
+import PatientTestResults from "./pages/patient/PatientTestResults";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicOnlyRoute from "./routes/PublicOnlyRoute";
 import "./App.css";
@@ -49,14 +49,14 @@ function App() {
           <Route index element={<Navigate to="/patient/dashboard" replace />} />
           <Route path="dashboard" element={<PatientDashboard />} />
           <Route path="profile" element={<PatientProfile />} />
-          <Route path="book-appointment" element={<BookAppointment />} />
+          <Route path="book-appointment" element={<PatientBookAppointment />} />
           <Route path="appointments" element={<PatientAppointments />} />
-          <Route path="medical-records" element={<MedicalRecords />} />
-          <Route path="medical-records/:id" element={<MedicalRecordDetail />} />
-          <Route path="test-results" element={<TestResults />} />
-          <Route path="prescriptions" element={<Prescriptions />} />
-          <Route path="invoices" element={<Invoices />} />
-          <Route path="notifications" element={<Notifications />} />
+          <Route path="medical-records" element={<PatientMedicalRecords />} />
+          <Route path="medical-records/:id" element={<PatientMedicalRecordDetail />} />
+          <Route path="test-results" element={<PatientTestResults />} />
+          <Route path="prescriptions" element={<PatientPrescriptions />} />
+          <Route path="invoices" element={<PatientInvoices />} />
+          <Route path="notifications" element={<PatientNotifications />} />
         </Route>
       </Route>
 

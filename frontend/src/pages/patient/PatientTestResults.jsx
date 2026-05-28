@@ -6,7 +6,7 @@ import { countByStatus, getPatientStatusMeta } from "./patientPageUtils";
 
 const tabs = ["ALL", "Huyết học", "Sinh hóa", "Nước tiểu"];
 
-function TestResults() {
+function PatientTestResults() {
   const [results, setResults] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
   const [selectedResult, setSelectedResult] = useState(null);
@@ -173,4 +173,4 @@ function TestResults() {
   );
 }
 
-export default TestResults;
+export default PatientTestResults;

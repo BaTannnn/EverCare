@@ -12,7 +12,7 @@ const timeSlots = ["08:30", "09:30", "10:30", "13:30", "14:30", "16:00"];
 
 const deriveRating = (doctor) => doctor.rating || 4.5;
 
-function BookAppointment() {
+function PatientBookAppointment() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [doctors, setDoctors] = useState([]);
@@ -410,4 +410,4 @@ function BookAppointment() {
   );
 }
 
-export default BookAppointment;
+export default PatientBookAppointment;

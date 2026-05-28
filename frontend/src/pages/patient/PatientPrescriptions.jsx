@@ -4,7 +4,7 @@ import { BsArrowRight, BsCapsule, BsClock, BsEye, BsPerson } from "react-icons/b
 import { getPatientPrescriptionById, getPatientPrescriptions } from "../../services/patient/patientPrescriptionApi";
 import { getPatientStatusMeta } from "./patientPageUtils";
 
-function Prescriptions() {
+function PatientPrescriptions() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -142,4 +142,4 @@ function Prescriptions() {
   );
 }
 
-export default Prescriptions;
+export default PatientPrescriptions;

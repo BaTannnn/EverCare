@@ -22,7 +22,7 @@ const iconMap = {
   SYSTEM: BsInfoCircle,
 };
 
-function Notifications() {
+function PatientNotifications() {
   const { setNotifications: setShellNotifications } = useOutletContext() || {};
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
@@ -128,4 +128,4 @@ function Notifications() {
   );
 }
 
-export default Notifications;
+export default PatientNotifications;

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { getPatientMedicalRecords } from "../../services/patient/patientMedicalRecordApi";
 import { formatShortDate, getPatientStatusMeta } from "./patientPageUtils";
 
-function MedicalRecords() {
+function PatientMedicalRecords() {
   const [records, setRecords] = useState([]);
   const [department, setDepartment] = useState("ALL");
   const [year, setYear] = useState("ALL");
@@ -184,4 +184,4 @@ function MedicalRecords() {
   );
 }
 
-export default MedicalRecords;
+export default PatientMedicalRecords;
