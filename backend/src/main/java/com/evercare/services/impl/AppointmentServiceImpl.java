@@ -2,6 +2,7 @@ package com.evercare.services.impl;
 
 import com.evercare.dtos.request.AppointmentCancelRequest;
 import com.evercare.dtos.request.AppointmentRequest;
+import com.evercare.dtos.response.AppointmentCancelResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.enums.DoctorWorkStatus;
@@ -19,6 +20,7 @@ import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
+import com.evercare.services.PaymentService;
 import com.evercare.services.AppointmentService;
 import com.evercare.services.UserService;
 import java.math.BigInteger;
@@ -29,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -37,8 +41,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class AppointmentServiceImpl implements AppointmentService {
+    private static final Logger logger = LoggerFactory.getLogger(AppointmentServiceImpl.class);
 
     private static final String TYPE_APPOINTMENT_REMINDER = "APPOINTMENT_REMINDER";
+    private static final String TYPE_APPOINTMENT = "APPOINTMENT";
     private static final String STATUS_BOOKED = AppointmentStatus.BOOKED.getCode();
     private static final String STATUS_CANCELLED = AppointmentStatus.CANCELLED.getCode();
     private static final String STATUS_WAITING = AppointmentStatus.WAITING.getCode();
@@ -66,6 +72,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private PaymentService paymentService;
 
     @Override
     @Transactional
@@ -190,7 +199,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     @Transactional
-    public AppointmentResponse cancelAppointment(Long appointmentId, AppointmentCancelRequest request) {
+    public AppointmentCancelResponse cancelAppointment(Long appointmentId, AppointmentCancelRequest request) {
         User currentUser = getCurrentUser();
         Patient currentPatient = requireCurrentPatient();
         Appointment appointment = this.appointmentRepo.getAppointmentByPatientIdAndId(currentPatient.getId(), appointmentId);
@@ -218,8 +227,30 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setUpdatedAt(new Date());
         this.appointmentRepo.updateAppointment(appointment);
 
-        createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId());
-        return AppointmentMapper.toPatientResponse(appointment);
+        AppointmentCancelResponse response = new AppointmentCancelResponse();
+        response.setAppointment(AppointmentMapper.toPatientResponse(appointment));
+
+        com.evercare.dtos.response.RefundResponse refundResponse;
+        try {
+            refundResponse = this.paymentService.refundInvoiceAfterAppointmentCancelled(appointment);
+        } catch (RuntimeException ex) {
+            logger.error("Cancel appointment refund failed for appointmentId={}", appointmentId, ex);
+            refundResponse = new com.evercare.dtos.response.RefundResponse();
+            refundResponse.setRefundEligible(true);
+            refundResponse.setRefundStatus("FAILED");
+            refundResponse.setRefundMessage("Lịch khám đã hủy nhưng hoàn tiền chưa thành công. Vui lòng liên hệ phòng khám.");
+        }
+        response.setRefund(refundResponse);
+
+        try {
+            if (refundResponse == null || "NOT_APPLICABLE".equalsIgnoreCase(refundResponse.getRefundStatus())) {
+                createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId(), TYPE_APPOINTMENT);
+            }
+        } catch (RuntimeException ex) {
+            logger.error("Cancel appointment notification failed for appointmentId={}", appointmentId, ex);
+        }
+
+        return response;
     }
 
     private User getCurrentUser() {
@@ -290,22 +321,30 @@ public class AppointmentServiceImpl implements AppointmentService {
         return service;
     }
 
-    private void createNotification(User user, String title, String content, Long relatedId) {
-        if (this.notificationRepo == null || user == null) {
-            return;
-        }
+    private void createNotification(User user, String title, String content, Long relatedId, String notificationType) {
+        try {
+            if (this.notificationRepo == null || user == null) {
+                return;
+            }
 
-        Notification notification = new Notification();
-        notification.setUserId(user);
-        notification.setTitle(title);
-        notification.setContent(content);
-        notification.setNotificationType(TYPE_APPOINTMENT_REMINDER);
-        if (relatedId != null) {
-            notification.setRelatedId(BigInteger.valueOf(relatedId));
+            Notification notification = new Notification();
+            notification.setUserId(user);
+            notification.setTitle(title);
+            notification.setContent(content);
+            notification.setNotificationType(notificationType);
+            if (relatedId != null) {
+                notification.setRelatedId(BigInteger.valueOf(relatedId));
+            }
+            notification.setActive(true);
+            notification.setCreatedAt(new Date());
+            this.notificationRepo.createNotification(notification);
+        } catch (Exception ex) {
+            // Notification is best-effort only.
         }
-        notification.setActive(true);
-        notification.setCreatedAt(new Date());
-        this.notificationRepo.createNotification(notification);
+    }
+
+    private void createNotification(User user, String title, String content, Long relatedId) {
+        createNotification(user, title, content, relatedId, TYPE_APPOINTMENT_REMINDER);
     }
 
     private String generateAppointmentCode() {
