@@ -14,18 +14,16 @@ import {
   formatDate,
   formatTime,
   getErrorMessage,
+  isDoctorVisibleAppointment,
   normalizeText,
   todayInputValue,
 } from "./doctorPageUtils";
 
 const appointmentStatusOptions = [
   ["ALL", "Tất cả"],
-  ["BOOKED", "Đã đặt lịch"],
   ["WAITING", "Đang chờ"],
   ["IN_PROGRESS", "Đang khám"],
   ["COMPLETED", "Đã khám"],
-  ["CANCELLED", "Đã hủy"],
-  ["NO_SHOW", "Không đến"],
 ];
 
 const serviceTypeLabels = {
@@ -66,7 +64,7 @@ function DoctorPatientAppointmentsPage() {
 
     try {
       const response = await getDoctorAppointmentsByDate(date);
-      setAppointments(response.data || []);
+      setAppointments((response.data || []).filter(isDoctorVisibleAppointment));
     } catch (err) {
       if (err.response?.status === 401) {
         navigate("/login", { replace: true });
@@ -109,11 +107,14 @@ function DoctorPatientAppointmentsPage() {
   };
 
   const actionLabel = (appointment) => {
+    if (appointment.status === "BOOKED") {
+      return "Chờ lễ tân";
+    }
     if (canStartExamination(appointment.status)) {
       return "Bắt đầu khám";
     }
     if (appointment.status === "IN_PROGRESS") {
-      return "Vào tư vấn";
+      return "Tiếp tục khám";
     }
     if (appointment.status === "COMPLETED") {
       return "Xem bệnh án";
@@ -241,7 +242,11 @@ function DoctorPatientAppointmentsPage() {
                         <Button
                           type="button"
                           size="sm"
-                          disabled={appointment.status === "CANCELLED" || appointment.status === "NO_SHOW"}
+                          disabled={
+                            appointment.status === "BOOKED"
+                              || appointment.status === "CANCELLED"
+                              || appointment.status === "NO_SHOW"
+                          }
                           onClick={() => goToWorkspace(appointment)}
                         >
                           {actionLabel(appointment)}

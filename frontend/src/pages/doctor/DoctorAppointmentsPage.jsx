@@ -10,6 +10,7 @@ import { getDoctorSchedules } from "../../services/doctor/doctorScheduleApi";
 import {
   formatTime,
   getErrorMessage,
+  isDoctorVisibleAppointment,
   todayInputValue,
 } from "./doctorPageUtils";
 
@@ -126,7 +127,7 @@ function DoctorAppointmentsPage() {
         getDoctorSchedules(scheduleParams),
       ]);
 
-      setAppointments(appointmentResponse.data || []);
+      setAppointments((appointmentResponse.data || []).filter(isDoctorVisibleAppointment));
       setSchedules((scheduleResponse.data || []).map(normalizeSchedule));
     } catch (err) {
       if (err.response?.status === 401) {

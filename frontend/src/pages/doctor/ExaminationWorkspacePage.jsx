@@ -16,11 +16,16 @@ import {
 import { searchMedicalServices } from "../../services/doctor/doctorMedicalServiceApi";
 import { searchMedicines } from "../../services/doctor/doctorMedicineApi";
 import {
+  createDoctorPrescription,
+  updateDoctorPrescription,
+} from "../../services/doctor/doctorPrescriptionApi";
+import {
   canStartExamination,
   editableStatuses,
   formatDate,
   formatMoney,
   getErrorMessage,
+  isDoctorVisibleAppointment,
 } from "./doctorPageUtils";
 
 const emptyRecordForm = {
@@ -65,6 +70,7 @@ function ExaminationWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [savingRecord, setSavingRecord] = useState(false);
   const [savingService, setSavingService] = useState(false);
+  const [savingPrescription, setSavingPrescription] = useState(false);
   const [medicineLoading, setMedicineLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -81,6 +87,13 @@ function ExaminationWorkspacePage() {
     try {
       const response = await getAppointmentDetail(appointmentId);
       const detail = response.data;
+
+      if (!isDoctorVisibleAppointment(detail)) {
+        setAppointment(null);
+        setError("Lịch hẹn này chưa sẵn sàng cho bác sĩ xử lý.");
+        return;
+      }
+
       setAppointment(detail);
       setRecordForm({
         chiefComplaint: detail?.medicalRecord?.chiefComplaint || "",
@@ -309,10 +322,18 @@ function ExaminationWorkspacePage() {
   };
 
   const addMedicineToPrescription = (medicine) => {
+    const medicineId = medicine.medicineId ?? medicine.id;
+    const medicineName = medicine.medicineName ?? medicine.name;
+
+    if (!medicineId) {
+      setNotice("Không xác định được thuốc cần thêm.");
+      return;
+    }
+
     const newItem = {
       ...emptyPrescriptionLine,
-      medicineId: medicine.medicineId,
-      medicineName: medicine.medicineName,
+      medicineId,
+      medicineName,
       unit: medicine.unit,
       unitPrice: medicine.unitPrice,
       availableQuantity: medicine.availableQuantity,
@@ -327,6 +348,9 @@ function ExaminationWorkspacePage() {
       patientName: appointment?.patient?.fullName,
       items: [...(current?.items || []), newItem],
     }));
+    setMedicineKeyword("");
+    setMedicineResults([]);
+    setNotice(`Đã thêm ${medicineName || "thuốc"} vào đơn. Bấm Lưu đơn thuốc để cập nhật.`);
   };
 
   const updatePrescriptionItem = (index, field, value) => {
@@ -347,7 +371,58 @@ function ExaminationWorkspacePage() {
 
   const handleSavePrescription = async (e) => {
     e.preventDefault();
-    setNotice("Backend chưa có API bác sĩ tạo/cập nhật đơn thuốc.");
+
+    if (!medicalRecord?.id) {
+      setNotice("Vui lòng bắt đầu khám trước khi lưu đơn thuốc.");
+      return;
+    }
+
+    const items = prescription?.items || [];
+    if (items.length === 0) {
+      setNotice("Vui lòng thêm ít nhất một thuốc vào đơn.");
+      return;
+    }
+
+    const invalidItem = items.find((item) => !item.medicineId || Number(item.quantity) <= 0);
+    if (invalidItem) {
+      setNotice("Vui lòng kiểm tra thuốc và số lượng trước khi lưu đơn.");
+      return;
+    }
+
+    const payload = {
+      note: prescription?.note || "",
+      items: items.map((item) => ({
+        medicineId: Number(item.medicineId),
+        quantity: Number(item.quantity),
+        dosage: item.dosage || "",
+        frequency: item.frequency || "",
+        duration: item.duration || "",
+        instruction: item.instruction || "",
+      })),
+    };
+
+    setSavingPrescription(true);
+    setNotice("");
+
+    try {
+      const response = prescription?.id
+        ? await updateDoctorPrescription(prescription.id, payload)
+        : await createDoctorPrescription(medicalRecord.id, payload);
+
+      setPrescription(response.data);
+      setAppointment((current) => ({
+        ...current,
+        prescription: response.data,
+      }));
+      setNotice("Đã lưu đơn thuốc.");
+    } catch (err) {
+      setNotice(getErrorMessage(err));
+      if (err.response?.status === 409) {
+        loadWorkspace();
+      }
+    } finally {
+      setSavingPrescription(false);
+    }
   };
 
   const allResults = useMemo(
@@ -660,9 +735,6 @@ function ExaminationWorkspacePage() {
           <Card className="doctor-card exam-section-card">
             <Card.Header>
               <h2>Đơn thuốc</h2>
-              <Alert variant="info" className="small-alert mb-0">
-                Backend chưa có API bác sĩ tạo/cập nhật đơn thuốc.
-              </Alert>
             </Card.Header>
             <Card.Body>
               <Form onSubmit={handleSavePrescription}>
@@ -672,7 +744,7 @@ function ExaminationWorkspacePage() {
                     value={medicineKeyword}
                     onChange={(e) => setMedicineKeyword(e.target.value)}
                     placeholder="Nhập tên thuốc"
-                    disabled={!editable}
+                    disabled={!editable || savingPrescription}
                   />
                 </Form.Group>
                 {medicineLoading && <LoadingState message="Đang tìm thuốc..." />}
@@ -686,13 +758,39 @@ function ExaminationWorkspacePage() {
                             {medicine.unit} · {formatMoney(medicine.unitPrice)} · Tồn {medicine.availableQuantity}
                           </span>
                         </div>
-                        <Button type="button" size="sm" onClick={() => addMedicineToPrescription(medicine)} disabled={!editable}>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => addMedicineToPrescription(medicine)}
+                          disabled={!editable || savingPrescription}
+                        >
                           Thêm
                         </Button>
                       </div>
                     ))}
                   </div>
                 )}
+                <Form.Group className="mb-3" controlId="prescriptionNote">
+                  <Form.Label>Ghi chú đơn thuốc</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={prescription?.note || ""}
+                    onChange={(e) =>
+                      setPrescription((current) => ({
+                        id: current?.id,
+                        prescriptionCode: current?.prescriptionCode,
+                        status: current?.status || "PRESCRIBED",
+                        note: e.target.value,
+                        medicalRecordId: medicalRecord?.id,
+                        patientName: appointment?.patient?.fullName,
+                        items: current?.items || [],
+                      }))
+                    }
+                    placeholder="Dặn dò thêm cho đơn thuốc..."
+                    disabled={!editable || savingPrescription}
+                  />
+                </Form.Group>
                 {(prescription?.items || []).length === 0 ? (
                   <EmptyState title="Chưa có thuốc trong đơn" description="Tìm thuốc và thêm vào đơn kê." />
                 ) : (
@@ -701,7 +799,13 @@ function ExaminationWorkspacePage() {
                       <div className="prescription-item" key={`${item.medicineId}-${index}`}>
                         <div className="prescription-item-title">
                           <strong>{item.medicineName}</strong>
-                          <Button type="button" size="sm" variant="outline-danger" onClick={() => removePrescriptionItem(index)} disabled={!editable}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline-danger"
+                            onClick={() => removePrescriptionItem(index)}
+                            disabled={!editable || savingPrescription}
+                          >
                             Xóa
                           </Button>
                         </div>
@@ -720,7 +824,7 @@ function ExaminationWorkspacePage() {
                                 min={field === "quantity" ? "1" : undefined}
                                 value={item[field] || ""}
                                 onChange={(e) => updatePrescriptionItem(index, field, e.target.value)}
-                                disabled={!editable}
+                                disabled={!editable || savingPrescription}
                               />
                             </Col>
                           ))}
@@ -729,8 +833,8 @@ function ExaminationWorkspacePage() {
                     ))}
                   </div>
                 )}
-                <Button type="submit" disabled={!editable}>
-                  Lưu đơn thuốc
+                <Button type="submit" disabled={!editable || savingPrescription}>
+                  {savingPrescription ? "Đang lưu..." : "Lưu đơn thuốc"}
                 </Button>
               </Form>
             </Card.Body>

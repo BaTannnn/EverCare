@@ -13,6 +13,7 @@ import {
   formatDate,
   formatTime,
   getErrorMessage,
+  isDoctorVisibleAppointment,
 } from "./doctorPageUtils";
 
 const InfoRow = ({ label, value }) => (
@@ -39,6 +40,13 @@ function DoctorAppointmentDetailPage() {
     try {
       const response = await getAppointmentDetail(appointmentId);
       const detail = response.data;
+
+      if (!isDoctorVisibleAppointment(detail)) {
+        setAppointment(null);
+        setError("Lịch hẹn này chưa sẵn sàng cho bác sĩ xử lý.");
+        return;
+      }
+
       setAppointment(detail);
       setForm({
         chiefComplaint: detail?.medicalRecord?.chiefComplaint || "",
@@ -167,7 +175,7 @@ function DoctorAppointmentDetailPage() {
             {formError && <Alert variant="danger">{formError}</Alert>}
             <Form onSubmit={handleStart}>
               <Form.Group className="mb-3" controlId="chiefComplaint">
-                <Form.Label>Chief complaint</Form.Label>
+                <Form.Label>Triệu chứng chính</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
@@ -177,7 +185,7 @@ function DoctorAppointmentDetailPage() {
                 />
               </Form.Group>
               <Form.Group className="mb-3" controlId="initialNote">
-                <Form.Label>Initial note</Form.Label>
+                <Form.Label>Ghi chú ban đầu</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
