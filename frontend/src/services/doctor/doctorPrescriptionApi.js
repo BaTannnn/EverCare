@@ -1,7 +1,7 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
-export const getDoctorPrescriptions = async () => {
-  return Promise.resolve({ data: [] });
+export const getDoctorPrescriptions = (params = {}) => {
+  return authApis().get(endpoints["doctor-prescriptions"], { params });
 };
 
 export const createDoctorPrescription = (recordId, payload) => {

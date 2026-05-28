@@ -35,6 +35,11 @@ public final class PrescriptionMapper {
         res.setStatus(prescription.getStatus());
         res.setNote(prescription.getNote());
         res.setMedicalRecordId(medicalRecord != null ? medicalRecord.getId() : null);
+        res.setAppointmentId(medicalRecord != null && medicalRecord.getAppointmentId() != null
+                ? medicalRecord.getAppointmentId().getId()
+                : null);
+        res.setDiagnosis(medicalRecord != null ? medicalRecord.getDiagnosis() : null);
+        res.setPaymentStatus(medicalRecord != null ? medicalRecord.getPaymentStatus() : null);
         res.setDoctorId(doctor != null ? doctor.getId() : null);
         res.setDoctorName(doctor != null ? doctor.getFullName() : null);
         res.setPatientId(patient != null ? patient.getId() : null);

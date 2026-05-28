@@ -9,6 +9,8 @@ import java.util.List;
 public interface DoctorMedicalRecordService {
     MedicalRecordResponse updateMedicalRecord(String username, Long recordId, UpdateMedicalRecordRequest request);
 
+    MedicalRecordResponse completeMedicalRecord(String username, Long recordId);
+
     MedicalRecordServiceResponse addService(String username, Long recordId, MedicalRecordServiceRequest request);
 
     List<MedicalRecordServiceResponse> getServices(String username, Long recordId);

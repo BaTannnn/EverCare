@@ -23,6 +23,8 @@ import com.evercare.services.UserService;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,16 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 
     @Autowired
     private UserService userService;
+
+    @Override
+    public List<PrescriptionResponse> getPrescriptions(String username, Map<String, String> params) {
+        Doctor doctor = getCurrentDoctor(username);
+
+        return this.prescriptionRepo.getPrescriptionsByDoctorId(doctor.getId(), params)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
 
     @Override
     public PrescriptionResponse createPrescription(String username, Long recordId, PrescriptionRequest request) {
