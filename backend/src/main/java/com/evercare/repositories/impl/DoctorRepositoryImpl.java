@@ -12,7 +12,6 @@ import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.print.Doc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,9 +73,11 @@ public class DoctorRepositoryImpl implements DoctorRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Doctor> cq = cb.createQuery(Doctor.class);
         Root<Doctor> root = cq.from(Doctor.class);
+        root.fetch("departmentId", JoinType.LEFT);
 
         List<Predicate> predicates = getPredicates(params, cb, root);
 
+        cq.select(root).distinct(true);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.asc(root.get("fullName")));
 

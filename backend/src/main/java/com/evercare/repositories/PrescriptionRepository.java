@@ -13,5 +13,6 @@ public interface PrescriptionRepository {
     Prescription getPrescriptionByPatientIdAndId(Long patientId, Long id);
     Prescription getPrescriptionByMedicalRecordId(Long medicalRecordId);
 
+    void addPrescription(Prescription prescription);
     void updatePrescription(Prescription prescription);
 }

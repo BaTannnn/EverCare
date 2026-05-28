@@ -32,6 +32,10 @@ const emptyRecordForm = {
 
 const emptyServiceForm = {
   serviceId: "",
+  serviceCode: "",
+  serviceName: "",
+  serviceType: "",
+  unitPrice: null,
   resultSummary: "",
 };
 
@@ -49,6 +53,7 @@ function ExaminationWorkspacePage() {
   const [appointment, setAppointment] = useState(null);
   const [recordForm, setRecordForm] = useState(emptyRecordForm);
   const [services, setServices] = useState([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState([]);
   const [serviceForm, setServiceForm] = useState(emptyServiceForm);
   const [serviceKeyword, setServiceKeyword] = useState("");
   const [serviceOptions, setServiceOptions] = useState([]);
@@ -88,8 +93,10 @@ function ExaminationWorkspacePage() {
       if (detail?.medicalRecord?.id) {
         const serviceResponse = await getMedicalRecordServices(detail.medicalRecord.id);
         setServices(serviceResponse.data || []);
+        setSelectedServiceIds([]);
       } else {
         setServices([]);
+        setSelectedServiceIds([]);
       }
     } catch (err) {
       if (err.response?.status === 401) {
@@ -193,9 +200,38 @@ function ExaminationWorkspacePage() {
       return;
     }
 
-    const isDuplicateService = services.some((item) => Number(item.serviceId) === Number(serviceForm.serviceId));
-    if (isDuplicateService) {
-      setNotice("Dịch vụ này đã được chỉ định trong bệnh án.");
+    setNotice("");
+    setServices((current) => [
+      {
+        id: `pending-${Date.now()}-${serviceForm.serviceId}`,
+        serviceId: Number(serviceForm.serviceId),
+        serviceCode: serviceForm.serviceCode,
+        serviceName: serviceForm.serviceName || serviceKeyword,
+        serviceType: serviceForm.serviceType,
+        quantity: 1,
+        unitPrice: serviceForm.unitPrice,
+        resultSummary: serviceForm.resultSummary,
+        testResults: [],
+        pending: true,
+      },
+      ...current,
+    ]);
+    setSelectedServiceIds([]);
+    setServiceForm(emptyServiceForm);
+    setServiceKeyword("");
+    setServiceDropdownOpen(false);
+    setNotice("Đã thêm dịch vụ vào danh sách chờ xác nhận.");
+  };
+
+  const handleConfirmServices = async () => {
+    if (!medicalRecord?.id) {
+      setNotice("Vui lòng bắt đầu khám trước khi xác nhận dịch vụ.");
+      return;
+    }
+
+    const pendingServices = services.filter((item) => item.pending);
+    if (pendingServices.length === 0) {
+      setNotice("Không có dịch vụ mới cần xác nhận.");
       return;
     }
 
@@ -203,15 +239,25 @@ function ExaminationWorkspacePage() {
     setNotice("");
 
     try {
-      const response = await addMedicalRecordService(medicalRecord.id, {
-        serviceId: Number(serviceForm.serviceId),
-        quantity: 1,
-        resultSummary: serviceForm.resultSummary,
-      });
-      setServices((current) => [response.data, ...current]);
-      setServiceForm(emptyServiceForm);
-      setServiceKeyword("");
-      setNotice("Đã thêm chỉ định.");
+      const confirmedServices = await Promise.all(
+        pendingServices.map((item) =>
+          addMedicalRecordService(medicalRecord.id, {
+            serviceId: Number(item.serviceId),
+            quantity: item.quantity || 1,
+            resultSummary: item.resultSummary,
+          }).then((response) => response.data)
+        )
+      );
+
+      const confirmedByPendingId = new Map(
+        pendingServices.map((item, index) => [item.id, confirmedServices[index]])
+      );
+
+      setServices((current) =>
+        current.map((item) => (item.pending ? confirmedByPendingId.get(item.id) || item : item))
+      );
+      setSelectedServiceIds([]);
+      setNotice("Đã xác nhận dịch vụ.");
     } catch (err) {
       setNotice(getErrorMessage(err));
       if (err.response?.status === 409) {
@@ -222,10 +268,41 @@ function ExaminationWorkspacePage() {
     }
   };
 
+  const removePendingService = (serviceId) => {
+    setServices((current) => current.filter((item) => item.id !== serviceId || !item.pending));
+    setSelectedServiceIds((current) => current.filter((id) => id !== serviceId));
+  };
+
+  const removeSelectedPendingServices = () => {
+    if (selectedServiceIds.length === 0) {
+      setNotice("Vui lòng chọn dịch vụ cần xóa.");
+      return;
+    }
+
+    const selectedIdSet = new Set(selectedServiceIds);
+    setServices((current) => current.filter((item) => !item.pending || !selectedIdSet.has(item.id)));
+    setSelectedServiceIds([]);
+    setNotice("Đã xóa dịch vụ chưa xác nhận.");
+  };
+
+  const toggleServiceSelection = (serviceId, checked) => {
+    setSelectedServiceIds((current) =>
+      checked ? [...current, serviceId] : current.filter((id) => id !== serviceId)
+    );
+  };
+
+  const toggleAllPendingServices = (checked) => {
+    setSelectedServiceIds(checked ? services.filter((item) => item.pending).map((item) => item.id) : []);
+  };
+
   const selectMedicalService = (service) => {
     setServiceForm((current) => ({
       ...current,
       serviceId: service.id,
+      serviceCode: service.code,
+      serviceName: service.name,
+      serviceType: service.serviceType,
+      unitPrice: service.price,
     }));
     setServiceKeyword(service.name || "");
     setServiceDropdownOpen(false);
@@ -277,6 +354,10 @@ function ExaminationWorkspacePage() {
     () => services.flatMap((item) => item.testResults || []),
     [services]
   );
+  const pendingServices = useMemo(() => services.filter((item) => item.pending), [services]);
+  const pendingServiceCount = pendingServices.length;
+  const selectedPendingCount = selectedServiceIds.length;
+  const allPendingSelected = pendingServiceCount > 0 && selectedPendingCount === pendingServiceCount;
 
   if (loading) {
     return <LoadingState />;
@@ -443,30 +524,97 @@ function ExaminationWorkspacePage() {
                   disabled={!editable || savingService}
                 />
                 <Button type="submit" disabled={!editable || savingService}>
-                  {savingService ? "Đang thêm..." : "Thêm dịch vụ"}
+                  Thêm dịch vụ
                 </Button>
               </Form>
+              {pendingServiceCount > 0 && (
+                <div className="exam-service-actions">
+                  <span>
+                    {pendingServiceCount} dịch vụ chờ xác nhận
+                    {selectedPendingCount > 0 ? ` · Đã chọn ${selectedPendingCount}` : ""}
+                  </span>
+                  <div className="exam-service-action-buttons">
+                    <Button
+                      type="button"
+                      variant="outline-danger"
+                      onClick={removeSelectedPendingServices}
+                      disabled={!editable || savingService || selectedPendingCount === 0}
+                    >
+                      Xóa đã chọn
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleConfirmServices}
+                      disabled={!editable || savingService || pendingServiceCount === 0}
+                    >
+                      {savingService ? "Đang xác nhận..." : "Xác nhận dịch vụ"}
+                    </Button>
+                  </div>
+                </div>
+              )}
               {services.length === 0 ? (
                 <EmptyState title="Chưa có dịch vụ" description="Nhấn thêm dịch vụ để ghi nhận dịch vụ phát sinh." />
               ) : (
                 <Table responsive className="doctor-table exam-table mb-0">
                   <thead>
                     <tr>
+                      <th>
+                        <Form.Check
+                          aria-label="Chọn tất cả dịch vụ chưa xác nhận"
+                          checked={allPendingSelected}
+                          disabled={!editable || savingService || pendingServiceCount === 0}
+                          onChange={(e) => toggleAllPendingServices(e.target.checked)}
+                        />
+                      </th>
+                      <th>Trạng thái</th>
                       <th>Tên dịch vụ</th>
                       <th>Loại</th>
                       <th>Giá</th>
                       <th>Ghi chú</th>
                       <th>Kết quả</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     {services.map((item) => (
                       <tr key={item.id}>
+                        <td>
+                          {item.pending ? (
+                            <Form.Check
+                              aria-label={`Chọn ${item.serviceName}`}
+                              checked={selectedServiceIds.includes(item.id)}
+                              disabled={savingService}
+                              onChange={(e) => toggleServiceSelection(item.id, e.target.checked)}
+                            />
+                          ) : (
+                            <span className="service-table-placeholder">--</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`service-state ${item.pending ? "is-pending" : "is-confirmed"}`}>
+                            {item.pending ? "Chưa xác nhận" : "Đã xác nhận"}
+                          </span>
+                        </td>
                         <td>{item.serviceName}</td>
                         <td>{item.serviceType}</td>
                         <td>{formatMoney(item.unitPrice)}</td>
                         <td>{item.resultSummary || "--"}</td>
                         <td>{(item.testResults || []).length ? "Đã có" : "Chưa có"}</td>
+                        <td>
+                          {item.pending ? (
+                            <Button
+                              type="button"
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => removePendingService(item.id)}
+                              disabled={savingService}
+                            >
+                              Xóa
+                            </Button>
+                          ) : (
+                            <span className="service-locked-text">Đã khóa</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
