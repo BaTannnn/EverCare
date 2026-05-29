@@ -13,6 +13,7 @@ import java.sql.Time;
 import java.util.ArrayList;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -47,9 +48,10 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
         Root<Appointment> root = query.from(Appointment.class);
         Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
-        doctorJoin.fetch("departmentId", JoinType.LEFT);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
+        Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, builder, root, patientJoin, doctorJoin);
 
