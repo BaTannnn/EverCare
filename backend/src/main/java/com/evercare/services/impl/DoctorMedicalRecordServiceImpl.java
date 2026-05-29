@@ -5,6 +5,7 @@ import com.evercare.dtos.request.UpdateMedicalRecordRequest;
 import com.evercare.dtos.response.MedicalRecordServiceResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.MedicalServiceType;
 import com.evercare.mappers.MedicalRecordServiceMapper;
 import com.evercare.mappers.MedicalRecordMapper;
 import com.evercare.pojo.Appointment;
@@ -101,7 +102,11 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         }
 
         if (AppointmentStatus.COMPLETED.getCode().equalsIgnoreCase(appointment.getStatus())) {
-            createOrUpdateUnpaidInvoice(medicalRecord, new Date());
+            Date now = new Date();
+            if (createOrUpdateUnpaidInvoice(medicalRecord, now)) {
+                medicalRecord.setUpdatedAt(now);
+                this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
+            }
             return MedicalRecordMapper.toResponse(medicalRecord);
         }
 
@@ -145,6 +150,8 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
             throw new IllegalArgumentException("Dịch vụ không tồn tại hoặc đã ngưng hoạt động");
         }
 
+        validateOrderableService(service);
+
         Date now = new Date();
         MedicalRecordService recordService = new MedicalRecordService();
         recordService.setMedicalRecordId(medicalRecord);
@@ -159,6 +166,14 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         this.medicalRecordServiceRepo.addMedicalRecordService(recordService);
 
         return MedicalRecordServiceMapper.toResponse(recordService, Collections.emptyList());
+    }
+
+    private void validateOrderableService(MedicalService service) {
+        String serviceType = service.getServiceType();
+        if (!MedicalServiceType.TEST.getCode().equalsIgnoreCase(serviceType)
+                && !MedicalServiceType.IMAGING.getCode().equalsIgnoreCase(serviceType)) {
+            throw new IllegalArgumentException("Bác sĩ chỉ có thể chỉ định xét nghiệm hoặc chẩn đoán hình ảnh");
+        }
     }
 
     @Override
@@ -182,14 +197,14 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
                 .toList();
     }
 
-    private void createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {
+    private boolean createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {
         Invoice invoice = this.invoiceRepo.getInvoiceByMedicalRecordId(medicalRecord.getId());
         if (invoice != null && "PAID".equalsIgnoreCase(invoice.getPaymentStatus())) {
             medicalRecord.setInvoice(invoice);
-            return;
+            return false;
         }
 
-        BigDecimal serviceAmount = calculateServiceAmount(medicalRecord.getId());
+        BigDecimal serviceAmount = calculateServiceAmount(medicalRecord);
         BigDecimal medicineAmount = calculateMedicineAmount(medicalRecord.getId());
         BigDecimal discountAmount = invoice != null && invoice.getDiscountAmount() != null
                 ? invoice.getDiscountAmount()
@@ -214,16 +229,20 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         invoice.setTotalAmount(totalAmount.max(BigDecimal.ZERO));
         invoice.setUpdatedAt(now);
         medicalRecord.setInvoice(invoice);
+        medicalRecord.setPaymentStatus(PAYMENT_STATUS_UNPAID);
 
         if (invoice.getId() == null) {
             this.invoiceRepo.addInvoice(invoice);
         } else {
             this.invoiceRepo.updateInvoice(invoice);
         }
+
+        return true;
     }
 
-    private BigDecimal calculateServiceAmount(Long recordId) {
-        return this.medicalRecordServiceRepo.getServicesByMedicalRecordId(recordId)
+    private BigDecimal calculateServiceAmount(MedicalRecord medicalRecord) {
+        BigDecimal appointmentServiceAmount = calculateAppointmentServiceAmount(medicalRecord);
+        BigDecimal orderedServiceAmount = this.medicalRecordServiceRepo.getServicesByMedicalRecordId(medicalRecord.getId())
                 .stream()
                 .filter(service -> !Boolean.FALSE.equals(service.getActive()))
                 .map(service -> {
@@ -232,6 +251,19 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
                     return unitPrice.multiply(BigDecimal.valueOf(quantity));
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return appointmentServiceAmount.add(orderedServiceAmount);
+    }
+
+    private BigDecimal calculateAppointmentServiceAmount(MedicalRecord medicalRecord) {
+        if (medicalRecord.getAppointmentId() == null
+                || medicalRecord.getAppointmentId().getServiceId() == null
+                || Boolean.FALSE.equals(medicalRecord.getAppointmentId().getServiceId().getActive())) {
+            return BigDecimal.ZERO;
+        }
+
+        MedicalService appointmentService = medicalRecord.getAppointmentId().getServiceId();
+        return appointmentService.getPrice() != null ? appointmentService.getPrice() : BigDecimal.ZERO;
     }
 
     private BigDecimal calculateMedicineAmount(Long recordId) {

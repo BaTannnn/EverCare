@@ -1284,6 +1284,25 @@
   font-size: 12px;
 }
 
+.staff-pending-service-list {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.staff-pending-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.staff-pending-service strong {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .soft-pill {
   display: inline-flex;
   align-items: center;
@@ -1401,6 +1420,63 @@
   color: #64748b;
 }
 
+.medicine-autocomplete {
+  position: relative;
+}
+
+.medicine-autocomplete-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid #cbd8e6;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+}
+
+.medicine-autocomplete-item {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  text-align: left;
+  color: #1f2937;
+  background: #ffffff;
+}
+
+.medicine-autocomplete-item:last-child {
+  border-bottom: 0;
+}
+
+.medicine-autocomplete-item:hover,
+.medicine-autocomplete-item:focus {
+  background: #eef6ff;
+}
+
+.medicine-autocomplete-item strong,
+.medicine-autocomplete-item span {
+  display: block;
+}
+
+.medicine-autocomplete-item span {
+  margin-top: 4px;
+  color: #64748b;
+}
+
+.medicine-autocomplete-empty {
+  padding: 12px 14px;
+  color: #64748b;
+}
+
+.medicine-autocomplete-empty.is-error {
+  color: #b42318;
+}
+
 .medicine-results {
   display: grid;
   gap: 10px;
@@ -1446,6 +1522,35 @@
   color: #172033;
 }
 
+.prescription-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.prescription-header-meta span + span::before {
+  content: "·";
+  margin-right: 8px;
+  color: #94a3b8;
+}
+
+.prescription-note-field {
+  margin-bottom: 16px;
+}
+
+.prescription-table-body,
+.prescription-table-body .table-responsive,
+.prescription-table-body .doctor-table,
+.prescription-table-body .doctor-table tbody,
+.prescription-table-body .doctor-table tr,
+.prescription-table-body .doctor-table td {
+  overflow: visible;
+}
+
 .prescription-item-title {
   margin-bottom: 12px;
 }
@@ -1456,7 +1561,7 @@
 
 .prescription-preset-menu {
   position: absolute;
-  z-index: 20;
+  z-index: 80;
   top: calc(100% + 6px);
   left: 0;
   right: 0;

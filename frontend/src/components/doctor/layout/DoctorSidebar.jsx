@@ -7,7 +7,6 @@ const menuItems = [
   { to: "/doctor/patient-appointments", icon: "▤", label: "Lịch hẹn bệnh nhân" },
   { to: "/doctor/examination", icon: "+", label: "Khám bệnh" },
   { to: "/doctor/prescriptions", icon: "Rx", label: "Đơn thuốc" },
-  { to: "/doctor/settings", icon: "⚙", label: "Cài đặt" },
 ];
 
 function DoctorSidebar() {
@@ -42,10 +41,6 @@ function DoctorSidebar() {
       </nav>
 
       <div className="doctor-sidebar-footer">
-        <NavLink to="/doctor/settings" className="doctor-nav-link">
-          <span aria-hidden="true">◎</span>
-          Hồ sơ cá nhân
-        </NavLink>
         <button type="button" className="doctor-logout" onClick={handleLogout}>
           <span aria-hidden="true">←</span>
           Đăng xuất

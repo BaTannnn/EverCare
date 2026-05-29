@@ -73,6 +73,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
                     id -> toSummaryResponse(medicalRecord)
             );
             summary.setPendingServiceCount(summary.getPendingServiceCount() + 1);
+            summary.getPendingServices().add(MedicalRecordServiceMapper.toResponse(request, Collections.emptyList()));
 
             String requestedAt = format(request.getCreatedAt());
             if (summary.getRequestedAt() == null || requestedAt != null && requestedAt.compareTo(summary.getRequestedAt()) < 0) {

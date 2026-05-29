@@ -3,19 +3,16 @@ package com.evercare.services.impl;
 import com.evercare.dtos.response.PrescriptionResponse;
 import com.evercare.mappers.PrescriptionMapper;
 import com.evercare.pojo.InventoryTransaction;
-import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Medicine;
 import com.evercare.pojo.MedicineBatch;
 import com.evercare.pojo.Prescription;
 import com.evercare.pojo.PrescriptionItem;
 import com.evercare.pojo.User;
 import com.evercare.repositories.InventoryTransactionRepository;
-import com.evercare.repositories.InvoiceRepository;
 import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.services.PrescriptionService;
 import com.evercare.services.UserService;
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -37,9 +34,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Autowired
     private InventoryTransactionRepository transactionRepo;
-
-    @Autowired
-    private InvoiceRepository invoiceRepo;
 
     @Autowired
     private UserService userService;
@@ -97,7 +91,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         Date today = Date.valueOf(LocalDate.now());
         validateEnoughStock(prescription, today);
         java.util.Date now = new java.util.Date();
-        BigDecimal totalMedicineAmount = BigDecimal.ZERO;
 
         List<PrescriptionItem> items = prescription.getPrescriptionItemSet()
                 .stream()
@@ -105,14 +98,12 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .toList();
 
         for (PrescriptionItem item : items) {
-            totalMedicineAmount = totalMedicineAmount.add(calculateItemAmount(item));
             dispenseItem(item, user, now, today);
         }
 
         prescription.setStatus("DISPENSED");
         prescription.setUpdatedAt(now);
         this.prescriptionRepo.updatePrescription(prescription);
-        updateInvoiceMedicineAmount(prescription, totalMedicineAmount, now);
 
         return PrescriptionMapper.toResponse(
                 prescription,
@@ -173,30 +164,5 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
             remainingNeed -= exportedQuantity;
         }
-    }
-
-    private BigDecimal calculateItemAmount(PrescriptionItem item) {
-        BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
-        int quantity = item.getQuantity() != null ? item.getQuantity() : 0;
-        return unitPrice.multiply(BigDecimal.valueOf(quantity));
-    }
-
-    private void updateInvoiceMedicineAmount(Prescription prescription, BigDecimal totalMedicineAmount, java.util.Date now) {
-        if (prescription.getMedicalRecordId() == null) {
-            return;
-        }
-
-        Invoice invoice = this.invoiceRepo.getInvoiceByMedicalRecordId(prescription.getMedicalRecordId().getId());
-        if (invoice == null) {
-            return;
-        }
-
-        BigDecimal serviceAmount = invoice.getTotalServiceAmount() != null ? invoice.getTotalServiceAmount() : BigDecimal.ZERO;
-        BigDecimal discountAmount = invoice.getDiscountAmount() != null ? invoice.getDiscountAmount() : BigDecimal.ZERO;
-
-        invoice.setTotalMedicineAmount(totalMedicineAmount);
-        invoice.setTotalAmount(serviceAmount.add(totalMedicineAmount).subtract(discountAmount));
-        invoice.setUpdatedAt(now);
-        this.invoiceRepo.updateInvoice(invoice);
     }
 }

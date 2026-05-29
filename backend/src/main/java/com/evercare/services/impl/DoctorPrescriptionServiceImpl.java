@@ -67,6 +67,20 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
     }
 
     @Override
+    public PrescriptionResponse getPrescription(String username, Long prescriptionId) {
+        Doctor doctor = getCurrentDoctor(username);
+        Prescription prescription = this.prescriptionRepo.getPrescriptionById(prescriptionId);
+
+        if (prescription == null || Boolean.FALSE.equals(prescription.getActive())) {
+            throw new NoSuchElementException("Không tìm thấy đơn thuốc");
+        }
+
+        validateOwnedMedicalRecord(doctor, prescription.getMedicalRecordId());
+
+        return toResponse(prescription);
+    }
+
+    @Override
     public PrescriptionResponse createPrescription(String username, Long recordId, PrescriptionRequest request) {
         Doctor doctor = getCurrentDoctor(username);
         MedicalRecord medicalRecord = loadEditableMedicalRecord(doctor, recordId);
