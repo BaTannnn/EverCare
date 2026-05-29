@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Nav } from "react-bootstrap";
 import { BsBell, BsCalendar2Check, BsCapsule, BsCheck2All, BsCreditCard2Front, BsFileEarmarkText, BsInfoCircle } from "react-icons/bs";
 import { useOutletContext } from "react-router-dom";
-import { getPatientNotifications } from "../../services/patient/patientNotificationApi";
+import { getPatientNotifications, markPatientNotificationAsRead } from "../../services/patient/patientNotificationApi";
 import { filterByCategory, getPatientStatusMeta } from "./patientPageUtils";
 
 const tabs = [
@@ -26,6 +26,8 @@ function PatientNotifications() {
   const { setNotifications: setShellNotifications } = useOutletContext() || {};
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
+  const [updatingIds, setUpdatingIds] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -57,14 +59,69 @@ function PatientNotifications() {
     return filterByCategory(notifications, activeTab);
   }, [activeTab, notifications]);
 
-  const markAllAsRead = () => {
-    setNotifications((current) => {
-      const updated = current.map((notification) => ({ ...notification, read: true }));
-      if (setShellNotifications) {
-        setShellNotifications(updated);
+  const syncNotification = (updatedNotification) => {
+    setNotifications((current) =>
+      current.map((notification) => (String(notification.id) === String(updatedNotification.id) ? updatedNotification : notification)),
+    );
+
+    if (setShellNotifications) {
+      setShellNotifications((current) =>
+        current.map((notification) => (String(notification.id) === String(updatedNotification.id) ? updatedNotification : notification)),
+      );
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    if (!notificationId) return;
+
+    setError("");
+    setUpdatingIds((current) => (current.includes(notificationId) ? current : [...current, notificationId]));
+
+    try {
+      const response = await markPatientNotificationAsRead(notificationId);
+      const updatedNotification = response.data;
+      if (updatedNotification) {
+        syncNotification(updatedNotification);
       }
-      return updated;
-    });
+    } catch (markError) {
+      console.error(markError);
+      setError("Không thể đánh dấu thông báo đã đọc. Vui lòng thử lại.");
+    } finally {
+      setUpdatingIds((current) => current.filter((id) => String(id) !== String(notificationId)));
+    }
+  };
+
+  const markAllAsRead = async () => {
+    setError("");
+    const unreadNotifications = notifications.filter((notification) => !notification.read);
+
+    if (unreadNotifications.length === 0) {
+      return;
+    }
+
+    setUpdatingIds((current) => [...new Set([...current, ...unreadNotifications.map((notification) => notification.id)])]);
+
+    try {
+      const updatedNotifications = await Promise.all(
+        unreadNotifications.map(async (notification) => {
+          const response = await markPatientNotificationAsRead(notification.id);
+          return response.data || notification;
+        }),
+      );
+
+      const updatedMap = new Map(updatedNotifications.map((notification) => [String(notification.id), notification]));
+      const nextNotifications = notifications.map((notification) => updatedMap.get(String(notification.id)) || notification);
+
+      setNotifications(nextNotifications);
+      if (setShellNotifications) {
+        setShellNotifications(nextNotifications);
+      }
+    } catch (markError) {
+      console.error(markError);
+      setError("Không thể đánh dấu tất cả thông báo đã đọc. Vui lòng thử lại.");
+    } finally {
+      setUpdatingIds((current) => current.filter((id) => !unreadNotifications.some((notification) => String(notification.id) === String(id))));
+    }
   };
 
   return (
@@ -74,10 +131,17 @@ function PatientNotifications() {
           <p className="patient-eyebrow">Thông báo</p>
           <h2>Cập nhật lịch hẹn, đơn thuốc, thanh toán và hệ thống</h2>
         </div>
-        <Button type="button" className="patient-primary-soft" onClick={markAllAsRead}>
+        <Button type="button" className="patient-primary-soft" onClick={markAllAsRead} disabled={notifications.every((notification) => notification.read)}>
           <BsCheck2All /> Đánh dấu tất cả đã đọc
         </Button>
       </div>
+
+      {error && (
+        <div className="patient-info-banner alert alert-warning">
+          <BsInfoCircle className="me-2" />
+          {error}
+        </div>
+      )}
 
       <div className="patient-tab-header notifications">
         <Nav variant="tabs" activeKey={activeTab} onSelect={(eventKey) => setActiveTab(eventKey || "ALL")} className="patient-tabs">
@@ -110,9 +174,22 @@ function PatientNotifications() {
                     <span>{notification.time}</span>
                   </div>
                 </div>
-                <Badge bg={meta.variant} className="patient-status-badge">
-                  {meta.label}
-                </Badge>
+                <div className="patient-notification-actions">
+                  <Badge bg={meta.variant} className="patient-status-badge">
+                    {meta.label}
+                  </Badge>
+                  {!notification.read && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="patient-link-button"
+                      onClick={() => markAsRead(notification.id)}
+                      disabled={updatingIds.some((id) => String(id) === String(notification.id))}
+                    >
+                      {updatingIds.some((id) => String(id) === String(notification.id)) ? "Đang cập nhật..." : "Đánh dấu đã đọc"}
+                    </Button>
+                  )}
+                </div>
               </Card.Body>
             </Card>
           );
