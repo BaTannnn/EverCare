@@ -16,6 +16,8 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -65,6 +67,26 @@ public class InvoiceServiceImpl implements InvoiceService {
         return InvoiceMapper.toDetailResponse(invoice, this.paymentRepo.getPaymentsByInvoiceId(invoice.getId()));
     }
 
+    @Override
+    public List<InvoiceResponse> getInvoicesForReceptionist(Map<String, String> params) {
+        requireReceptionistUser();
+        return this.invoiceRepo.getInvoicesForReceptionist(params)
+                .stream()
+                .map(InvoiceMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public InvoiceDetailResponse getInvoiceForReceptionist(Long invoiceId) {
+        requireReceptionistUser();
+        Invoice invoice = this.invoiceRepo.getInvoiceById(invoiceId);
+        if (invoice == null) {
+            throw new NoSuchElementException("Không tìm thấy hóa đơn");
+        }
+
+        return InvoiceMapper.toDetailResponse(invoice, this.paymentRepo.getPaymentsByInvoiceId(invoice.getId()));
+    }
+
     private Patient getCurrentPatientOrNull() {
         try {
             return requireCurrentPatient();
@@ -98,6 +120,14 @@ public class InvoiceServiceImpl implements InvoiceService {
         return user;
     }
 
+    private User requireReceptionistUser() {
+        User user = getCurrentUser();
+        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
+            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
+        }
+        return user;
+    }
+
     private LocalDate parseDate(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             return null;
@@ -108,5 +138,24 @@ public class InvoiceServiceImpl implements InvoiceService {
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException(fieldName + " không hợp lệ");
         }
+    }
+
+    private boolean hasAnyRole(User user, String... roles) {
+        if (user == null || user.getRoleSet() == null || roles == null) {
+            return false;
+        }
+
+        for (var role : user.getRoleSet()) {
+            if (role == null || role.getCode() == null) {
+                continue;
+            }
+            for (String expectedRole : roles) {
+                if (expectedRole != null && expectedRole.equalsIgnoreCase(role.getCode())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

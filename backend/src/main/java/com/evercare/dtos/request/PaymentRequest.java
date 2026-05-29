@@ -2,6 +2,7 @@ package com.evercare.dtos.request;
 
 public class PaymentRequest {
     private String paymentMethod;
+    private String note;
     private String paymentChannel;
     private String bankCode;
     private String returnUrl;
@@ -13,6 +14,14 @@ public class PaymentRequest {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 
     public String getPaymentChannel() {

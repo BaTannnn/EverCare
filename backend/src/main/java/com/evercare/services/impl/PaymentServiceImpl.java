@@ -18,7 +18,7 @@ import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.PaymentRepository;
-import com.evercare.services.PaymentGatewayResult;
+import com.evercare.dtos.response.PaymentGatewayResultResponse;
 import com.evercare.services.PaymentGatewayService;
 import com.evercare.services.PaymentService;
 import com.evercare.services.UserService;
@@ -31,7 +31,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,49 +100,19 @@ public class PaymentServiceImpl implements PaymentService {
         if (invoice == null) {
             throw new NoSuchElementException("Không tìm thấy hóa đơn");
         }
+        return createPaymentForInvoice(invoice, request);
+    }
 
-        if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())
-                || STATUS_REFUNDED.equalsIgnoreCase(invoice.getPaymentStatus())) {
-            throw new IllegalStateException("Hóa đơn đã được thanh toán");
+    @Override
+    @Transactional(noRollbackFor = IllegalStateException.class)
+    public PaymentResultResponse createReceptionistPayment(Long invoiceId, PaymentRequest request) {
+        requireReceptionistUser();
+        Invoice invoice = this.invoiceRepo.getInvoiceById(invoiceId);
+        if (invoice == null) {
+            throw new NoSuchElementException("Không tìm thấy hóa đơn");
         }
 
-        if (invoice.getTotalAmount() == null || invoice.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Tổng tiền hóa đơn không hợp lệ");
-        }
-
-        BigDecimal alreadyPaid = this.paymentRepo.sumSuccessAmountByInvoiceId(invoice.getId());
-        BigDecimal remaining = invoice.getTotalAmount().subtract(alreadyPaid);
-        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("Hóa đơn đã được thanh toán");
-        }
-
-        String paymentMethod = normalizePaymentMethod(request != null ? request.getPaymentMethod() : null);
-        PaymentGatewayService gateway = resolveGateway(paymentMethod);
-        String transactionCode = generateTransactionCode(gateway.getProvider());
-
-        Payment payment = new Payment();
-        payment.setInvoiceId(invoice);
-        payment.setAmount(remaining);
-        payment.setPaymentMethod(paymentMethod);
-        payment.setPaymentProvider(gateway.getProvider());
-        payment.setTransactionCode(transactionCode);
-        payment.setPaymentStatus(STATUS_PENDING);
-        payment.setActive(true);
-        Date now = new Date();
-        payment.setCreatedAt(now);
-        payment.setUpdatedAt(now);
-
-        this.paymentRepo.createPayment(payment);
-
-        try {
-            String paymentUrl = gateway.createPaymentUrl(invoice, payment, request);
-            return PaymentMapper.toResultResponse(payment, paymentUrl);
-        } catch (Exception ex) {
-            payment.setPaymentStatus(STATUS_FAILED);
-            payment.setUpdatedAt(new Date());
-            this.paymentRepo.updatePayment(payment);
-            throw new IllegalStateException(ex.getMessage() != null ? ex.getMessage() : "Không thể tạo payment URL", ex);
-        }
+        return createPaymentForInvoice(invoice, request);
     }
 
     @Override
@@ -152,7 +122,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Chữ ký callback không hợp lệ");
         }
 
-        PaymentGatewayResult gatewayResult = gateway.parseCallback(params);
+        PaymentGatewayResultResponse gatewayResult = gateway.parseCallback(params);
         if (gatewayResult.getTransactionCode() == null || gatewayResult.getTransactionCode().isBlank()) {
             throw new IllegalArgumentException("Callback thiếu mã giao dịch");
         }
@@ -195,7 +165,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Thiếu cổng thanh toán");
         }
 
-        PaymentGatewayResult gatewayResult;
+        PaymentGatewayResultResponse gatewayResult;
         if ("MOMO".equals(normalizedProvider)) {
             gatewayResult = parseMomoResult(params);
         } else if ("ZALOPAY".equals(normalizedProvider)) {
@@ -288,7 +258,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             for (Payment successfulPayment : successfulPayments) {
                 PaymentGatewayService gateway = resolveGateway(normalizePaymentMethod(successfulPayment.getPaymentMethod()));
-                PaymentGatewayResult refundResult = gateway.refund(
+                PaymentGatewayResultResponse refundResult = gateway.refund(
                         successfulPayment,
                         successfulPayment.getAmount(),
                         "Hoan tien hoa don " + invoice.getInvoiceCode()
@@ -466,6 +436,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private String generateTransactionCode(String provider) {
+        if (provider != null) {
+            String normalized = provider.trim().toUpperCase();
+            if ("CASH".equals(normalized)) {
+                return generateCode("CASH");
+            }
+            if ("BANK_TRANSFER".equals(normalized)) {
+                return generateCode("BANK");
+            }
+            if ("VIETQR".equals(normalized)) {
+                return generateCode("VIETQR");
+            }
+        }
+
         if (provider != null && "ZALOPAY".equalsIgnoreCase(provider.trim())) {
             String datePrefix = LocalDate.now(VIETNAM_ZONE).format(DateTimeFormatter.ofPattern("yyMMdd"));
             return datePrefix + "_" + String.format("%d_%d",
@@ -476,7 +459,7 @@ public class PaymentServiceImpl implements PaymentService {
         return generateCode("PAY");
     }
 
-    private PaymentGatewayResult parseMomoResult(Map<String, String> params) {
+    private PaymentGatewayResultResponse parseMomoResult(Map<String, String> params) {
         String secretKey = PaymentGatewaySupport.optionalProperty(this.env, "payment.momo.secretKey");
         String accessKey = PaymentGatewaySupport.optionalProperty(this.env, "payment.momo.accessKey");
         if (secretKey == null || accessKey == null) {
@@ -508,7 +491,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Chữ ký redirect không hợp lệ");
         }
 
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(PaymentGatewaySupport.value(params, "orderId", "requestId"));
         result.setGatewayTransactionId(PaymentGatewaySupport.value(params, "transId"));
         result.setAmount(PaymentGatewaySupport.amountFromString(PaymentGatewaySupport.value(params, "amount")));
@@ -517,7 +500,7 @@ public class PaymentServiceImpl implements PaymentService {
         return result;
     }
 
-    private PaymentGatewayResult parseZaloPayResult(Map<String, String> params) {
+    private PaymentGatewayResultResponse parseZaloPayResult(Map<String, String> params) {
         String key2 = PaymentGatewaySupport.optionalProperty(this.env, "payment.zalopay.key2");
         if (key2 == null) {
             throw new IllegalStateException("Payment gateway is not configured.");
@@ -540,7 +523,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Chữ ký redirect không hợp lệ");
         }
 
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(PaymentGatewaySupport.value(params, "apptransid"));
         result.setGatewayTransactionId(PaymentGatewaySupport.value(params, "pmcid"));
         result.setAmount(PaymentGatewaySupport.amountFromString(PaymentGatewaySupport.value(params, "amount")));
@@ -550,7 +533,7 @@ public class PaymentServiceImpl implements PaymentService {
         return result;
     }
 
-    private PaymentGatewayResult parseVnPayResult(Map<String, String> params) {
+    private PaymentGatewayResultResponse parseVnPayResult(Map<String, String> params) {
         String hashSecret = PaymentGatewaySupport.optionalProperty(this.env, "payment.vnpay.hashSecret");
         if (hashSecret == null) {
             throw new IllegalStateException("Payment gateway is not configured.");
@@ -578,7 +561,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Chữ ký redirect không hợp lệ");
         }
 
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(PaymentGatewaySupport.value(params, "vnp_TxnRef", "txnRef"));
         result.setGatewayTransactionId(PaymentGatewaySupport.value(params, "vnp_TransactionNo", "transactionNo"));
         result.setAmount(PaymentGatewaySupport.amountFromScaledString(PaymentGatewaySupport.value(params, "vnp_Amount"), 100));
@@ -591,6 +574,134 @@ public class PaymentServiceImpl implements PaymentService {
     private String valueOrEmpty(Map<String, String> params, String key) {
         String value = PaymentGatewaySupport.value(params, key);
         return value != null ? value : "";
+    }
+
+    private PaymentResultResponse createPaymentForInvoice(Invoice invoice, PaymentRequest request) {
+        validateInvoiceForPayment(invoice);
+
+        String paymentMethod = normalizePaymentMethod(request != null ? request.getPaymentMethod() : null);
+        if (isCounterPaymentMethod(paymentMethod)) {
+            return recordCounterPayment(invoice, paymentMethod);
+        }
+
+        if (isOnlinePaymentMethod(paymentMethod)) {
+            return createOnlinePayment(invoice, request, paymentMethod);
+        }
+
+        throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ");
+    }
+
+    private PaymentResultResponse recordCounterPayment(Invoice invoice, String paymentMethod) {
+        BigDecimal amount = resolveRemainingAmount(invoice);
+        Date now = new Date();
+
+        Payment payment = new Payment();
+        payment.setInvoiceId(invoice);
+        payment.setAmount(amount);
+        payment.setPaymentMethod(paymentMethod);
+        payment.setPaymentProvider(paymentMethod);
+        payment.setTransactionCode(generateTransactionCode(paymentMethod));
+        payment.setPaymentStatus(STATUS_SUCCESS);
+        payment.setPaidAt(now);
+        payment.setCreatedAt(now);
+        payment.setUpdatedAt(now);
+        payment.setActive(true);
+        this.paymentRepo.createPayment(payment);
+
+        updateInvoiceAndMedicalRecordAfterPayment(payment, false);
+        return PaymentMapper.toResultResponse(payment, null, invoice);
+    }
+
+    private PaymentResultResponse createOnlinePayment(Invoice invoice, PaymentRequest request, String paymentMethod) {
+        BigDecimal amount = resolveRemainingAmount(invoice);
+        PaymentGatewayService gateway = resolveGateway(paymentMethod);
+        String transactionCode = generateTransactionCode(gateway.getProvider());
+        Date now = new Date();
+
+        Payment payment = new Payment();
+        payment.setInvoiceId(invoice);
+        payment.setAmount(amount);
+        payment.setPaymentMethod(paymentMethod);
+        payment.setPaymentProvider(gateway.getProvider());
+        payment.setTransactionCode(transactionCode);
+        payment.setPaymentStatus(STATUS_PENDING);
+        payment.setCreatedAt(now);
+        payment.setUpdatedAt(now);
+        payment.setActive(true);
+        this.paymentRepo.createPayment(payment);
+
+        try {
+            String paymentUrl = gateway.createPaymentUrl(invoice, payment, request);
+            return PaymentMapper.toResultResponse(payment, paymentUrl, invoice);
+        } catch (Exception ex) {
+            payment.setPaymentStatus(STATUS_FAILED);
+            payment.setUpdatedAt(new Date());
+            this.paymentRepo.updatePayment(payment);
+            throw new IllegalStateException(ex.getMessage() != null ? ex.getMessage() : "Không thể tạo payment URL", ex);
+        }
+    }
+
+    private void validateInvoiceForPayment(Invoice invoice) {
+        if (invoice == null) {
+            throw new NoSuchElementException("Không tìm thấy hóa đơn");
+        }
+
+        if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())
+                || STATUS_REFUNDED.equalsIgnoreCase(invoice.getPaymentStatus())) {
+            throw new IllegalStateException("Hóa đơn đã được thanh toán");
+        }
+
+        if (invoice.getTotalAmount() == null || invoice.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Tổng tiền hóa đơn không hợp lệ");
+        }
+    }
+
+    private BigDecimal resolveRemainingAmount(Invoice invoice) {
+        BigDecimal alreadyPaid = this.paymentRepo.sumSuccessAmountByInvoiceId(invoice.getId());
+        BigDecimal remaining = invoice.getTotalAmount().subtract(alreadyPaid);
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Hóa đơn đã được thanh toán");
+        }
+        return remaining;
+    }
+
+    private boolean isCounterPaymentMethod(String paymentMethod) {
+        return "CASH".equalsIgnoreCase(paymentMethod)
+                || "BANK_TRANSFER".equalsIgnoreCase(paymentMethod)
+                || "VIETQR".equalsIgnoreCase(paymentMethod);
+    }
+
+    private boolean isOnlinePaymentMethod(String paymentMethod) {
+        return "MOMO".equalsIgnoreCase(paymentMethod)
+                || "ZALOPAY".equalsIgnoreCase(paymentMethod)
+                || "VNPAY".equalsIgnoreCase(paymentMethod);
+    }
+
+    private User requireReceptionistUser() {
+        User user = getCurrentUser();
+        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
+            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
+        }
+        return user;
+    }
+
+    private boolean hasAnyRole(User user, String... roles) {
+        if (user == null || user.getRoleSet() == null || roles == null) {
+            return false;
+        }
+
+        for (var role : user.getRoleSet()) {
+            if (role == null || role.getCode() == null) {
+                continue;
+            }
+            for (String expectedRole : roles) {
+                if (expectedRole != null && expectedRole.equalsIgnoreCase(role.getCode())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private void createNotification(Invoice invoice, String title, String content, Long relatedId) {

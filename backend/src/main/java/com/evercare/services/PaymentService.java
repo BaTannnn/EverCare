@@ -9,6 +9,7 @@ import java.util.Map;
 
 public interface PaymentService {
     PaymentResultResponse createPayment(Long invoiceId, PaymentRequest request);
+    PaymentResultResponse createReceptionistPayment(Long invoiceId, PaymentRequest request);
     PaymentResponse handleGatewayCallback(String provider, Map<String, String> params);
     PaymentResponse handleGatewayResult(String provider, Map<String, String> params);
     RefundResponse refundInvoiceAfterAppointmentCancelled(Appointment appointment);
