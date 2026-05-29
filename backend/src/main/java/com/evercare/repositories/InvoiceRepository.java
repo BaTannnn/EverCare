@@ -11,5 +11,6 @@ public interface InvoiceRepository {
     Invoice getInvoiceById(Long invoiceId);
     Invoice getInvoiceByAppointmentId(Long appointmentId);
 
+    void addInvoice(Invoice invoice);
     void updateInvoice(Invoice invoice);
 }

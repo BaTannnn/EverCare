@@ -131,6 +131,13 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     @Override
+    public void addInvoice(Invoice invoice) {
+        Session session = this.factory.getObject().getCurrentSession();
+        session.persist(invoice);
+        session.flush();
+    }
+
+    @Override
     public void updateInvoice(Invoice invoice) {
         Session session = this.factory.getObject().getCurrentSession();
         session.merge(invoice);

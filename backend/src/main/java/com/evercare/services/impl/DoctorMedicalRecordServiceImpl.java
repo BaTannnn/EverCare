@@ -9,20 +9,26 @@ import com.evercare.mappers.MedicalRecordServiceMapper;
 import com.evercare.mappers.MedicalRecordMapper;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
+import com.evercare.pojo.Invoice;
 import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.MedicalRecordService;
 import com.evercare.pojo.MedicalService;
+import com.evercare.pojo.Prescription;
+import com.evercare.pojo.PrescriptionItem;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.TestResult;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorRepository;
+import com.evercare.repositories.InvoiceRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.MedicalRecordServiceRepository;
 import com.evercare.repositories.MedicalServiceRepository;
+import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.DoctorMedicalRecordService;
 import com.evercare.services.UserService;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -36,6 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordService {
+    private static final String PAYMENT_STATUS_UNPAID = "UNPAID";
+
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
 
@@ -43,10 +51,16 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
     private AppointmentRepository appointmentRepo;
 
     @Autowired
+    private InvoiceRepository invoiceRepo;
+
+    @Autowired
     private MedicalRecordServiceRepository medicalRecordServiceRepo;
 
     @Autowired
     private MedicalServiceRepository medicalServiceRepo;
+
+    @Autowired
+    private PrescriptionRepository prescriptionRepo;
 
     @Autowired
     private TestResultRepository testResultRepo;
@@ -87,6 +101,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         }
 
         if (AppointmentStatus.COMPLETED.getCode().equalsIgnoreCase(appointment.getStatus())) {
+            createOrUpdateUnpaidInvoice(medicalRecord, new Date());
             return MedicalRecordMapper.toResponse(medicalRecord);
         }
 
@@ -101,7 +116,9 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         Date now = new Date();
         appointment.setStatus(AppointmentStatus.COMPLETED.getCode());
         appointment.setUpdatedAt(now);
+        medicalRecord.setPaymentStatus(PAYMENT_STATUS_UNPAID);
         medicalRecord.setUpdatedAt(now);
+        createOrUpdateUnpaidInvoice(medicalRecord, now);
 
         this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
         this.appointmentRepo.updateAppointment(appointment);
@@ -163,6 +180,81 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
                                 : Collections.emptyList()
                 ))
                 .toList();
+    }
+
+    private void createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {
+        Invoice invoice = this.invoiceRepo.getInvoiceByMedicalRecordId(medicalRecord.getId());
+        if (invoice != null && "PAID".equalsIgnoreCase(invoice.getPaymentStatus())) {
+            medicalRecord.setInvoice(invoice);
+            return;
+        }
+
+        BigDecimal serviceAmount = calculateServiceAmount(medicalRecord.getId());
+        BigDecimal medicineAmount = calculateMedicineAmount(medicalRecord.getId());
+        BigDecimal discountAmount = invoice != null && invoice.getDiscountAmount() != null
+                ? invoice.getDiscountAmount()
+                : BigDecimal.ZERO;
+        BigDecimal totalAmount = serviceAmount.add(medicineAmount).subtract(discountAmount);
+
+        if (invoice == null) {
+            invoice = new Invoice();
+            invoice.setInvoiceCode(generateInvoiceCode(medicalRecord.getId()));
+            invoice.setMedicalRecordId(medicalRecord);
+            invoice.setPatientId(medicalRecord.getPatientId());
+            invoice.setDiscountAmount(discountAmount);
+            invoice.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+            invoice.setCreatedAt(now);
+            invoice.setActive(true);
+        } else {
+            invoice.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+        }
+
+        invoice.setTotalServiceAmount(serviceAmount);
+        invoice.setTotalMedicineAmount(medicineAmount);
+        invoice.setTotalAmount(totalAmount.max(BigDecimal.ZERO));
+        invoice.setUpdatedAt(now);
+        medicalRecord.setInvoice(invoice);
+
+        if (invoice.getId() == null) {
+            this.invoiceRepo.addInvoice(invoice);
+        } else {
+            this.invoiceRepo.updateInvoice(invoice);
+        }
+    }
+
+    private BigDecimal calculateServiceAmount(Long recordId) {
+        return this.medicalRecordServiceRepo.getServicesByMedicalRecordId(recordId)
+                .stream()
+                .filter(service -> !Boolean.FALSE.equals(service.getActive()))
+                .map(service -> {
+                    BigDecimal unitPrice = service.getUnitPrice() != null ? service.getUnitPrice() : BigDecimal.ZERO;
+                    int quantity = service.getQuantity() != null ? service.getQuantity() : 0;
+                    return unitPrice.multiply(BigDecimal.valueOf(quantity));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateMedicineAmount(Long recordId) {
+        Prescription prescription = this.prescriptionRepo.getPrescriptionByMedicalRecordId(recordId);
+        if (prescription == null || prescription.getPrescriptionItemSet() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return prescription.getPrescriptionItemSet()
+                .stream()
+                .filter(item -> !Boolean.FALSE.equals(item.getActive()))
+                .map(this::calculateMedicineItemAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal calculateMedicineItemAmount(PrescriptionItem item) {
+        BigDecimal unitPrice = item.getUnitPrice() != null ? item.getUnitPrice() : BigDecimal.ZERO;
+        int quantity = item.getQuantity() != null ? item.getQuantity() : 0;
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    private String generateInvoiceCode(Long recordId) {
+        return String.format("INV%012d", recordId);
     }
 
     private void validateOwnedMedicalRecord(Doctor doctor, MedicalRecord medicalRecord) {
