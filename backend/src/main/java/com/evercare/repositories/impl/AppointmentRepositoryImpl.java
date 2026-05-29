@@ -3,11 +3,24 @@ package com.evercare.repositories.impl;
 import com.evercare.pojo.Appointment;
 import com.evercare.repositories.AppointmentRepository;
 import com.evercare.utils.PaginationUtils;
+import com.evercare.enums.AppointmentStatus;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.sql.Time;
+import java.util.ArrayList;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import com.evercare.pojo.Department;
+import com.evercare.pojo.Doctor;
+import com.evercare.pojo.MedicalService;
+import com.evercare.pojo.Patient;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +39,60 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
     @Autowired
     private Environment env;
+
+    @Override
+    public List<Appointment> getAppointmentsForReceptionist(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
+        Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
+        doctorJoin.fetch("departmentId", JoinType.LEFT);
+        root.fetch("serviceId", JoinType.LEFT);
+
+        List<Predicate> predicates = buildReceptionistPredicates(params, builder, root, patientJoin, doctorJoin);
+
+        query.select(root).distinct(true);
+        query.where(predicates.toArray(Predicate[]::new));
+        query.orderBy(
+                builder.asc(root.get("appointmentDate")),
+                builder.asc(root.get("startTime")),
+                builder.asc(root.get("id"))
+        );
+
+        Query<Appointment> hQuery = session.createQuery(query);
+
+        if (params != null) {
+            int pageSize = resolvePageSize(params);
+            int page = PaginationUtils.normalizePage(
+                    PaginationUtils.getPage(params),
+                    countAppointmentsForReceptionist(params),
+                    pageSize
+            );
+            hQuery.setFirstResult((page - 1) * pageSize);
+            hQuery.setMaxResults(pageSize);
+        }
+
+        return hQuery.getResultList();
+    }
+
+    @Override
+    public long countAppointmentsForReceptionist(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Long> query = builder.createQuery(Long.class);
+        Root<Appointment> root = query.from(Appointment.class);
+        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
+        Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
+        doctorJoin.join("departmentId", JoinType.LEFT);
+        root.join("serviceId", JoinType.LEFT);
+
+        List<Predicate> predicates = buildReceptionistPredicates(params, builder, root, patientJoin, doctorJoin);
+        query.select(builder.countDistinct(root));
+        query.where(predicates.toArray(Predicate[]::new));
+        return session.createQuery(query).getSingleResult();
+    }
 
     @Override
     public List<Appointment> getAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate) {
@@ -196,9 +263,14 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
     @Override
     public long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime) {
+        return countBookedAppointmentsByDoctorAndDateAndWindow(doctorId, appointmentDate, startTime, endTime, null);
+    }
+
+    @Override
+    public long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime, Long excludeId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
+        String hql = """
                 SELECT COUNT(a.id)
                 FROM Appointment a
                 WHERE a.doctorId.id = :doctorId
@@ -207,12 +279,22 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                     AND (a.status IS NULL OR (a.status <> 'CANCELLED' AND a.status <> 'NO_SHOW'))
                     AND a.startTime >= :startTime
                     AND a.startTime < :endTime
-                """, Long.class)
+                """;
+
+        if (excludeId != null) {
+            hql += " AND a.id <> :excludeId";
+        }
+
+        Query<Long> query = session.createQuery(hql, Long.class)
                 .setParameter("doctorId", doctorId)
                 .setParameter("appointmentDate", appointmentDate)
                 .setParameter("startTime", startTime)
-                .setParameter("endTime", endTime)
-                .uniqueResult();
+                .setParameter("endTime", endTime);
+        if (excludeId != null) {
+            query.setParameter("excludeId", excludeId);
+        }
+
+        return query.uniqueResult();
     }
 
     @Override
@@ -310,5 +392,72 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     public void updateAppointment(Appointment appointment) {
         Session session = this.factory.getObject().getCurrentSession();
         session.merge(appointment);
+    }
+
+    private List<Predicate> buildReceptionistPredicates(Map<String, String> params,
+                                                        CriteriaBuilder builder,
+                                                        Root<Appointment> root,
+                                                        Join<Appointment, Patient> patientJoin,
+                                                        Join<Appointment, Doctor> doctorJoin) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(builder.isTrue(root.get("active")));
+
+        LocalDate appointmentDate = LocalDate.now();
+        String dateValue = params != null ? params.get("date") : null;
+        if (dateValue != null && !dateValue.isBlank()) {
+            appointmentDate = LocalDate.parse(dateValue.trim());
+        }
+        predicates.add(builder.equal(root.get("appointmentDate"), java.sql.Date.valueOf(appointmentDate)));
+
+        String statusValue = params != null ? params.get("status") : null;
+        String status = (statusValue == null || statusValue.isBlank())
+                ? AppointmentStatus.BOOKED.getCode()
+                : AppointmentStatus.normalize(statusValue);
+        predicates.add(builder.equal(root.get("status"), status));
+
+        if (params != null) {
+            String doctorId = params.get("doctorId");
+            if (doctorId != null && !doctorId.isBlank()) {
+                predicates.add(builder.equal(doctorJoin.get("id"), Long.parseLong(doctorId.trim())));
+            }
+
+            String departmentId = params.get("departmentId");
+            if (departmentId != null && !departmentId.isBlank()) {
+                predicates.add(builder.equal(doctorJoin.get("departmentId").get("id"), Long.parseLong(departmentId.trim())));
+            }
+
+            String keyword = params.get("keyword");
+            if (keyword != null && !keyword.isBlank()) {
+                String like = "%" + keyword.trim().toLowerCase() + "%";
+
+                predicates.add(builder.or(
+                        builder.like(builder.lower(root.get("appointmentCode")), like),
+                        builder.like(builder.lower(patientJoin.get("phone")), like),
+                        builder.like(builder.lower(patientJoin.get("fullName")), like),
+                        builder.like(builder.lower(patientJoin.get("citizenId")), like)
+                ));
+            }
+        }
+
+        return predicates;
+    }
+
+    private int resolvePageSize(Map<String, String> params) {
+        int defaultPageSize = this.env.getProperty("appointment.pageSize", Integer.class);
+        if (params == null) {
+            return defaultPageSize;
+        }
+
+        String sizeValue = params.get("size");
+        if (sizeValue == null || sizeValue.isBlank()) {
+            return defaultPageSize;
+        }
+
+        try {
+            int size = Integer.parseInt(sizeValue.trim());
+            return size > 0 ? size : defaultPageSize;
+        } catch (NumberFormatException ex) {
+            return defaultPageSize;
+        }
     }
 }
