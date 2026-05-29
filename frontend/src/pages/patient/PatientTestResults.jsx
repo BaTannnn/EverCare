@@ -98,7 +98,7 @@ function PatientTestResults() {
       </div>
 
       <section className="patient-result-list">
-        {filtered.map((result) => {
+        {filtered.length > 0 ? filtered.map((result) => {
           const meta = getPatientStatusMeta(result.status);
 
           return (
@@ -134,7 +134,12 @@ function PatientTestResults() {
               </Card.Body>
             </Card>
           );
-        })}
+        }) : (
+          <div className="patient-empty-state">
+            <h4>Chưa có kết quả xét nghiệm</h4>
+            <p>Chưa có kết quả nào phù hợp với bộ lọc hiện tại.</p>
+          </div>
+        )}
       </section>
 
       <Card className="patient-info-note results-banner">
@@ -154,7 +159,7 @@ function PatientTestResults() {
         </Card.Body>
       </Card>
 
-      <Modal show={Boolean(selectedResult)} onHide={() => setSelectedResult(null)} centered>
+      <Modal show={Boolean(selectedResult)} onHide={() => setSelectedResult(null)} centered animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết xét nghiệm</Modal.Title>
         </Modal.Header>

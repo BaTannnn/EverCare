@@ -1,12 +1,19 @@
 import Apis, { endpoints, authApis } from "../../configs/Apis";
-import { unwrapPatientList } from "./patientApiHelpers";
+import { unwrapPatientList, unwrapPatientPage } from "./patientApiHelpers";
 import { mapMedicalRecord, mapMedicalRecordDetail } from "./patientMappers";
 
-export const getPatientMedicalRecords = () => {
-  return authApis().get(endpoints["patient-medical-records"]).then((response) => ({
-    ...response,
-    data: unwrapPatientList(response).map(mapMedicalRecord),
-  }));
+export const getPatientMedicalRecords = (params = {}) => {
+  return authApis().get(endpoints["patient-medical-records"], { params }).then((response) => {
+    const { items, pageInfo } = unwrapPatientPage(response);
+
+    return {
+      ...response,
+      data: {
+        items: items.map(mapMedicalRecord),
+        pageInfo,
+      },
+    };
+  });
 };
 
 export const getPatientMedicalRecordById = (id) => {

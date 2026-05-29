@@ -90,7 +90,7 @@ function PatientNotifications() {
       </div>
 
       <section className="patient-notification-list">
-        {filteredNotifications.map((notification) => {
+        {filteredNotifications.length > 0 ? filteredNotifications.map((notification) => {
           const meta = getPatientStatusMeta(notification.read ? "READ" : "UNREAD");
           const Icon = iconMap[notification.type] || BsBell;
 
@@ -116,7 +116,12 @@ function PatientNotifications() {
               </Card.Body>
             </Card>
           );
-        })}
+        }) : (
+          <div className="patient-empty-state">
+            <h4>Chưa có thông báo</h4>
+            <p>Hiện tại chưa có thông báo nào cho bộ lọc này.</p>
+          </div>
+        )}
       </section>
 
       <div className="patient-notification-footer">

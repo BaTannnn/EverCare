@@ -102,14 +102,18 @@ function PatientMedicalRecordDetail() {
                 </div>
                 <h3>Dịch vụ đã sử dụng</h3>
               </div>
-              <ul className="patient-bullet-list">
-                {(record.services || []).map((service) => (
-                  <li key={service.id}>
-                    <span>{service.name}</span>
-                    <strong>{formatCurrency(service.price)}</strong>
-                  </li>
-                ))}
-              </ul>
+              {(record.services || []).length > 0 ? (
+                <ul className="patient-bullet-list">
+                  {(record.services || []).map((service) => (
+                    <li key={service.id}>
+                      <span>{service.name}</span>
+                      <strong>{formatCurrency(service.price)}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Chưa có dịch vụ liên quan.</p>
+              )}
             </Card.Body>
           </Card>
 
@@ -121,14 +125,18 @@ function PatientMedicalRecordDetail() {
                 </div>
                 <h3>Kết quả xét nghiệm liên quan</h3>
               </div>
-              <ul className="patient-result-list">
-                {(record.testResults || []).map((test) => (
-                  <li key={test.id}>
-                    <span>{test.resultTitle}</span>
-                    <strong>{test.conclusion || "Chưa có kết quả"}</strong>
-                  </li>
-                ))}
-              </ul>
+              {(record.testResults || []).length > 0 ? (
+                <ul className="patient-result-list">
+                  {(record.testResults || []).map((test) => (
+                    <li key={test.id}>
+                      <span>{test.resultTitle}</span>
+                      <strong>{test.conclusion || "Chưa có kết quả"}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Chưa có kết quả xét nghiệm liên quan.</p>
+              )}
             </Card.Body>
           </Card>
 

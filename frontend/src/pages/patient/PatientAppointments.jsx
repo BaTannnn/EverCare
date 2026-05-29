@@ -129,7 +129,7 @@ function PatientAppointments() {
       </div>
 
       <section className="patient-appointment-list">
-        {filteredAppointments.map((appointment) => {
+        {filteredAppointments.length > 0 ? filteredAppointments.map((appointment) => {
           const meta = getPatientStatusMeta(appointment.status);
 
           return (
@@ -177,7 +177,12 @@ function PatientAppointments() {
               </Card.Body>
             </Card>
           );
-        })}
+        }) : (
+          <div className="patient-empty-state">
+            <h4>Chưa có lịch hẹn</h4>
+            <p>Bạn chưa có lịch hẹn nào trong tab này. Hãy đặt lịch để bắt đầu.</p>
+          </div>
+        )}
       </section>
 
       <Card className="patient-appointment-banner">
@@ -192,7 +197,7 @@ function PatientAppointments() {
         </Card.Body>
       </Card>
 
-      <Modal show={Boolean(selectedAppointment)} onHide={() => setSelectedAppointment(null)} centered size="lg">
+      <Modal show={Boolean(selectedAppointment)} onHide={() => setSelectedAppointment(null)} centered size="lg" animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết lịch hẹn</Modal.Title>
         </Modal.Header>

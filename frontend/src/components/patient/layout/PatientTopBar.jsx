@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import { BsBell, BsSearch } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
+import { getAvatarSource } from "../../../pages/patient/patientPageUtils";
 
 function PatientTopBar({ title, subtitle, searchPlaceholder = "Tìm kiếm dịch vụ, bác sĩ...", profile, unreadCount = 0 }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const avatarSource = getAvatarSource(profile, profile?.fullName || "Bệnh nhân EverCare");
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -44,7 +46,13 @@ function PatientTopBar({ title, subtitle, searchPlaceholder = "Tìm kiếm dịc
           <strong>{profile?.fullName}</strong>
           <span>{profile?.patientCode}</span>
         </div>
-        <img src={profile?.avatar} alt={profile?.fullName} />
+        <img
+          src={avatarSource}
+          alt={profile?.fullName}
+          onError={(event) => {
+            event.currentTarget.src = getAvatarSource(null, profile?.fullName || "Bệnh nhân EverCare");
+          }}
+        />
       </div>
     </header>
   );

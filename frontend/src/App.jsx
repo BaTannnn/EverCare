@@ -29,6 +29,7 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientProfile from "./pages/patient/PatientProfile";
 import PatientPrescriptions from "./pages/patient/PatientPrescriptions";
 import PatientTestResults from "./pages/patient/PatientTestResults";
+import PaymentResultPage from "./pages/payment/PaymentResultPage";
 import PharmacistBatchesPage from "./pages/pharmacist/PharmacistBatchesPage";
 import PharmacistDashboardPage from "./pages/pharmacist/PharmacistDashboardPage";
 import PharmacistInventoryPage from "./pages/pharmacist/PharmacistInventoryPage";
@@ -66,6 +67,7 @@ function App() {
           <Route path="invoices" element={<PatientInvoices />} />
           <Route path="notifications" element={<PatientNotifications />} />
         </Route>
+        <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["DOCTOR", "ROLE_DOCTOR"]} />}>

@@ -40,6 +40,15 @@ const deriveStatusLabel = (status) => {
 
 const createAvatar = (name) => makeAvatarDataUri(name || "EverCare");
 
+const pickAvatarUrl = (source) =>
+  source?.avatarUrl ||
+  source?.avatar ||
+  source?.photoUrl ||
+  source?.imageUrl ||
+  source?.profilePicture ||
+  source?.avatarPath ||
+  "";
+
 const toDoctorName = (doctor) => doctor?.fullName || doctor?.doctorName || doctor?.name || "Bác sĩ EverCare";
 
 export const mapPatientProfile = (rawProfile) => {
@@ -50,12 +59,13 @@ export const mapPatientProfile = (rawProfile) => {
     id: profile.id || profile.patientCode || "PATIENT",
     patientCode: profile.patientCode || profile.id || "PATIENT",
     fullName,
-    avatar: profile.avatar || createAvatar(fullName),
+    avatar: pickAvatarUrl(profile) || createAvatar(fullName),
     dateOfBirth: formatShortDate(profile.dateOfBirth),
     gender: normalizeText(profile.gender, "Chưa cập nhật"),
     phone: normalizeText(profile.phone, "Chưa cập nhật"),
     email: normalizeText(profile.email, "Chưa cập nhật"),
     address: normalizeText(profile.address, "Chưa cập nhật"),
+    citizenId: normalizeText(profile.citizenId, ""),
     bloodType: normalizeText(profile.bloodType, "Chưa cập nhật"),
     allergyNote: normalizeText(profile.allergyNote, "Không ghi nhận"),
     medicalHistoryNote: normalizeText(profile.medicalHistoryNote, "Không ghi nhận"),
@@ -283,6 +293,28 @@ export const mapDoctor = (rawDoctor) => {
     workStatus: normalizeText(doctor.workStatus, "AVAILABLE"),
     active: doctor.active ?? true,
     rating: 4.6 + (String(doctor.id || doctor.doctorCode || "").length % 4) * 0.1,
+  };
+};
+
+export const mapDoctorSchedule = (rawSchedule) => {
+  const schedule = unwrapObject(rawSchedule) || {};
+  const remainingSlots = Number(schedule.remainingSlots ?? Math.max((schedule.maxPatients || 0) - (schedule.bookedCount || 0), 0));
+  const scheduleStatus = normalizeText(schedule.status, remainingSlots > 0 ? "AVAILABLE" : "FULL");
+
+  return {
+    id: schedule.id || `${schedule.workDate || ""}-${schedule.startTime || ""}`,
+    doctorId: schedule.doctorId,
+    workDate: schedule.workDate || "",
+    startTime: normalizeTime(schedule.startTime),
+    endTime: normalizeTime(schedule.endTime),
+    displayDate: schedule.workDate ? formatShortDate(schedule.workDate) : "",
+    displayRange: `${normalizeTime(schedule.startTime)} - ${normalizeTime(schedule.endTime)}`.trim(),
+    maxPatients: Number(schedule.maxPatients || 0),
+    bookedCount: Number(schedule.bookedCount || 0),
+    remainingSlots,
+    status: scheduleStatus,
+    statusLabel: normalizeText(schedule.statusLabel, deriveStatusLabel(scheduleStatus)),
+    note: normalizeText(schedule.note, ""),
   };
 };
 

@@ -137,7 +137,7 @@ function PatientInvoices() {
 
       <section className="patient-invoice-layout">
         <div className="patient-invoice-list">
-          {invoices.map((invoice) => {
+          {invoices.length > 0 ? invoices.map((invoice) => {
             const meta = getPatientStatusMeta(invoice.status);
 
             return (
@@ -185,7 +185,12 @@ function PatientInvoices() {
                 </Card.Body>
               </Card>
             );
-          })}
+          }) : (
+            <div className="patient-empty-state">
+              <h4>Chưa có hóa đơn</h4>
+              <p>Backend hiện chưa trả về hóa đơn cho bệnh nhân của bạn.</p>
+            </div>
+          )}
         </div>
 
         <aside className="patient-invoice-aside">
@@ -220,7 +225,7 @@ function PatientInvoices() {
         </aside>
       </section>
 
-      <Modal show={Boolean(selectedInvoice) && showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+      <Modal show={Boolean(selectedInvoice) && showPaymentModal} onHide={() => setShowPaymentModal(false)} centered animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Thanh toán hóa đơn</Modal.Title>
         </Modal.Header>

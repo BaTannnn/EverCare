@@ -13,6 +13,7 @@ import {
   BsFlask,
   BsCapsule,
 } from "react-icons/bs";
+import { getAvatarSource } from "../../../pages/patient/patientPageUtils";
 
 const navItems = [
   { to: "/patient/dashboard", label: "Tổng quan", icon: BsGrid1X2, end: true },
@@ -28,6 +29,7 @@ const navItems = [
 
 function PatientSidebar({ profile }) {
   const navigate = useNavigate();
+  const avatarSource = getAvatarSource(profile, profile?.fullName || "Bệnh nhân EverCare");
 
   const handleLogout = () => {
     cookies.remove("token", { path: "/" });
@@ -56,7 +58,13 @@ function PatientSidebar({ profile }) {
 
       <div className="patient-sidebar-footer">
         <div className="patient-profile-chip">
-          <img src={profile?.avatar} alt={profile?.fullName} />
+          <img
+            src={avatarSource}
+            alt={profile?.fullName}
+            onError={(event) => {
+              event.currentTarget.src = getAvatarSource(null, profile?.fullName || "Bệnh nhân EverCare");
+            }}
+          />
           <div>
             <strong>{profile?.fullName}</strong>
             <span>ID: {profile?.patientCode}</span>
