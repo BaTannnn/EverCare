@@ -6,6 +6,7 @@ import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
+import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorRepository;
@@ -182,11 +183,26 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         User user = this.userService.getUserByUsername(username);
         Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
 
-        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
+        if (!hasRole(user, "DOCTOR")
+                || doctor == null
+                || Boolean.FALSE.equals(doctor.getActive())) {
             throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
         }
 
         return doctor;
+    }
+
+    private boolean hasRole(User user, String expectedRole) {
+        if (user == null || user.getRoleSet() == null) {
+            return false;
+        }
+
+        String normalizedExpectedRole = expectedRole.toUpperCase();
+        return user.getRoleSet().stream()
+                .map(Role::getCode)
+                .filter(code -> code != null)
+                .map(code -> code.trim().toUpperCase())
+                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private void validateSchedule(DoctorScheduleRequest req, Long excludeId) {
