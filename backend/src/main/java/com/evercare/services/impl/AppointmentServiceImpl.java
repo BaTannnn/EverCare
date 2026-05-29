@@ -244,7 +244,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         try {
             if (refundResponse == null || "NOT_APPLICABLE".equalsIgnoreCase(refundResponse.getRefundStatus())) {
-                createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId(), TYPE_APPOINTMENT);
+                createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId(), TYPE_APPOINTMENT_REMINDER);
             }
         } catch (RuntimeException ex) {
             logger.error("Cancel appointment notification failed for appointmentId={}", appointmentId, ex);
