@@ -31,6 +31,42 @@ const matchesSpecialty = (item, specialty) => {
 
 const isScheduleAvailable = (schedule) => schedule.remainingSlots > 0 && ["AVAILABLE", "OPEN", "ACTIVE"].includes(schedule.status);
 
+const getApiErrorMessage = (error, fallback) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData;
+  }
+
+  if (responseData && typeof responseData === "object") {
+    return responseData.message || responseData.error || fallback;
+  }
+
+  return error?.message || fallback;
+};
+
+const buildBookingConflictMessage = (message) => {
+  const normalized = String(message || "").toLowerCase();
+
+  if (normalized.includes("hồ sơ bệnh nhân") || normalized.includes("tạo hồ sơ")) {
+    return "Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám.";
+  }
+
+  if (normalized.includes("đã có người đặt") || normalized.includes("đủ số lượng")) {
+    return "Khung giờ này đã được đặt hoặc đã đủ số lượng bệnh nhân. Vui lòng chọn khung giờ khác.";
+  }
+
+  if (normalized.includes("không có lịch trống")) {
+    return "Bác sĩ không có lịch trống trong khung giờ này. Vui lòng chọn thời gian khác.";
+  }
+
+  if (normalized.includes("dịch vụ không thuộc chuyên khoa")) {
+    return "Dịch vụ bạn chọn không thuộc chuyên khoa của bác sĩ. Vui lòng chọn lại dịch vụ hoặc bác sĩ.";
+  }
+
+  return message || "Không thể đặt lịch ở thời điểm này. Vui lòng thử lại.";
+};
+
 function PatientBookAppointment() {
   const navigate = useNavigate();
   const { profile } = useOutletContext() || {};
@@ -55,6 +91,7 @@ function PatientBookAppointment() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [scheduleError, setScheduleError] = useState("");
+  const [needsProfileFix, setNeedsProfileFix] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -246,6 +283,7 @@ function PatientBookAppointment() {
 
     setSubmitting(true);
     setError("");
+    setNeedsProfileFix(false);
 
     try {
       const response = await bookPatientAppointment({
@@ -279,8 +317,22 @@ function PatientBookAppointment() {
 
       navigate("/patient/appointments");
     } catch (bookError) {
-      setError("Đặt lịch chưa thành công. Vui lòng thử lại.");
-      console.error(bookError);
+      const backendMessage = getApiErrorMessage(bookError, "Đặt lịch chưa thành công. Vui lòng thử lại.");
+      const status = bookError?.response?.status;
+
+      if (status === 409) {
+        const conflictMessage = buildBookingConflictMessage(backendMessage);
+        setError(conflictMessage);
+        setNeedsProfileFix(conflictMessage.includes("hồ sơ bệnh nhân"));
+      } else if (status === 400) {
+        setError(backendMessage || "Dữ liệu đặt lịch chưa hợp lệ.");
+      } else if (status === 401) {
+        setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      } else {
+        setError(backendMessage || "Đặt lịch chưa thành công. Vui lòng thử lại.");
+      }
+
+      console.warn("Failed to book appointment", bookError?.response?.data || bookError?.message || bookError);
     } finally {
       setSubmitting(false);
     }
@@ -304,7 +356,7 @@ function PatientBookAppointment() {
         <Alert variant="warning" className="patient-info-banner">
           <BsExclamationTriangle className="me-2" />
           {error}
-          {!profile?.id && (
+          {(needsProfileFix || !profile?.id) && (
             <div className="mt-3">
               <Button type="button" className="patient-primary-soft" onClick={() => navigate("/patient/profile")}>
                 Tạo hồ sơ ngay
