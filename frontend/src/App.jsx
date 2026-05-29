@@ -13,6 +13,14 @@ import DoctorPrescriptionsPage from "./pages/doctor/DoctorPrescriptionsPage";
 import DoctorSettingsPage from "./pages/doctor/DoctorSettingsPage";
 import ExaminationWorkspacePage from "./pages/doctor/ExaminationWorkspacePage";
 import LoginPage from "./pages/LoginPage";
+import ReceptionistAppointmentCreatePage from "./pages/receptionist/ReceptionistAppointmentCreatePage";
+import ReceptionistAppointmentDetailPage from "./pages/receptionist/ReceptionistAppointmentDetailPage";
+import ReceptionistAppointmentEditPage from "./pages/receptionist/ReceptionistAppointmentEditPage";
+import ReceptionistAppointmentsPage from "./pages/receptionist/ReceptionistAppointmentsPage";
+import ReceptionistDashboardPage from "./pages/receptionist/ReceptionistDashboardPage";
+import ReceptionistInvoiceDetailPage from "./pages/receptionist/ReceptionistInvoiceDetailPage";
+import ReceptionistInvoicesPage from "./pages/receptionist/ReceptionistInvoicesPage";
+import ReceptionistLayout from "./components/receptionist/layout/ReceptionistLayout";
 import RegisterPage from "./pages/RegisterPage";
 import StaffDashboardPage from "./pages/staff/StaffDashboardPage";
 import StaffSettingsPage from "./pages/staff/StaffSettingsPage";
@@ -97,7 +105,20 @@ function App() {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "MANAGER", "ROLE_MANAGER"]} />}>
+      <Route element={<ProtectedRoute roles={["RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "ADMIN", "ROLE_ADMIN"]} />}>
+        <Route path="/receptionist" element={<ReceptionistLayout />}>
+          <Route index element={<Navigate to="/receptionist/dashboard" replace />} />
+          <Route path="dashboard" element={<ReceptionistDashboardPage />} />
+          <Route path="appointments" element={<ReceptionistAppointmentsPage />} />
+          <Route path="appointments/new" element={<ReceptionistAppointmentCreatePage />} />
+          <Route path="appointments/:appointmentId" element={<ReceptionistAppointmentDetailPage />} />
+          <Route path="appointments/:appointmentId/edit" element={<ReceptionistAppointmentEditPage />} />
+          <Route path="invoices" element={<ReceptionistInvoicesPage />} />
+          <Route path="invoices/:invoiceId" element={<ReceptionistInvoiceDetailPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "MANAGER", "ROLE_MANAGER"]} />}>
         <Route path="/staff" element={<StaffLayout />}>
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboardPage />} />
