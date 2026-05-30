@@ -517,7 +517,7 @@
 }
 
 .patient-next-appointment .card-body {
-  background: linear-gradient(135deg, #0056ba 0%, #0d6fe3 54%, #0b4bc0 100%);
+  background: #ffffff;
   color: #ffffff;
   border-radius: 16px;
 }
@@ -603,6 +603,9 @@
   color: #0f172a;
   background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.16);
+}
+.patient-outline-button svg {
+  margin-right: 5px;
 }
 
 .patient-primary-soft {
@@ -1471,6 +1474,8 @@
 .patient-invoice-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  text-align: center;
   gap: 10px;
   justify-content: flex-end;
 }
@@ -1480,6 +1485,7 @@
   padding: 0.55rem 0.9rem;
   font-size: 0.8rem;
   font-weight: 700;
+  color: #ffffff !important;
 }
 
 .patient-appointment-banner,
@@ -1587,7 +1593,6 @@
 
 .patient-result-icon,
 .patient-prescription-icon,
-.patient-invoice-total,
 .patient-notification-icon {
   width: 72px;
   height: 72px;
@@ -1674,6 +1679,8 @@
 
 .patient-invoice-total {
   flex-shrink: 0;
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
   color: #0a5fd5;
   background: rgba(0, 89, 187, 0.08);
   font-size: 1.4rem;

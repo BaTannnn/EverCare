@@ -170,11 +170,11 @@ function PatientDashboard() {
         <div>
           <p className="patient-eyebrow">Bảng điều khiển bệnh nhân</p>
           <h2>Chào mừng, {profile?.fullName || "bạn"}</h2>
-          <p>Theo dõi lịch hẹn, hồ sơ bệnh án, đơn thuốc và thanh toán trong một nơi duy nhất.</p>
+          {/* <p>Theo dõi lịch hẹn, hồ sơ bệnh án, đơn thuốc và thanh toán trong một nơi duy nhất.</p> */}
         </div>
 
-        <div className="patient-hero-actions">
-          <Link to="/patient/book-appointment" className="patient-link-button primary">
+        <div className="patient-hero-actions mt-4">
+          <Link to="/patient/book-appointment" className="patient-link-button primary me-3">
             Đặt lịch khám
           </Link>
           <Link to="/patient/appointments" className="patient-link-button">
