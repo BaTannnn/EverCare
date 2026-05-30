@@ -612,6 +612,10 @@
   border: 0;
 }
 
+.patient-primary-soft svg {
+  margin-right: 5px;
+}
+
 .patient-info-banner,
 .patient-loading-panel,
 .patient-empty-state {

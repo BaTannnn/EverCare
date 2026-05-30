@@ -48,9 +48,9 @@ function PatientInvoices() {
   }, [invoices]);
 
   const paymentOptions = [
-    { value: "VNPAY", label: "VNPay", channel: "QR" },
-    { value: "MOMO", label: "MoMo", channel: "WALLET" },
-    { value: "ZALOPAY", label: "ZaloPay", channel: "WALLET" },
+    { value: "VNPAY", label: "VNPay - Ví kiểm thử", channel: "WALLET" },
+    { value: "MOMO", label: "MoMo - Ví điện tử", channel: "WALLET" },
+    { value: "ZALOPAY", label: "ZaloPay QR", channel: "QR" },
   ];
 
   const handlePay = async () => {
@@ -199,14 +199,17 @@ function PatientInvoices() {
               <h3>Phương thức thanh toán</h3>
               <div className="patient-payment-panel">
                 <div className="patient-payment-method">
-                  <span>VNPay</span>
+                  <span>ZaloPay</span>
                   <strong>Thanh toán QR</strong>
                 </div>
                 <div className="patient-payment-method light">
+                  <span>VNPay</span>
+                  <strong>Ví kiểm thử</strong>
+                </div>
+                <div className="patient-payment-method outline">
                   <span>MoMo</span>
                   <strong>Ví điện tử</strong>
                 </div>
-                <div className="patient-payment-method outline">+ Thêm mới</div>
               </div>
             </Card.Body>
           </Card>
