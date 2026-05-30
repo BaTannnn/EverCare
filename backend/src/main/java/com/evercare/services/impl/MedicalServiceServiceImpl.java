@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @Service
 @Transactional
@@ -33,6 +34,20 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     @Override
     public MedicalService getServiceById(int id) {
         return this.serviceRepo.getServiceById(id);
+    }
+
+    @Override
+    public List<MedicalService> getActiveExaminationServicesByDepartmentId(Long departmentId) {
+        if (departmentId == null) {
+            throw new IllegalArgumentException("Vui lòng chọn khoa");
+        }
+
+        Department department = this.departmentRepo.getDepartmentById(departmentId.intValue());
+        if (department == null || Boolean.FALSE.equals(department.getActive())) {
+            throw new NoSuchElementException("Không tìm thấy khoa");
+        }
+
+        return this.serviceRepo.getActiveExaminationServicesByDepartmentId(departmentId);
     }
 
     @Override

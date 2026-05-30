@@ -7,6 +7,7 @@ import com.evercare.dtos.request.PatientRequest;
 import com.evercare.dtos.response.AppointmentCancelResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.MedicalServiceType;
 import com.evercare.enums.DoctorWorkStatus;
 import com.evercare.mappers.AppointmentMapper;
 import com.evercare.pojo.Appointment;
@@ -92,7 +93,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         User currentUser = getCurrentUser();
         Patient currentPatient = requireCurrentPatient();
         Doctor doctor = loadValidDoctor(request.getDoctorId());
-        MedicalService service = loadValidService(request.getServiceId());
+        MedicalService service = loadValidExaminationService(request.getServiceId());
 
         if (doctor.getDepartmentId() != null && service.getDepartmentId() != null
                 && doctor.getDepartmentId().getId() != null
@@ -292,7 +293,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Patient patient = resolveReceptionistPatient(request);
         Doctor doctor = loadValidDoctor(request.getDoctorId());
-        MedicalService service = loadValidService(request.getServiceId());
+        MedicalService service = loadValidExaminationService(request.getServiceId());
         validateDepartmentMatch(request.getDepartmentId(), doctor, service);
 
         LocalDate appointmentDate = requireAppointmentDate(request.getAppointmentDate());
@@ -359,9 +360,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                 || request.getEndTime() != null;
 
         Doctor doctor = request.getDoctorId() != null ? loadValidDoctor(request.getDoctorId()) : appointment.getDoctorId();
-        MedicalService service = request.getServiceId() != null ? loadValidService(request.getServiceId()) : appointment.getServiceId();
+        MedicalService service = request.getServiceId() != null ? loadValidExaminationService(request.getServiceId()) : appointment.getServiceId();
 
         if (scheduleChangeRequested) {
+            validateExaminationService(service);
             validateDepartmentMatch(request.getDepartmentId(), doctor, service);
 
             LocalDate appointmentDate = request.getAppointmentDate() != null
@@ -749,17 +751,37 @@ public class AppointmentServiceImpl implements AppointmentService {
         return doctor;
     }
 
-    private MedicalService loadValidService(Long serviceId) {
+    private MedicalService loadValidExaminationService(Long serviceId) {
         if (serviceId == null) {
             throw new IllegalArgumentException("Vui lòng chọn dịch vụ");
         }
 
         MedicalService service = this.serviceRepo.getServiceById(serviceId.intValue());
-        if (service == null || Boolean.FALSE.equals(service.getActive())) {
-            throw new IllegalStateException("Dịch vụ không tồn tại hoặc đã ngưng hoạt động");
+        if (service == null) {
+            throw new NoSuchElementException("Không tìm thấy dịch vụ");
         }
 
+        if (Boolean.FALSE.equals(service.getActive())) {
+            throw new IllegalStateException("Dịch vụ không khả dụng");
+        }
+
+        validateExaminationService(service);
+
         return service;
+    }
+
+    private void validateExaminationService(MedicalService service) {
+        if (service == null) {
+            throw new IllegalArgumentException("Dịch vụ được chọn không phải dịch vụ khám. Vui lòng chọn dịch vụ có loại EXAMINATION.");
+        }
+
+        if (Boolean.FALSE.equals(service.getActive())) {
+            throw new IllegalStateException("Dịch vụ không khả dụng");
+        }
+
+        if (!MedicalServiceType.EXAMINATION.getCode().equalsIgnoreCase(service.getServiceType())) {
+            throw new IllegalArgumentException("Dịch vụ được chọn không phải dịch vụ khám. Vui lòng chọn dịch vụ có loại EXAMINATION.");
+        }
     }
 
     private void createNotification(User user, String title, String content, Long relatedId, String notificationType) {

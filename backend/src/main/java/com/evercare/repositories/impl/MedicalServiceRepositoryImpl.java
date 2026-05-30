@@ -119,6 +119,30 @@ public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
     }
 
     @Override
+    public List<MedicalService> getActiveExaminationServicesByDepartmentId(Long departmentId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalService> query = builder.createQuery(MedicalService.class);
+        Root<MedicalService> root = query.from(MedicalService.class);
+        root.fetch("departmentId", JoinType.LEFT);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(builder.isTrue(root.get("active")));
+        predicates.add(builder.equal(root.get("serviceType"), MedicalServiceType.EXAMINATION.getCode()));
+
+        if (departmentId != null) {
+            predicates.add(builder.equal(root.get("departmentId").get("id"), departmentId));
+        }
+
+        query.select(root).distinct(true);
+        query.where(predicates.toArray(Predicate[]::new));
+        query.orderBy(builder.asc(root.get("name")));
+
+        return session.createQuery(query).getResultList();
+    }
+
+    @Override
     public void addService(MedicalService service) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(service);
