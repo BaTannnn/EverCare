@@ -40,6 +40,15 @@ const deriveStatusLabel = (status) => {
 
 const createAvatar = (name) => makeAvatarDataUri(name || "EverCare");
 
+const pickAvatarUrl = (source) =>
+  source?.avatarUrl ||
+  source?.avatar ||
+  source?.photoUrl ||
+  source?.imageUrl ||
+  source?.profilePicture ||
+  source?.avatarPath ||
+  "";
+
 const toDoctorName = (doctor) => doctor?.fullName || doctor?.doctorName || doctor?.name || "Bác sĩ EverCare";
 
 export const mapPatientProfile = (rawProfile) => {
@@ -50,12 +59,13 @@ export const mapPatientProfile = (rawProfile) => {
     id: profile.id || profile.patientCode || "PATIENT",
     patientCode: profile.patientCode || profile.id || "PATIENT",
     fullName,
-    avatar: profile.avatar || createAvatar(fullName),
+    avatar: pickAvatarUrl(profile) || createAvatar(fullName),
     dateOfBirth: formatShortDate(profile.dateOfBirth),
     gender: normalizeText(profile.gender, "Chưa cập nhật"),
     phone: normalizeText(profile.phone, "Chưa cập nhật"),
     email: normalizeText(profile.email, "Chưa cập nhật"),
     address: normalizeText(profile.address, "Chưa cập nhật"),
+    citizenId: normalizeText(profile.citizenId, ""),
     bloodType: normalizeText(profile.bloodType, "Chưa cập nhật"),
     allergyNote: normalizeText(profile.allergyNote, "Không ghi nhận"),
     medicalHistoryNote: normalizeText(profile.medicalHistoryNote, "Không ghi nhận"),
@@ -90,6 +100,12 @@ export const mapAppointment = (rawAppointment) => {
     statusLabel: normalizeText(appointment.statusLabel, deriveStatusLabel(appointment.status)),
     reason: normalizeText(appointment.reason, ""),
     symptomNote: normalizeText(appointment.symptomNote, ""),
+    invoiceId: appointment.invoiceId || appointment.invoice?.id || null,
+    invoiceCode: normalizeText(appointment.invoiceCode, appointment.invoice?.invoiceCode || ""),
+    paymentMethod: normalizeText(appointment.paymentMethod, appointment.invoice?.paymentMethod || ""),
+    paymentProvider: normalizeText(appointment.paymentProvider, ""),
+    paymentStatus: normalizeText(appointment.paymentStatus, appointment.invoice?.paymentStatus || ""),
+    paymentUrl: normalizeText(appointment.paymentUrl, appointment.invoice?.paymentUrl || ""),
   };
 };
 
@@ -219,6 +235,50 @@ export const mapNotification = (rawNotification) => {
   };
 };
 
+export const mapInvoice = (rawInvoice) => {
+  const invoice = unwrapObject(rawInvoice) || {};
+  const paymentStatus = normalizeText(invoice.paymentStatus, "UNPAID");
+
+  return {
+    id: invoice.id || invoice.invoiceCode,
+    invoiceCode: normalizeText(invoice.invoiceCode, invoice.id || ""),
+    createdAt: invoice.createdAt || "",
+    serviceAmount: normalizeCurrency(invoice.totalExamServiceAmount ?? invoice.totalServiceAmount),
+    totalServiceAmount: normalizeCurrency(invoice.totalServiceAmount),
+    medicineAmount: normalizeCurrency(invoice.totalMedicineAmount),
+    testAmount: normalizeCurrency(invoice.totalTestAmount),
+    discountAmount: normalizeCurrency(invoice.discountAmount),
+    totalAmount: normalizeCurrency(invoice.totalAmount),
+    paymentMethod: normalizeText(invoice.paymentMethod, ""),
+    paymentStatus,
+    status: paymentStatus,
+    paidAt: normalizeText(invoice.paidAt, ""),
+    note: normalizeText(invoice.note, ""),
+    medicalRecordId: invoice.medicalRecordId,
+    patientId: invoice.patientId,
+  };
+};
+
+export const mapPaymentResult = (rawPayment) => {
+  const payment = unwrapObject(rawPayment) || {};
+
+  return {
+    id: payment.id || payment.transactionCode,
+    invoiceId: payment.invoiceId,
+    invoiceCode: normalizeText(payment.invoiceCode, ""),
+    amount: normalizeCurrency(payment.amount),
+    paymentMethod: normalizeText(payment.paymentMethod, ""),
+    paymentProvider: normalizeText(payment.paymentProvider, ""),
+    transactionCode: normalizeText(payment.transactionCode, ""),
+    paymentStatus: normalizeText(payment.paymentStatus, ""),
+    paidAt: normalizeText(payment.paidAt, ""),
+    createdAt: normalizeText(payment.createdAt, ""),
+    updatedAt: normalizeText(payment.updatedAt, ""),
+    active: payment.active ?? true,
+    paymentUrl: normalizeText(payment.paymentUrl, ""),
+  };
+};
+
 export const mapDoctor = (rawDoctor) => {
   const doctor = unwrapObject(rawDoctor) || {};
   const fullName = toDoctorName(doctor);
@@ -234,6 +294,28 @@ export const mapDoctor = (rawDoctor) => {
     workStatus: normalizeText(doctor.workStatus, "AVAILABLE"),
     active: doctor.active ?? true,
     rating: 4.6 + (String(doctor.id || doctor.doctorCode || "").length % 4) * 0.1,
+  };
+};
+
+export const mapDoctorSchedule = (rawSchedule) => {
+  const schedule = unwrapObject(rawSchedule) || {};
+  const remainingSlots = Number(schedule.remainingSlots ?? Math.max((schedule.maxPatients || 0) - (schedule.bookedCount || 0), 0));
+  const scheduleStatus = normalizeText(schedule.status, remainingSlots > 0 ? "AVAILABLE" : "FULL");
+
+  return {
+    id: schedule.id || `${schedule.workDate || ""}-${schedule.startTime || ""}`,
+    doctorId: schedule.doctorId,
+    workDate: schedule.workDate || "",
+    startTime: normalizeTime(schedule.startTime),
+    endTime: normalizeTime(schedule.endTime),
+    displayDate: schedule.workDate ? formatShortDate(schedule.workDate) : "",
+    displayRange: `${normalizeTime(schedule.startTime)} - ${normalizeTime(schedule.endTime)}`.trim(),
+    maxPatients: Number(schedule.maxPatients || 0),
+    bookedCount: Number(schedule.bookedCount || 0),
+    remainingSlots,
+    status: scheduleStatus,
+    statusLabel: normalizeText(schedule.statusLabel, deriveStatusLabel(scheduleStatus)),
+    note: normalizeText(schedule.note, ""),
   };
 };
 

@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge, Button, Card, Form, Modal } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Form, Modal } from "react-bootstrap";
 import { BsCheckCircle, BsCreditCard2Front, BsFileEarmarkText, BsWallet2 } from "react-icons/bs";
-import { getPatientInvoices } from "../../services/patient/patientInvoiceApi";
-import { patientInvoices as fallbackInvoices } from "../../data/patientMockData";
+import { getPatientInvoices, payPatientInvoice } from "../../services/patient/patientInvoiceApi";
 import { countByStatus, formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
 
 function PatientInvoices() {
-  const [invoices, setInvoices] = useState(fallbackInvoices);
+  const [invoices, setInvoices] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("Thẻ ngân hàng");
+  const [paymentMethod, setPaymentMethod] = useState("VNPAY");
+  const [paymentChannel, setPaymentChannel] = useState("QR");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [error, setError] = useState("");
+  const [paymentNotice, setPaymentNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -19,11 +21,13 @@ function PatientInvoices() {
         const response = await getPatientInvoices();
         if (mounted) {
           setInvoices(response.data || []);
+          setError("");
         }
       } catch (error) {
         console.error(error);
         if (mounted) {
-          setInvoices(fallbackInvoices);
+          setInvoices([]);
+          setError("Không tải được danh sách hóa đơn từ backend.");
         }
       }
     };
@@ -43,16 +47,58 @@ function PatientInvoices() {
     return { total, unpaid, paid };
   }, [invoices]);
 
-  const paymentOptions = selectedInvoice?.paymentMethods || ["Thẻ ngân hàng", "Ví MoMo", "VNPay"];
+  const paymentOptions = [
+    { value: "VNPAY", label: "VNPay", channel: "QR" },
+    { value: "MOMO", label: "MoMo", channel: "WALLET" },
+    { value: "ZALOPAY", label: "ZaloPay", channel: "WALLET" },
+  ];
 
-  const handlePay = () => {
-    setInvoices((current) => current.map((invoice) => (invoice.id === selectedInvoice.id ? { ...invoice, status: "PAID" } : invoice)));
-    setShowPaymentModal(false);
-    setSelectedInvoice(null);
+  const handlePay = async () => {
+    if (!selectedInvoice) return;
+
+    try {
+      setPaymentNotice("");
+      const response = await payPatientInvoice(selectedInvoice.id, {
+        paymentMethod,
+        paymentChannel,
+        returnUrl: `${window.location.origin}/patient/invoices`,
+        cancelUrl: `${window.location.origin}/patient/invoices`,
+      });
+
+      const payment = response.data || {};
+      if (payment.paymentUrl) {
+        window.open(payment.paymentUrl, "_blank", "noopener,noreferrer");
+        setPaymentNotice(`Đã khởi tạo thanh toán cho ${selectedInvoice.invoiceCode}. Vui lòng hoàn tất trên cổng thanh toán.`);
+      } else {
+        setPaymentNotice(`Đã tạo giao dịch thanh toán cho ${selectedInvoice.invoiceCode}.`);
+      }
+
+      setInvoices((current) =>
+        current.map((invoice) =>
+          invoice.id === selectedInvoice.id
+            ? {
+                ...invoice,
+                paymentMethod: payment.paymentMethod || paymentMethod,
+                paymentStatus: payment.paymentStatus || invoice.paymentStatus,
+                status: payment.paymentStatus || invoice.status,
+              }
+            : invoice,
+        ),
+      );
+
+      setShowPaymentModal(false);
+      setSelectedInvoice(null);
+    } catch (payError) {
+      console.error(payError);
+      setPaymentNotice("");
+    }
   };
 
   return (
     <div className="patient-page">
+      {error && <Alert variant="warning">{error}</Alert>}
+      {paymentNotice && <Alert variant="success">{paymentNotice}</Alert>}
+
       <div className="patient-summary-grid invoices">
         <Card className="patient-summary-card light-blue">
           <Card.Body>
@@ -91,7 +137,7 @@ function PatientInvoices() {
 
       <section className="patient-invoice-layout">
         <div className="patient-invoice-list">
-          {invoices.map((invoice) => {
+          {invoices.length > 0 ? invoices.map((invoice) => {
             const meta = getPatientStatusMeta(invoice.status);
 
             return (
@@ -108,7 +154,7 @@ function PatientInvoices() {
                   </div>
 
                   <div className="patient-invoice-meta">
-                    <span>Tiền dịch vụ: {formatCurrency(invoice.serviceAmount)}</span>
+                    <span>Tiền khám/dịch vụ khác: {formatCurrency(invoice.serviceAmount)}</span>
                     <span>Tiền thuốc: {formatCurrency(invoice.medicineAmount)}</span>
                     <span>Tiền xét nghiệm: {formatCurrency(invoice.testAmount)}</span>
                     <span>Tổng tiền: {formatCurrency(invoice.totalAmount)}</span>
@@ -139,7 +185,12 @@ function PatientInvoices() {
                 </Card.Body>
               </Card>
             );
-          })}
+          }) : (
+            <div className="patient-empty-state">
+              <h4>Chưa có hóa đơn</h4>
+              <p>Backend hiện chưa trả về hóa đơn cho bệnh nhân của bạn.</p>
+            </div>
+          )}
         </div>
 
         <aside className="patient-invoice-aside">
@@ -148,12 +199,12 @@ function PatientInvoices() {
               <h3>Phương thức thanh toán</h3>
               <div className="patient-payment-panel">
                 <div className="patient-payment-method">
-                  <span>Thẻ ngân hàng</span>
-                  <strong>VISA •••• 8842</strong>
+                  <span>VNPay</span>
+                  <strong>Thanh toán QR</strong>
                 </div>
                 <div className="patient-payment-method light">
-                  <span>Ví MoMo</span>
-                  <strong>090 ••• •1234</strong>
+                  <span>MoMo</span>
+                  <strong>Ví điện tử</strong>
                 </div>
                 <div className="patient-payment-method outline">+ Thêm mới</div>
               </div>
@@ -168,13 +219,13 @@ function PatientInvoices() {
                 </div>
                 <h3>Thanh toán an toàn</h3>
               </div>
-              <p>TODO: Backend hiện chưa có API hóa đơn/thanh toán cho bệnh nhân, nên màn này đang chạy theo trạng thái local.</p>
+              <p>Thanh toán hiện đã gọi API backend thật. Nếu cổng trả về `paymentUrl`, hệ thống sẽ mở cổng thanh toán trong tab mới.</p>
             </Card.Body>
           </Card>
         </aside>
       </section>
 
-      <Modal show={Boolean(selectedInvoice) && showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+      <Modal show={Boolean(selectedInvoice) && showPaymentModal} onHide={() => setShowPaymentModal(false)} centered animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Thanh toán hóa đơn</Modal.Title>
         </Modal.Header>
@@ -182,13 +233,21 @@ function PatientInvoices() {
           {selectedInvoice && (
             <div className="patient-payment-modal">
               <h4>{selectedInvoice.invoiceCode}</h4>
-              <p>Thanh toán hóa đơn đang mở ở chế độ UI, không reload trang.</p>
+              <p>Hóa đơn này sẽ tạo giao dịch qua backend và mở cổng thanh toán nếu có URL trả về.</p>
               <Form.Group className="patient-form-group">
                 <Form.Label>Phương thức thanh toán</Form.Label>
-                <Form.Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+                <Form.Select
+                  value={paymentMethod}
+                  onChange={(event) => {
+                    const nextMethod = event.target.value;
+                    const option = paymentOptions.find((item) => item.value === nextMethod);
+                    setPaymentMethod(nextMethod);
+                    setPaymentChannel(option?.channel || "QR");
+                  }}
+                >
                   {paymentOptions.map((method) => (
-                    <option key={method} value={method}>
-                      {method}
+                    <option key={method.value} value={method.value}>
+                      {method.label}
                     </option>
                   ))}
                 </Form.Select>

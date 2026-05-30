@@ -44,9 +44,6 @@ function PharmacistTopbar() {
       </Form>
 
       <div className="doctor-top-actions">
-        <button type="button" className="icon-button" aria-label="Cài đặt" onClick={() => navigate("/pharmacist/settings")}>
-          ⚙
-        </button>
         <div className="doctor-profile">
           <div className="doctor-avatar">{(user?.fullName || user?.username || "DS").slice(0, 2).toUpperCase()}</div>
           <div>

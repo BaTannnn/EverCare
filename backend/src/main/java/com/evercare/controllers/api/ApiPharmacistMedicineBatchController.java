@@ -4,6 +4,7 @@ import com.evercare.dtos.request.MedicineBatchImportRequest;
 import com.evercare.dtos.response.MedicineBatchImportResponse;
 import com.evercare.dtos.response.MedicineBatchResponse;
 import com.evercare.pojo.Employee;
+import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.EmployeeRepository;
 import com.evercare.services.MedicineBatchService;
@@ -124,15 +125,25 @@ public class ApiPharmacistMedicineBatchController {
         }
 
         User user = this.userService.getUserByUsername(principal.getName());
-        Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
+        Employee employee = user != null ? this.employeeRepo.getEmployeeByUserId(user.getId()) : null;
 
-        if (employee == null
-                || Boolean.FALSE.equals(employee.getActive())
-                || employee.getPosition() == null
-                || !employee.getPosition().toLowerCase().contains("dược")) {
+        if (!hasPharmacistRole(user)
+                || (employee != null && Boolean.FALSE.equals(employee.getActive()))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tài khoản hiện tại không phải dược sĩ"));
         }
 
         return null;
+    }
+
+    private boolean hasPharmacistRole(User user) {
+        if (user == null || user.getRoleSet() == null) {
+            return false;
+        }
+
+        return user.getRoleSet().stream()
+                .map(Role::getCode)
+                .filter(code -> code != null)
+                .map(code -> code.trim().toUpperCase())
+                .anyMatch(code -> "PHARMACIST".equals(code) || "ROLE_PHARMACIST".equals(code));
     }
 }

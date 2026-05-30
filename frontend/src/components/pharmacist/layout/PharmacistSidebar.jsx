@@ -7,7 +7,6 @@ const menuItems = [
   { to: "/pharmacist/medicines", icon: "□", label: "Thuốc" },
   { to: "/pharmacist/batches", icon: "▤", label: "Lô thuốc" },
   { to: "/pharmacist/inventory", icon: "↕", label: "Nhập / xuất kho" },
-  { to: "/pharmacist/settings", icon: "⚙", label: "Cài đặt" },
 ];
 
 function PharmacistSidebar() {
@@ -42,10 +41,6 @@ function PharmacistSidebar() {
       </nav>
 
       <div className="doctor-sidebar-footer">
-        <NavLink to="/pharmacist/settings" className="doctor-nav-link">
-          <span aria-hidden="true">◎</span>
-          Hồ sơ cá nhân
-        </NavLink>
         <button type="button" className="doctor-logout" onClick={handleLogout}>
           <span aria-hidden="true">←</span>
           Đăng xuất

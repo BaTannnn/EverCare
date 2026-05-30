@@ -18,6 +18,7 @@ import { searchMedicalServices } from "../../services/doctor/doctorMedicalServic
 import { searchMedicines } from "../../services/doctor/doctorMedicineApi";
 import {
   createDoctorPrescription,
+  getDoctorPrescription,
   updateDoctorPrescription,
 } from "../../services/doctor/doctorPrescriptionApi";
 import {
@@ -44,6 +45,26 @@ const emptyServiceForm = {
   unitPrice: null,
   resultSummary: "",
 };
+
+const ORDERABLE_SERVICE_TYPES = new Set(["TEST", "LAB_TEST", "IMAGING"]);
+
+const isOrderableMedicalService = (service) => {
+  const serviceType = String(service?.serviceType || "").trim().toUpperCase();
+  return ORDERABLE_SERVICE_TYPES.has(serviceType);
+};
+
+const unwrapList = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.results)) return data.results;
+  return [];
+};
+
+const hasKnownAvailableQuantity = (item) => item?.availableQuantity !== null
+  && item?.availableQuantity !== undefined
+  && item?.availableQuantity !== "";
 
 const emptyPrescriptionLine = {
   quantity: 1,
@@ -75,6 +96,7 @@ function ExaminationWorkspacePage() {
   const [prescription, setPrescription] = useState(null);
   const [medicineKeyword, setMedicineKeyword] = useState("");
   const [medicineResults, setMedicineResults] = useState([]);
+  const [medicineDropdownOpen, setMedicineDropdownOpen] = useState(false);
   const [activePresetField, setActivePresetField] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingRecord, setSavingRecord] = useState(false);
@@ -82,6 +104,7 @@ function ExaminationWorkspacePage() {
   const [savingService, setSavingService] = useState(false);
   const [savingPrescription, setSavingPrescription] = useState(false);
   const [medicineLoading, setMedicineLoading] = useState(false);
+  const [medicineSearchError, setMedicineSearchError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [completeModal, setCompleteModal] = useState(false);
@@ -100,6 +123,10 @@ function ExaminationWorkspacePage() {
       : "Đơn mới";
   const prescriptionStatusVariant = prescriptionDispensed ? "success" : hasPrescription ? "warning" : "secondary";
   const prescriptionStockWarnings = (prescription?.items || []).filter((item) => {
+    if (!hasKnownAvailableQuantity(item)) {
+      return false;
+    }
+
     const availableQuantity = Number(item.availableQuantity);
     return Number.isFinite(availableQuantity) && Number(item.quantity || 0) > availableQuantity;
   });
@@ -126,7 +153,16 @@ function ExaminationWorkspacePage() {
         treatmentPlan: detail?.medicalRecord?.treatmentPlan || "",
         doctorNote: detail?.medicalRecord?.doctorNote || "",
       });
-      setPrescription(detail?.prescription || null);
+      if (detail?.prescription?.id) {
+        try {
+          const prescriptionResponse = await getDoctorPrescription(detail.prescription.id);
+          setPrescription(prescriptionResponse.data || detail.prescription);
+        } catch {
+          setPrescription(detail.prescription);
+        }
+      } else {
+        setPrescription(null);
+      }
 
       if (detail?.medicalRecord?.id) {
         const serviceResponse = await getMedicalRecordServices(detail.medicalRecord.id);
@@ -159,7 +195,7 @@ function ExaminationWorkspacePage() {
       setServiceSearching(true);
       try {
         const response = await searchMedicalServices(keyword);
-        setServiceOptions(response.data || []);
+        setServiceOptions((response.data || []).filter(isOrderableMedicalService));
       } catch {
         setServiceOptions([]);
       } finally {
@@ -175,16 +211,21 @@ function ExaminationWorkspacePage() {
 
     if (!keyword) {
       setMedicineResults([]);
+      setMedicineSearchError("");
+      setMedicineDropdownOpen(false);
       return undefined;
     }
 
+    setMedicineDropdownOpen(true);
     const timer = setTimeout(async () => {
       setMedicineLoading(true);
+      setMedicineSearchError("");
       try {
         const response = await searchMedicines(keyword);
-        setMedicineResults(response.data || []);
-      } catch {
+        setMedicineResults(unwrapList(response.data));
+      } catch (err) {
         setMedicineResults([]);
+        setMedicineSearchError(getErrorMessage(err) || "Không tải được danh sách thuốc.");
       } finally {
         setMedicineLoading(false);
       }
@@ -406,6 +447,8 @@ function ExaminationWorkspacePage() {
     }));
     setMedicineKeyword("");
     setMedicineResults([]);
+    setMedicineDropdownOpen(false);
+    setMedicineSearchError("");
     setNotice(`Đã thêm ${medicineName || "thuốc"} vào đơn. Bấm lưu đơn thuốc để cập nhật.`);
   };
 
@@ -623,7 +666,7 @@ function ExaminationWorkspacePage() {
 
           <Card className="doctor-card exam-section-card">
             <Card.Header>
-              <h2>Dịch vụ cần làm sáng đã sử dụng</h2>
+              <h2>Chỉ định xét nghiệm / Chẩn đoán hình ảnh</h2>
             </Card.Header>
             <Card.Body className="p-0">
               <Form className="exam-inline-form" onSubmit={handleAddService}>
@@ -636,7 +679,7 @@ function ExaminationWorkspacePage() {
                       setServiceForm((current) => ({ ...current, serviceId: "" }));
                       setServiceDropdownOpen(true);
                     }}
-                    placeholder="Tìm dịch vụ..."
+                    placeholder="Tìm xét nghiệm hoặc chẩn đoán hình ảnh..."
                     disabled={!editable || savingService}
                   />
                   {serviceDropdownOpen && editable && (
@@ -665,7 +708,7 @@ function ExaminationWorkspacePage() {
                   disabled={!editable || savingService}
                 />
                 <Button type="submit" disabled={!editable || savingService}>
-                  Thêm dịch vụ
+                  Thêm chỉ định
                 </Button>
               </Form>
               {pendingServiceCount > 0 && (
@@ -694,7 +737,7 @@ function ExaminationWorkspacePage() {
                 </div>
               )}
               {services.length === 0 ? (
-                <EmptyState title="Chưa có dịch vụ" description="Nhấn thêm dịch vụ để ghi nhận dịch vụ phát sinh." />
+                <EmptyState title="Chưa có chỉ định" description="Tìm xét nghiệm hoặc chẩn đoán hình ảnh để thêm chỉ định." />
               ) : (
                 <Table responsive className="doctor-table exam-table mb-0">
                   <thead>
@@ -800,7 +843,13 @@ function ExaminationWorkspacePage() {
 
           <Card className="doctor-card exam-section-card">
             <Card.Header>
-              <h2>Đơn thuốc</h2>
+              <div>
+                <h2>Đơn thuốc</h2>
+                <div className="prescription-header-meta">
+                  {prescription?.prescriptionCode && <span>{prescription.prescriptionCode}</span>}
+                  {prescription?.prescribedAt && <span>{formatDate(prescription.prescribedAt)}</span>}
+                </div>
+              </div>
               <Badge bg={prescriptionStatusVariant}>{prescriptionStatusLabel}</Badge>
             </Card.Header>
             <Card.Body>
@@ -821,104 +870,66 @@ function ExaminationWorkspacePage() {
                   </Alert>
                 )}
 
-                <Card className="prescription-subcard">
-                  <Card.Header>
-                    <h3>Thông tin đơn thuốc</h3>
-                  </Card.Header>
-                  <Card.Body>
-                    <Row className="g-3">
-                      <Col md={4}>
-                        <Form.Group controlId="prescriptionCode">
-                          <Form.Label>Mã đơn thuốc</Form.Label>
-                          <Form.Control value={prescription?.prescriptionCode || "Tạo sau khi lưu"} disabled />
-                        </Form.Group>
-                      </Col>
-                      <Col md={4}>
-                        <Form.Group controlId="prescriptionStatus">
-                          <Form.Label>Trạng thái</Form.Label>
-                          <div>
-                            <Badge bg={prescriptionStatusVariant}>{prescriptionStatusLabel}</Badge>
-                          </div>
-                        </Form.Group>
-                      </Col>
-                      <Col md={4}>
-                        <Form.Group controlId="prescriptionDate">
-                          <Form.Label>Ngày kê</Form.Label>
-                          <Form.Control value={formatDate(prescription?.prescribedAt)} disabled />
-                        </Form.Group>
-                      </Col>
-                      <Col xs={12}>
-                        <Form.Group controlId="prescriptionNote">
-                          <Form.Label>Ghi chú đơn thuốc</Form.Label>
-                          <Form.Control
-                            as="textarea"
-                            rows={2}
-                            value={prescription?.note || ""}
-                            onChange={(e) =>
-                              setPrescription((current) => ({
-                                id: current?.id,
-                                prescriptionCode: current?.prescriptionCode,
-                                prescribedAt: current?.prescribedAt,
-                                status: current?.status || "PRESCRIBED",
-                                note: e.target.value,
-                                medicalRecordId: medicalRecord?.id,
-                                patientName: appointment?.patient?.fullName,
-                                items: current?.items || [],
-                              }))
-                            }
-                            placeholder="Dặn dò thêm cho đơn thuốc..."
-                            disabled={!prescriptionEditable || savingPrescription}
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                  </Card.Body>
-                </Card>
-
                 {prescriptionEditable && (
                   <Card className="prescription-subcard">
                     <Card.Header>
                       <h3>Tìm thuốc</h3>
                     </Card.Header>
                     <Card.Body>
-                      <Form.Group controlId="medicineSearch">
+                      <Form.Group controlId="medicineSearch" className="mb-0">
                         <Form.Label>Tìm thuốc</Form.Label>
-                        <Form.Control
-                          value={medicineKeyword}
-                          onChange={(e) => setMedicineKeyword(e.target.value)}
-                          placeholder="Nhập tên thuốc"
-                          disabled={savingPrescription}
-                        />
-                      </Form.Group>
-                      {medicineLoading && <LoadingState message="Đang tìm thuốc..." />}
-                      {medicineResults.length > 0 && (
-                        <div className="medicine-results">
-                          {medicineResults.map((medicine) => {
-                            const medicineId = medicine.medicineId ?? medicine.id;
-                            const medicineName = medicine.medicineName ?? medicine.name;
-                            const unitPrice = medicine.unitPrice ?? medicine.price;
+                        <div className="medicine-autocomplete">
+                          <Form.Control
+                            value={medicineKeyword}
+                            onFocus={() => {
+                              if (medicineKeyword.trim()) {
+                                setMedicineDropdownOpen(true);
+                              }
+                            }}
+                            onBlur={() => {
+                              setTimeout(() => setMedicineDropdownOpen(false), 150);
+                            }}
+                            onChange={(e) => {
+                              setMedicineKeyword(e.target.value);
+                              setMedicineDropdownOpen(Boolean(e.target.value.trim()));
+                            }}
+                            placeholder="Nhập tên thuốc"
+                            disabled={savingPrescription}
+                          />
+                          {medicineDropdownOpen && !savingPrescription && medicineKeyword.trim() && (
+                            <div className="medicine-autocomplete-menu">
+                              {medicineLoading ? (
+                                <div className="medicine-autocomplete-empty">Đang tìm thuốc...</div>
+                              ) : medicineSearchError ? (
+                                <div className="medicine-autocomplete-empty is-error">{medicineSearchError}</div>
+                              ) : medicineResults.length === 0 ? (
+                                <div className="medicine-autocomplete-empty">Không tìm thấy thuốc</div>
+                              ) : (
+                                medicineResults.map((medicine) => {
+                                  const medicineId = medicine.medicineId ?? medicine.id;
+                                  const medicineName = medicine.medicineName ?? medicine.name;
+                                  const unitPrice = medicine.unitPrice ?? medicine.price;
 
-                            return (
-                              <div className="medicine-result" key={medicineId}>
-                                <div>
-                                  <strong>{medicineName}</strong>
-                                  <span>
-                                    {medicine.unit || "--"} · {formatMoney(unitPrice)} · Tồn {medicine.availableQuantity ?? "--"}
-                                  </span>
-                                </div>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={() => addMedicineToPrescription(medicine)}
-                                  disabled={savingPrescription}
-                                >
-                                  Thêm
-                                </Button>
-                              </div>
-                            );
-                          })}
+                                  return (
+                                    <button
+                                      type="button"
+                                      className="medicine-autocomplete-item"
+                                      key={medicineId}
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => addMedicineToPrescription(medicine)}
+                                    >
+                                      <strong>{medicineName}</strong>
+                                      <span>
+                                        {medicine.unit || "--"} · {formatMoney(unitPrice)} · Tồn {medicine.availableQuantity ?? "--"}
+                                      </span>
+                                    </button>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </Form.Group>
                     </Card.Body>
                   </Card>
                 )}
@@ -927,7 +938,7 @@ function ExaminationWorkspacePage() {
                   <Card.Header>
                     <h3>Danh sách thuốc trong đơn</h3>
                   </Card.Header>
-                  <Card.Body className="p-0">
+                  <Card.Body className="p-0 prescription-table-body">
                     {(prescription?.items || []).length === 0 ? (
                       <EmptyState title="Chưa có thuốc trong đơn" description="Tìm thuốc và thêm vào đơn kê." />
                     ) : (
@@ -946,7 +957,8 @@ function ExaminationWorkspacePage() {
                         </thead>
                         <tbody>
                           {(prescription?.items || []).map((item, index) => {
-                            const overStock = Number.isFinite(Number(item.availableQuantity))
+                            const overStock = hasKnownAvailableQuantity(item)
+                              && Number.isFinite(Number(item.availableQuantity))
                               && Number(item.quantity || 0) > Number(item.availableQuantity);
 
                             return (
@@ -1025,6 +1037,29 @@ function ExaminationWorkspacePage() {
                     )}
                   </Card.Body>
                 </Card>
+
+                <Form.Group controlId="prescriptionNote" className="prescription-note-field">
+                  <Form.Label>Ghi chú đơn thuốc</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={prescription?.note || ""}
+                    onChange={(e) =>
+                      setPrescription((current) => ({
+                        id: current?.id,
+                        prescriptionCode: current?.prescriptionCode,
+                        prescribedAt: current?.prescribedAt,
+                        status: current?.status || "PRESCRIBED",
+                        note: e.target.value,
+                        medicalRecordId: medicalRecord?.id,
+                        patientName: appointment?.patient?.fullName,
+                        items: current?.items || [],
+                      }))
+                    }
+                    placeholder="Dặn dò chung cho cả đơn thuốc nếu cần..."
+                    disabled={!prescriptionEditable || savingPrescription}
+                  />
+                </Form.Group>
 
                 {prescriptionEditable && (
                   <Button type="submit" disabled={savingPrescription}>

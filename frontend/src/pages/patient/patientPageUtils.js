@@ -1,3 +1,5 @@
+import { makeAvatarDataUri } from "../../data/patientMockData";
+
 export const formatCurrency = (value) => new Intl.NumberFormat("vi-VN").format(value || 0) + "đ";
 
 export const formatShortDate = (value) => {
@@ -43,6 +45,11 @@ export const getPatientStatusMeta = (status, fallbackLabel) => {
 };
 
 export const countByStatus = (items = [], status) => items.filter((item) => item.status === status).length;
+
+export const getAvatarSource = (profile, fallbackName = "EverCare") => {
+  const avatarUrl = profile?.avatarUrl || profile?.avatar || profile?.photoUrl || profile?.imageUrl || profile?.profilePicture || profile?.avatarPath;
+  return avatarUrl || makeAvatarDataUri(profile?.fullName || fallbackName);
+};
 
 export const filterByCategory = (items = [], category) => {
   if (!category || category === "ALL") return items;

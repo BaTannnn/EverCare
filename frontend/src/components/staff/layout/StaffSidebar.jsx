@@ -1,11 +1,10 @@
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import cookies from "react-cookies";
 
 const menuItems = [
   { to: "/staff/dashboard", icon: "▦", label: "Tổng quan", active: (path) => path === "/staff/dashboard" },
   { to: "/staff/test-requests", icon: "□", label: "Chỉ định chờ xử lý", active: (path) => path === "/staff/test-requests" },
   { to: "/staff/test-results", icon: "▤", label: "Lịch sử kết quả", active: (path) => path === "/staff/test-results" },
-  { to: "/staff/settings", icon: "⚙", label: "Cài đặt", active: (path) => path === "/staff/settings" },
 ];
 
 function StaffSidebar() {
@@ -40,10 +39,6 @@ function StaffSidebar() {
       </nav>
 
       <div className="doctor-sidebar-footer">
-        <NavLink to="/staff/settings" className="doctor-nav-link">
-          <span aria-hidden="true">◎</span>
-          Hồ sơ cá nhân
-        </NavLink>
         <button type="button" className="doctor-logout" onClick={handleLogout}>
           <span aria-hidden="true">←</span>
           Đăng xuất

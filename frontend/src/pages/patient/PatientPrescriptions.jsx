@@ -58,7 +58,7 @@ function PatientPrescriptions() {
       </div>
 
       <section className="patient-prescription-list">
-        {prescriptions.map((prescription) => {
+        {prescriptions.length > 0 ? prescriptions.map((prescription) => {
           const statusMeta = getPatientStatusMeta(prescription.status);
 
           return (
@@ -96,7 +96,12 @@ function PatientPrescriptions() {
               </Card.Body>
             </Card>
           );
-        })}
+        }) : (
+          <div className="patient-empty-state">
+            <h4>Chưa có đơn thuốc</h4>
+            <p>Backend hiện chưa trả về đơn thuốc cho hồ sơ của bạn.</p>
+          </div>
+        )}
       </section>
 
       <Card className="patient-info-note prescription-banner">
@@ -111,7 +116,7 @@ function PatientPrescriptions() {
         </Card.Body>
       </Card>
 
-      <Modal show={Boolean(selectedPrescription)} onHide={() => setSelectedPrescription(null)} centered size="lg">
+      <Modal show={Boolean(selectedPrescription)} onHide={() => setSelectedPrescription(null)} centered size="lg" animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Chi tiết đơn thuốc</Modal.Title>
         </Modal.Header>

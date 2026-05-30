@@ -2,6 +2,7 @@ package com.evercare.controllers.api;
 
 import com.evercare.dtos.request.AppointmentCancelRequest;
 import com.evercare.dtos.request.AppointmentRequest;
+import com.evercare.dtos.response.AppointmentCancelResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.services.AppointmentService;
 import java.util.List;
@@ -33,9 +34,8 @@ public class ApiAppointmentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping({"/appointments", "/patients/{patientId}/appointments"})
+    @GetMapping({"/appointments", "/patient/appointments"})
     public ResponseEntity<List<AppointmentResponse>> list(
-            @PathVariable(value = "patientId", required = false) Long patientId,
             @RequestParam Map<String, String> params
     ) {
         List<AppointmentResponse> response = this.appointmentService.getAppointmentsByCurrentPatient(params);
@@ -48,12 +48,12 @@ public class ApiAppointmentController {
         return ResponseEntity.ok(response);
     }
 
-    @PatchMapping("/appointments/{appointmentId}/cancel")
-    public ResponseEntity<AppointmentResponse> destroy(
+    @PatchMapping({"/appointments/{appointmentId}/cancel", "/patient/appointments/{appointmentId}/cancel"})
+    public ResponseEntity<AppointmentCancelResponse> destroy(
             @PathVariable("appointmentId") Long appointmentId,
             @RequestBody(required = false) AppointmentCancelRequest request
     ) {
-        AppointmentResponse response = this.appointmentService.cancelAppointment(appointmentId, request);
+        AppointmentCancelResponse response = this.appointmentService.cancelAppointment(appointmentId, request);
         return ResponseEntity.ok(response);
     }
 }

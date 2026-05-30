@@ -40,9 +40,6 @@ function StaffTopbar() {
         <button type="button" className="icon-button" aria-label="Thông báo">
           !
         </button>
-        <button type="button" className="icon-button" aria-label="Cài đặt" onClick={() => navigate("/staff/settings")}>
-          ⚙
-        </button>
         <div className="doctor-profile">
           <div className="doctor-avatar">{(user?.fullName || user?.username || "NV").slice(0, 2).toUpperCase()}</div>
           <div>

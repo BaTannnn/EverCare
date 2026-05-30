@@ -18,11 +18,52 @@ export const unwrapPatientList = (response) => {
     return candidate;
   }
 
+  if (Array.isArray(candidate?.items)) {
+    return candidate.items;
+  }
+
+  if (Array.isArray(candidate?.content)) {
+    return candidate.content;
+  }
+
+  if (Array.isArray(candidate?.data)) {
+    return candidate.data;
+  }
+
   if (Array.isArray(response.data)) {
     return response.data;
   }
 
   return [];
+};
+
+export const unwrapPatientPage = (response) => {
+  if (!response) {
+    return { items: [], pageInfo: null };
+  }
+
+  const data = response.data?.data ?? response.data?.content ?? response.data?.result ?? response.data;
+
+  if (Array.isArray(data)) {
+    return { items: data, pageInfo: null };
+  }
+
+  if (data && typeof data === "object") {
+    const items = Array.isArray(data.content) ? data.content : Array.isArray(data.items) ? data.items : [];
+    return {
+      items,
+      pageInfo: {
+        page: Number(data.page ?? data.number ?? data.currentPage ?? 1),
+        size: Number(data.size ?? data.pageSize ?? (items.length || 10)),
+        totalPages: Number(data.totalPages ?? data.total_page ?? data.pages ?? 1),
+        totalElements: Number(data.totalElements ?? data.total ?? items.length),
+        hasNext: Boolean(data.hasNext ?? data.hasNextPage ?? false),
+        hasPrevious: Boolean(data.hasPrevious ?? data.hasPreviousPage ?? false),
+      },
+    };
+  }
+
+  return { items: [], pageInfo: null };
 };
 
 export const resolvePatientResponse = async (requestPromise, fallbackData, label) => {

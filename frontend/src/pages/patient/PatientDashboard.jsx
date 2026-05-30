@@ -7,7 +7,7 @@ import { getPatientInvoices } from "../../services/patient/patientInvoiceApi";
 import { getPatientMedicalRecords } from "../../services/patient/patientMedicalRecordApi";
 import { getPatientNotifications } from "../../services/patient/patientNotificationApi";
 import { getPatientPrescriptions } from "../../services/patient/patientPrescriptionApi";
-import { formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
+import { formatCurrency, getAvatarSource, getPatientStatusMeta } from "./patientPageUtils";
 
 const summaryIcons = [BsCalendar2Check, BsFileEarmarkMedical, BsHeartPulse, BsCashCoin];
 
@@ -26,6 +26,22 @@ const supportCard = {
 
 const sortByLatestDate = (items = [], field) =>
   [...items].sort((a, b) => new Date(b[field] || 0).getTime() - new Date(a[field] || 0).getTime());
+
+const normalizeCollection = (value) => {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (Array.isArray(value?.items)) {
+    return value.items;
+  }
+
+  if (Array.isArray(value?.content)) {
+    return value.content;
+  }
+
+  return [];
+};
 
 function PatientDashboard() {
   const { profile } = useOutletContext() || {};
@@ -54,19 +70,19 @@ function PatientDashboard() {
         }
 
         if (appointmentsResult.status === "fulfilled") {
-          setAppointments(appointmentsResult.value.data || []);
+          setAppointments(normalizeCollection(appointmentsResult.value.data));
         }
         if (recordsResult.status === "fulfilled") {
-          setRecords(recordsResult.value.data || []);
+          setRecords(normalizeCollection(recordsResult.value.data));
         }
         if (prescriptionsResult.status === "fulfilled") {
-          setPrescriptions(prescriptionsResult.value.data || []);
+          setPrescriptions(normalizeCollection(prescriptionsResult.value.data));
         }
         if (notificationsResult.status === "fulfilled") {
-          setNotifications(notificationsResult.value.data || []);
+          setNotifications(normalizeCollection(notificationsResult.value.data));
         }
         if (invoicesResult.status === "fulfilled") {
-          setInvoices(invoicesResult.value.data || []);
+          setInvoices(normalizeCollection(invoicesResult.value.data));
         }
       } finally {
         if (mounted) {
@@ -142,6 +158,11 @@ function PatientDashboard() {
   }
 
   const upcomingStatus = getPatientStatusMeta(dashboard.upcomingAppointment?.status || "CONFIRMED");
+  const upcomingAvatar = getAvatarSource(
+    dashboard.upcomingAppointment ? { avatar: dashboard.upcomingAppointment.doctorAvatar, fullName: dashboard.upcomingAppointment.doctorName } : profile,
+    dashboard.upcomingAppointment?.doctorName || profile?.fullName || "EverCare",
+  );
+  const upcomingBadgeLabel = dashboard.upcomingAppointment ? upcomingStatus.label : "Chưa có lịch hẹn";
 
   return (
     <div className="patient-page">
@@ -195,27 +216,37 @@ function PatientDashboard() {
 
           <Card className="patient-next-appointment">
             <Card.Body>
-              <div className="patient-next-appointment-badge">{upcomingStatus.label}</div>
+              <div className="patient-next-appointment-badge">{upcomingBadgeLabel}</div>
+              {dashboard.upcomingAppointment ? (
                 <div className="patient-next-appointment-content">
-                <img src={dashboard.upcomingAppointment?.doctorAvatar || profile?.avatar} alt={dashboard.upcomingAppointment?.doctorName} />
-                <div className="patient-next-appointment-copy">
-                  <span>{dashboard.upcomingAppointment?.departmentName}</span>
-                  <h4>{dashboard.upcomingAppointment?.doctorName}</h4>
-                  <p>{dashboard.upcomingAppointment?.serviceName}</p>
-                  <div className="patient-chip-row">
-                    <span className="patient-time-chip">{dashboard.upcomingAppointment?.displayTime}</span>
-                    <span className="patient-time-chip">{dashboard.upcomingAppointment?.displayDate}</span>
+                  <img src={upcomingAvatar} alt={dashboard.upcomingAppointment?.doctorName} />
+                  <div className="patient-next-appointment-copy">
+                    <span>{dashboard.upcomingAppointment?.departmentName}</span>
+                    <h4>{dashboard.upcomingAppointment?.doctorName}</h4>
+                    <p>{dashboard.upcomingAppointment?.serviceName}</p>
+                    <div className="patient-chip-row">
+                      <span className="patient-time-chip">{dashboard.upcomingAppointment?.displayTime}</span>
+                      <span className="patient-time-chip">{dashboard.upcomingAppointment?.displayDate}</span>
+                    </div>
+                  </div>
+                  <div className="patient-next-appointment-actions">
+                    <Button type="button" variant="light" className="patient-outline-strong">
+                      Xem chi tiết
+                    </Button>
+                    <Button type="button" variant="primary" className="patient-primary-soft">
+                      Dời lịch
+                    </Button>
                   </div>
                 </div>
-                <div className="patient-next-appointment-actions">
-                  <Button type="button" variant="light" className="patient-outline-strong">
-                    Xem chi tiết
-                  </Button>
-                  <Button type="button" variant="primary" className="patient-primary-soft">
-                    Dời lịch
+              ) : (
+                <div className="patient-empty-state compact">
+                  <h4>Chưa có lịch hẹn</h4>
+                  <p>Bạn chưa có lịch hẹn sắp tới. Hãy đặt lịch khám để bắt đầu.</p>
+                  <Button type="button" className="patient-primary-soft" as={Link} to="/patient/book-appointment">
+                    Đặt lịch ngay
                   </Button>
                 </div>
-              </div>
+              )}
             </Card.Body>
           </Card>
 
@@ -228,18 +259,25 @@ function PatientDashboard() {
           </div>
 
           <div className="patient-notification-stack">
-            {dashboard.notifications.slice(0, 3).map((notification) => (
-              <div key={notification.id} className="patient-notification-row">
-                <div className="patient-notification-dot-icon">
-                  <BsClipboard2Pulse />
+            {dashboard.notifications.length > 0 ? (
+              dashboard.notifications.slice(0, 3).map((notification) => (
+                <div key={notification.id} className="patient-notification-row">
+                  <div className="patient-notification-dot-icon">
+                    <BsClipboard2Pulse />
+                  </div>
+                  <div>
+                    <h4>{notification.title}</h4>
+                    <p>{notification.content}</p>
+                  </div>
+                  <span>{notification.time}</span>
                 </div>
-                <div>
-                  <h4>{notification.title}</h4>
-                  <p>{notification.content}</p>
-                </div>
-                <span>{notification.time}</span>
+              ))
+            ) : (
+              <div className="patient-empty-state compact">
+                <h4>Chưa có thông báo mới</h4>
+                <p>Hệ thống chưa ghi nhận cập nhật nào cho tài khoản của bạn.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 

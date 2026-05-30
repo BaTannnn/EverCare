@@ -126,7 +126,7 @@ function PatientLayout() {
         />
 
         <main className="patient-content">
-          <Outlet context={{ profile, notifications, setNotifications }} />
+          <Outlet context={{ profile, setProfile, notifications, setNotifications }} />
         </main>
 
         <footer className="patient-footer">

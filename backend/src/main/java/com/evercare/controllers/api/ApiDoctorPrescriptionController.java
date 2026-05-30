@@ -45,6 +45,24 @@ public class ApiDoctorPrescriptionController {
         }
     }
 
+    @GetMapping("/prescriptions/{prescriptionId}")
+    public ResponseEntity<?> retrieve(
+            Principal principal,
+            @PathVariable("prescriptionId") Long prescriptionId
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+        }
+
+        try {
+            return ResponseEntity.ok(this.doctorPrescriptionService.getPrescription(principal.getName(), prescriptionId));
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/medical-records/{recordId}/prescriptions")
     public ResponseEntity<?> create(
             Principal principal,

@@ -1,5 +1,6 @@
 backend/src/main/resources/database.properties
 backend/src/main/resources/configs.properties
+backend/src/main/resources/payments.properties
 *.env
 .env
 

@@ -11,6 +11,7 @@ import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Medicine;
 import com.evercare.pojo.Prescription;
 import com.evercare.pojo.PrescriptionItem;
+import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalRecordRepository;
@@ -63,6 +64,20 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    public PrescriptionResponse getPrescription(String username, Long prescriptionId) {
+        Doctor doctor = getCurrentDoctor(username);
+        Prescription prescription = this.prescriptionRepo.getPrescriptionById(prescriptionId);
+
+        if (prescription == null || Boolean.FALSE.equals(prescription.getActive())) {
+            throw new NoSuchElementException("Không tìm thấy đơn thuốc");
+        }
+
+        validateOwnedMedicalRecord(doctor, prescription.getMedicalRecordId());
+
+        return toResponse(prescription);
     }
 
     @Override
@@ -212,11 +227,26 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         User user = this.userService.getUserByUsername(username);
         Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
 
-        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
+        if (!hasRole(user, "DOCTOR")
+                || doctor == null
+                || Boolean.FALSE.equals(doctor.getActive())) {
             throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
         }
 
         return doctor;
+    }
+
+    private boolean hasRole(User user, String expectedRole) {
+        if (user == null || user.getRoleSet() == null) {
+            return false;
+        }
+
+        String normalizedExpectedRole = expectedRole.toUpperCase();
+        return user.getRoleSet().stream()
+                .map(Role::getCode)
+                .filter(code -> code != null)
+                .map(code -> code.trim().toUpperCase())
+                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private PrescriptionResponse toResponse(Prescription prescription) {

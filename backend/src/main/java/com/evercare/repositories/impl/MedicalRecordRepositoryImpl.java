@@ -55,10 +55,29 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
                 JOIN FETCH mr.doctorId d
                 JOIN FETCH mr.patientId p
                 JOIN FETCH mr.appointmentId a
+                LEFT JOIN FETCH mr.invoice i
                 LEFT JOIN FETCH a.medicalRecord amr
                 WHERE mr.id = :recordId
                 """, MedicalRecord.class)
                 .setParameter("recordId", recordId)
+                .uniqueResult();
+    }
+
+    @Override
+    public MedicalRecord getMedicalRecordByAppointmentId(Long appointmentId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        return session.createQuery("""
+                SELECT DISTINCT mr
+                FROM MedicalRecord mr
+                JOIN FETCH mr.doctorId d
+                JOIN FETCH mr.patientId p
+                JOIN FETCH mr.appointmentId a
+                LEFT JOIN FETCH mr.invoice i
+                WHERE a.id = :appointmentId
+                    AND mr.active = true
+                """, MedicalRecord.class)
+                .setParameter("appointmentId", appointmentId)
                 .uniqueResult();
     }
 
