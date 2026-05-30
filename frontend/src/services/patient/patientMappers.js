@@ -290,6 +290,7 @@ export const mapDoctor = (rawDoctor) => {
     avatar: doctor.avatarUrl || createAvatar(fullName),
     qualification: normalizeText(doctor.qualification, ""),
     specialization: normalizeText(doctor.specialization, normalizeText(doctor.departmentName, "Chuyên khoa")),
+    departmentId: doctor.departmentId?.id ?? doctor.departmentId ?? null,
     departmentName: normalizeText(doctor.departmentName, ""),
     workStatus: normalizeText(doctor.workStatus, "AVAILABLE"),
     active: doctor.active ?? true,
@@ -328,6 +329,7 @@ export const mapMedicalService = (rawService) => {
     description: normalizeText(service.description, ""),
     price: normalizeCurrency(service.price),
     serviceType: normalizeText(service.serviceType, ""),
+    departmentId: service.departmentId?.id ?? service.departmentId ?? null,
     departmentName: normalizeText(service.departmentName, ""),
     active: service.active ?? true,
   };

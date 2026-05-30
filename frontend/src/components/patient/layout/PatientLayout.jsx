@@ -21,7 +21,7 @@ const routeMeta = [
   {
     pattern: "/patient/book-appointment",
     title: "Đặt lịch khám",
-    subtitle: "Chọn chuyên khoa, bác sĩ, thời gian và xác nhận nhanh chóng.",
+    subtitle: "Chọn dịch vụ, bác sĩ, thời gian và xác nhận nhanh chóng.",
     searchPlaceholder: "Tìm kiếm bác sĩ, chuyên khoa...",
   },
   {

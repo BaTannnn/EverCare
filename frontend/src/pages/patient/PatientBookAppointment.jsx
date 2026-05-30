@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Form } from "react-bootstrap";
-import {
-  BsArrowLeft,
-  BsArrowRight,
-  BsCheckCircle,
-  BsClock,
-  BsExclamationTriangle,
-  BsStarFill,
-} from "react-icons/bs";
+import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
+import { BsClock, BsExclamationTriangle, BsInfoCircle, BsStarFill } from "react-icons/bs";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { bookPatientAppointment } from "../../services/patient/patientAppointmentApi";
 import { getPatientDoctors, getPatientMedicalServices } from "../../services/patient/patientCatalogApi";
 import { getPatientDoctorSchedules } from "../../services/patient/patientDoctorScheduleApi";
 import { getAvatarSource, formatCurrency } from "./patientPageUtils";
-
-const steps = ["Chuyên khoa", "Dịch vụ", "Bác sĩ", "Thời gian", "Xác nhận"];
 
 const toLocalDateInput = (date = new Date()) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -22,13 +13,6 @@ const toLocalDateInput = (date = new Date()) => {
 };
 
 const normalizeId = (value) => String(value ?? "");
-
-const matchesSpecialty = (item, specialty) => {
-  if (!item || !specialty || specialty === "ALL") return true;
-  return [item.specialization, item.departmentName, item.specialty].some((value) => value === specialty);
-};
-
-const isScheduleAvailable = (schedule) => schedule.remainingSlots > 0 && ["AVAILABLE", "OPEN", "ACTIVE"].includes(schedule.status);
 
 const getApiErrorMessage = (error, fallback) => {
   const responseData = error?.response?.data;
@@ -59,21 +43,48 @@ const buildBookingConflictMessage = (message) => {
     return "Bác sĩ không có lịch trống trong khung giờ này. Vui lòng chọn thời gian khác.";
   }
 
-  if (normalized.includes("dịch vụ không thuộc chuyên khoa")) {
-    return "Dịch vụ bạn chọn không thuộc chuyên khoa của bác sĩ. Vui lòng chọn lại dịch vụ hoặc bác sĩ.";
+  if (normalized.includes("dịch vụ") && normalized.includes("bác sĩ") && normalized.includes("không")) {
+    return "Dịch vụ bạn chọn không phù hợp với bác sĩ đã chọn. Vui lòng chọn lại dịch vụ hoặc bác sĩ.";
   }
 
   return message || "Không thể đặt lịch ở thời điểm này. Vui lòng thử lại.";
 };
 
+const isScheduleAvailable = (schedule) => schedule.remainingSlots > 0 && ["AVAILABLE", "OPEN", "ACTIVE"].includes(schedule.status);
+
+const getDepartmentKey = (item) => normalizeId(item?.departmentId);
+
+const matchesServiceDoctorDepartment = (service, doctor) => {
+  if (!service || !doctor) return true;
+
+  const serviceDepartmentId = getDepartmentKey(service);
+  const doctorDepartmentId = getDepartmentKey(doctor);
+  const serviceDepartmentName = service.departmentName || service.specialization || "";
+  const doctorDepartmentName = doctor.departmentName || doctor.specialization || "";
+
+  if (serviceDepartmentId) {
+    if (doctorDepartmentId) {
+      return doctorDepartmentId === serviceDepartmentId;
+    }
+
+    if (serviceDepartmentName) {
+      return [doctorDepartmentName, doctor.specialization].some((value) => value === serviceDepartmentName);
+    }
+  }
+
+  if (serviceDepartmentName) {
+    return [doctorDepartmentName, doctor.specialization].some((value) => value === serviceDepartmentName);
+  }
+
+  return true;
+};
+
 function PatientBookAppointment() {
   const navigate = useNavigate();
   const { profile } = useOutletContext() || {};
-  const [step, setStep] = useState(0);
   const [doctors, setDoctors] = useState([]);
   const [services, setServices] = useState([]);
   const [doctorSchedules, setDoctorSchedules] = useState([]);
-  const [selectedSpecialty, setSelectedSpecialty] = useState("ALL");
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedScheduleId, setSelectedScheduleId] = useState("");
@@ -99,14 +110,8 @@ function PatientBookAppointment() {
 
         if (!mounted) return;
 
-        const doctorList = doctorResponse.data || [];
-        const serviceList = serviceResponse.data || [];
-
-        setDoctors(doctorList);
-        setServices(serviceList);
-
-        const firstSpecialty = doctorList.find((doctor) => doctor.specialization)?.specialization || serviceList.find((service) => service.departmentName)?.departmentName || "ALL";
-        setSelectedSpecialty(firstSpecialty);
+        setDoctors(doctorResponse.data || []);
+        setServices(serviceResponse.data || []);
       } catch (loadError) {
         if (!mounted) return;
         setError("Không tải được danh sách bác sĩ hoặc dịch vụ.");
@@ -125,56 +130,58 @@ function PatientBookAppointment() {
     };
   }, []);
 
-  const specialties = useMemo(() => {
-    const fromDoctors = doctors.map((doctor) => doctor.specialization).filter(Boolean);
-    const fromServices = services.map((service) => service.departmentName || service.specialization).filter(Boolean);
-    return ["ALL", ...new Set([...fromDoctors, ...fromServices])];
-  }, [doctors, services]);
-
-  const availableServices = useMemo(
-    () => services.filter((service) => matchesSpecialty(service, selectedSpecialty)),
-    [selectedSpecialty, services],
-  );
-
-  const availableDoctors = useMemo(
-    () => doctors.filter((doctor) => matchesSpecialty(doctor, selectedSpecialty)),
-    [doctors, selectedSpecialty],
-  );
+  const availableServices = useMemo(() => services.filter((service) => service.active !== false), [services]);
 
   const selectedService = useMemo(
-    () => availableServices.find((service) => normalizeId(service.id) === normalizeId(selectedServiceId)) || availableServices[0] || null,
+    () => availableServices.find((service) => normalizeId(service.id) === normalizeId(selectedServiceId)) || null,
     [availableServices, selectedServiceId],
   );
 
+  const availableDoctors = useMemo(
+    () =>
+      doctors.filter((doctor) => {
+        if (doctor.active === false) return false;
+        if (!selectedService) return true;
+        return matchesServiceDoctorDepartment(selectedService, doctor);
+      }),
+    [doctors, selectedService],
+  );
+
   const selectedDoctor = useMemo(
-    () => availableDoctors.find((doctor) => normalizeId(doctor.id) === normalizeId(selectedDoctorId)) || availableDoctors[0] || null,
+    () => availableDoctors.find((doctor) => normalizeId(doctor.id) === normalizeId(selectedDoctorId)) || null,
     [availableDoctors, selectedDoctorId],
   );
 
+  const availableSchedules = useMemo(
+    () => doctorSchedules.filter((schedule) => schedule.workDate === scheduleDate || !schedule.workDate),
+    [doctorSchedules, scheduleDate],
+  );
+
   const selectedSchedule = useMemo(
-    () => doctorSchedules.find((schedule) => normalizeId(schedule.id) === normalizeId(selectedScheduleId)) || null,
-    [doctorSchedules, selectedScheduleId],
+    () => availableSchedules.find((schedule) => normalizeId(schedule.id) === normalizeId(selectedScheduleId)) || null,
+    [availableSchedules, selectedScheduleId],
   );
 
   useEffect(() => {
-    if (availableServices.length === 0) {
-      setSelectedServiceId("");
-      return;
-    }
-
-    const nextService = availableServices.find((service) => normalizeId(service.id) === normalizeId(selectedServiceId)) || availableServices[0];
-    setSelectedServiceId(normalizeId(nextService.id));
-  }, [availableServices, selectedServiceId]);
-
-  useEffect(() => {
-    if (availableDoctors.length === 0) {
+    if (!selectedServiceId) {
       setSelectedDoctorId("");
+      setSelectedScheduleId("");
+      setDoctorSchedules([]);
+      setAppointmentDate("");
+      setStartTime("");
+      setEndTime("");
       return;
     }
 
-    const nextDoctor = availableDoctors.find((doctor) => normalizeId(doctor.id) === normalizeId(selectedDoctorId)) || availableDoctors[0];
-    setSelectedDoctorId(normalizeId(nextDoctor.id));
-  }, [availableDoctors, selectedDoctorId]);
+    if (selectedDoctorId && !availableDoctors.some((doctor) => normalizeId(doctor.id) === normalizeId(selectedDoctorId))) {
+      setSelectedDoctorId("");
+      setSelectedScheduleId("");
+      setDoctorSchedules([]);
+      setAppointmentDate("");
+      setStartTime("");
+      setEndTime("");
+    }
+  }, [availableDoctors, selectedDoctorId, selectedServiceId]);
 
   useEffect(() => {
     let mounted = true;
@@ -183,11 +190,19 @@ function PatientBookAppointment() {
       if (!selectedDoctor?.id) {
         setDoctorSchedules([]);
         setSelectedScheduleId("");
+        setScheduleError("");
+        setAppointmentDate("");
+        setStartTime("");
+        setEndTime("");
         return;
       }
 
       setLoadingSchedules(true);
       setScheduleError("");
+      setSelectedScheduleId("");
+      setAppointmentDate("");
+      setStartTime("");
+      setEndTime("");
 
       try {
         const response = await getPatientDoctorSchedules(selectedDoctor.id, {
@@ -197,25 +212,10 @@ function PatientBookAppointment() {
 
         if (!mounted) return;
 
-        const scheduleList = response.data || [];
-        setDoctorSchedules(scheduleList);
-
-        const firstAvailableSchedule = scheduleList.find(isScheduleAvailable) || scheduleList[0] || null;
-        if (firstAvailableSchedule) {
-          setSelectedScheduleId(normalizeId(firstAvailableSchedule.id));
-          setAppointmentDate(firstAvailableSchedule.workDate || scheduleDate);
-          setStartTime(firstAvailableSchedule.startTime || "");
-          setEndTime(firstAvailableSchedule.endTime || "");
-        } else {
-          setSelectedScheduleId("");
-          setAppointmentDate(scheduleDate);
-          setStartTime("");
-          setEndTime("");
-        }
+        setDoctorSchedules(response.data || []);
       } catch (loadError) {
         if (!mounted) return;
         setDoctorSchedules([]);
-        setSelectedScheduleId("");
         setScheduleError("Không tải được lịch làm việc của bác sĩ.");
         console.error(loadError);
       } finally {
@@ -240,29 +240,39 @@ function PatientBookAppointment() {
     setEndTime(selectedSchedule.endTime || "");
   }, [scheduleDate, selectedSchedule]);
 
-  const goNext = () => {
-    if (step === 1 && !selectedService) {
-      setError("Vui lòng chọn dịch vụ trước khi tiếp tục.");
-      return;
-    }
-
-    if (step === 2 && !selectedDoctor) {
-      setError("Vui lòng chọn bác sĩ trước khi tiếp tục.");
-      return;
-    }
-
-    if (step === 3 && !selectedSchedule) {
-      setError("Bác sĩ này hiện chưa có lịch trống trong ngày bạn chọn.");
-      return;
-    }
-
+  const handleServiceChange = (event) => {
+    setSelectedServiceId(event.target.value);
+    setSelectedDoctorId("");
+    setSelectedScheduleId("");
+    setDoctorSchedules([]);
+    setAppointmentDate("");
+    setStartTime("");
+    setEndTime("");
     setError("");
-    setStep((current) => Math.min(current + 1, steps.length - 1));
+    setScheduleError("");
   };
 
-  const goBack = () => {
+  const handleDoctorChange = (event) => {
+    setSelectedDoctorId(event.target.value);
+    setSelectedScheduleId("");
+    setAppointmentDate("");
+    setStartTime("");
+    setEndTime("");
     setError("");
-    setStep((current) => Math.max(current - 1, 0));
+    setScheduleError("");
+  };
+
+  const handleScheduleChange = (event) => {
+    const scheduleId = event.target.value;
+    setSelectedScheduleId(scheduleId);
+    setError("");
+
+    const nextSchedule = availableSchedules.find((schedule) => normalizeId(schedule.id) === normalizeId(scheduleId));
+    if (nextSchedule) {
+      setAppointmentDate(nextSchedule.workDate || scheduleDate);
+      setStartTime(nextSchedule.startTime || "");
+      setEndTime(nextSchedule.endTime || "");
+    }
   };
 
   const handleConfirm = async (event) => {
@@ -274,7 +284,7 @@ function PatientBookAppointment() {
     }
 
     if (!selectedSchedule || !selectedDoctor || !selectedService) {
-      setError("Vui lòng chọn đầy đủ chuyên khoa, bác sĩ, dịch vụ và khung giờ.");
+      setError("Vui lòng chọn đầy đủ dịch vụ, bác sĩ và khung giờ.");
       return;
     }
 
@@ -325,8 +335,8 @@ function PatientBookAppointment() {
       <div className="patient-page-header-row align-start">
         <div>
           <p className="patient-eyebrow">Đặt lịch khám</p>
-          <h2>Đặt lịch trực tuyến theo từng bước</h2>
-          <p className="patient-page-subtitle">Chọn chuyên khoa, dịch vụ, bác sĩ, lịch trống và xác nhận mà không cần tải lại trang.</p>
+          <h2>Đặt lịch trong một màn hình</h2>
+          <p className="patient-page-subtitle">Chọn dịch vụ, bác sĩ, khung giờ và xem lại toàn bộ thông tin ngay bên dưới trước khi xác nhận.</p>
         </div>
       </div>
 
@@ -344,298 +354,188 @@ function PatientBookAppointment() {
         </Alert>
       )}
 
-      <section className="patient-stepper">
-        {steps.map((label, index) => (
-          <div key={label} className={`patient-step ${index <= step ? "active" : ""}`}>
-            <div className="patient-step-circle">{index < step ? <BsCheckCircle /> : index + 1}</div>
-            <span>{label}</span>
-          </div>
-        ))}
-      </section>
-
       <section className="patient-booking-layout single-column">
         <div className="patient-booking-main">
-          {step === 0 && (
-            <Card className="patient-booking-card">
-              <Card.Body>
-                <div className="patient-section-head compact">
-                  <div>
-                    <h3>Chọn chuyên khoa</h3>
-                    <p>Danh sách chuyên khoa được lấy từ danh mục bác sĩ và dịch vụ thật.</p>
-                  </div>
+          <Card className="patient-booking-card">
+            <Card.Body>
+              <div className="patient-section-head compact">
+                <div>
+                  <h3>Thông tin đặt lịch</h3>
+                  <p>Điền từng thông tin trong cùng một form, hệ thống sẽ tự động cập nhật phần xem trước phía dưới.</p>
                 </div>
-                <div className="patient-pill-grid">
-                  {specialties.map((specialty) => (
-                    <button
-                      key={specialty}
-                      type="button"
-                      className={`patient-pill ${selectedSpecialty === specialty ? "selected" : ""}`}
-                      onClick={() => {
-                        setSelectedSpecialty(specialty);
-                        setSelectedServiceId("");
-                        setSelectedDoctorId("");
-                        setSelectedScheduleId("");
-                      }}
-                    >
-                      {specialty === "ALL" ? "Tất cả" : specialty}
-                    </button>
-                  ))}
-                </div>
-              </Card.Body>
-            </Card>
-          )}
+              </div>
 
-          {step === 1 && (
-            <Card className="patient-booking-card">
-              <Card.Body>
-                <div className="patient-section-head compact">
-                  <div>
-                    <h3>Chọn dịch vụ</h3>
-                    <p>{selectedSpecialty === "ALL" ? "Tất cả dịch vụ đang khả dụng." : `Dịch vụ thuộc chuyên khoa ${selectedSpecialty}.`}</p>
-                  </div>
-                </div>
+              <Form onSubmit={handleConfirm}>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Dịch vụ</Form.Label>
+                      <Form.Select value={selectedServiceId} onChange={handleServiceChange}>
+                        <option value="">Chọn dịch vụ</option>
+                        {availableServices.map((service) => (
+                          <option key={service.id} value={normalizeId(service.id)}>
+                            {service.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
 
-                {availableServices.length > 0 ? (
-                  <div className="patient-service-grid">
-                    {availableServices.map((service) => (
-                      <button
-                        key={service.id}
-                        type="button"
-                        className={`patient-service-card ${normalizeId(selectedServiceId) === normalizeId(service.id) ? "selected" : ""}`}
-                        onClick={() => setSelectedServiceId(normalizeId(service.id))}
-                      >
-                        <strong>{service.name}</strong>
-                        <span>{service.description || service.serviceType || "Dịch vụ khám"}</span>
-                        <div>
-                          <em>{service.departmentName || service.specialization || "EverCare"}</em>
-                          <b>{formatCurrency(service.price)}</b>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="patient-empty-state">
-                    <h4>Chưa có dịch vụ phù hợp</h4>
-                    <p>Backend hiện chưa trả về dịch vụ cho chuyên khoa này.</p>
-                  </div>
+                  <Col md={6}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Bác sĩ</Form.Label>
+                      <Form.Select value={selectedDoctorId} onChange={handleDoctorChange} disabled={!selectedServiceId}>
+                        <option value="">{selectedServiceId ? "Chọn bác sĩ" : "Chọn dịch vụ trước"}</option>
+                        {availableDoctors.map((doctor) => (
+                          <option key={doctor.id} value={normalizeId(doctor.id)}>
+                            {doctor.fullName}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={4}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Ngày khám</Form.Label>
+                      <Form.Control type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} disabled={!selectedDoctorId} />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={8}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Khung giờ khám</Form.Label>
+                      <Form.Select value={selectedScheduleId} onChange={handleScheduleChange} disabled={!selectedDoctorId || loadingSchedules}>
+                        <option value="">{selectedDoctorId ? "Chọn khung giờ" : "Chọn bác sĩ trước"}</option>
+                        {availableSchedules.map((schedule) => {
+                          const isDisabled = !isScheduleAvailable(schedule);
+                          return (
+                            <option key={schedule.id} value={normalizeId(schedule.id)} disabled={isDisabled}>
+                              {schedule.displayDate} | {schedule.displayRange} {isDisabled ? "(Hết chỗ)" : ""}
+                            </option>
+                          );
+                        })}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Lý do khám</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={reason}
+                        onChange={(event) => setReason(event.target.value)}
+                        placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu khám"
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group className="patient-form-group">
+                      <Form.Label>Triệu chứng chính</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={symptomNote}
+                        onChange={(event) => setSymptomNote(event.target.value)}
+                        placeholder="Ví dụ: sốt, đau đầu, ho khan..."
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                {scheduleError && <Alert variant="warning" className="mt-3 mb-0">{scheduleError}</Alert>}
+
+                {loadingSchedules && selectedDoctorId && (
+                  <div className="patient-loading-panel inline mt-3">Đang tải lịch làm việc của bác sĩ...</div>
                 )}
-              </Card.Body>
-            </Card>
-          )}
 
-          {step === 2 && (
-            <Card className="patient-booking-card">
-              <Card.Body>
-                <div className="patient-section-head compact">
-                  <div>
-                    <h3>Chọn bác sĩ</h3>
-                    <p>{availableDoctors.length} bác sĩ phù hợp với chuyên khoa hiện tại.</p>
-                  </div>
-                </div>
-
-                {availableDoctors.length > 0 ? (
-                  <div className="patient-doctor-grid">
-                    {availableDoctors.map((doctor) => (
-                      <button
-                        key={doctor.id}
-                        type="button"
-                        className={`patient-doctor-card ${normalizeId(selectedDoctorId) === normalizeId(doctor.id) ? "selected" : ""}`}
-                        onClick={() => {
-                          setSelectedDoctorId(normalizeId(doctor.id));
-                          setSelectedScheduleId("");
-                        }}
-                      >
-                        <div className="patient-doctor-top">
-                          <img src={getAvatarSource(doctor, doctor.fullName)} alt={doctor.fullName} />
-                          <div>
-                            <strong>{doctor.fullName}</strong>
-                            <span>{doctor.specialization}</span>
-                          </div>
-                          <div className="patient-doctor-rating">
-                            <BsStarFill /> {Number(doctor.rating || 4.5).toFixed(1)}
-                          </div>
-                        </div>
-                        <p>{doctor.qualification || doctor.departmentName || "Bác sĩ EverCare"}</p>
-                        <div className="patient-doctor-meta">
-                          <span>{doctor.workStatus}</span>
-                          <span>{doctor.departmentName || doctor.specialization}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="patient-empty-state">
-                    <h4>Chưa có bác sĩ phù hợp</h4>
-                    <p>Backend hiện chưa trả về bác sĩ thuộc chuyên khoa này.</p>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          )}
-
-          {step === 3 && (
-            <Card className="patient-booking-card">
-              <Card.Body>
-                <div className="patient-section-head compact">
-                  <div>
-                    <h3>Chọn thời gian</h3>
-                    <p>Chỉ các khung giờ còn trống và còn hiệu lực mới có thể đặt.</p>
-                  </div>
-                </div>
-
-                <div className="patient-booking-schedule-toolbar">
-                  <Form.Group className="patient-form-group">
-                    <Form.Label>Ngày khám</Form.Label>
-                    <Form.Control type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} />
-                  </Form.Group>
-                  <div className="patient-booking-summary mini">
-                    <div>
-                      <span>Bác sĩ</span>
-                      <strong>{selectedDoctor?.fullName || "Chưa chọn"}</strong>
+                <Card className="mt-4">
+                  <Card.Body>
+                    <div className="patient-section-head compact mb-3">
+                      <div>
+                        <h3>Xem trước thông tin</h3>
+                        <p>Thông tin bên dưới sẽ được gửi lên hệ thống khi bạn xác nhận đặt lịch.</p>
+                      </div>
                     </div>
-                    <div>
-                      <span>Dịch vụ</span>
-                      <strong>{selectedService?.name || "Chưa chọn"}</strong>
+
+                    <div className="patient-booking-summary">
+                      <div>
+                        <span>Dịch vụ</span>
+                        <strong>{selectedService?.name || "Chưa chọn"}</strong>
+                      </div>
+                      <div>
+                        <span>Bác sĩ</span>
+                        <strong>{selectedDoctor?.fullName || "Chưa chọn"}</strong>
+                      </div>
+                      <div>
+                        <span>Chuyên khoa</span>
+                        <strong>{selectedDoctor?.departmentName || selectedService?.departmentName || "Chưa xác định"}</strong>
+                      </div>
+                      <div>
+                        <span>Ngày khám</span>
+                        <strong>{appointmentDate || scheduleDate || "Chưa chọn"}</strong>
+                      </div>
+                      <div>
+                        <span>Giờ khám</span>
+                        <strong>{startTime ? `${startTime}${endTime ? ` - ${endTime}` : ""}` : "Chưa chọn"}</strong>
+                      </div>
+                      <div>
+                        <span>Khung giờ</span>
+                        <strong>{selectedSchedule?.displayRange || "Chưa chọn"}</strong>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {scheduleError && <Alert variant="warning">{scheduleError}</Alert>}
-
-                {loadingSchedules ? (
-                  <div className="patient-loading-panel inline">Đang tải lịch làm việc của bác sĩ...</div>
-                ) : doctorSchedules.length > 0 ? (
-                  <div className="patient-schedule-grid">
-                    {doctorSchedules.map((schedule) => {
-                      const scheduleId = normalizeId(schedule.id);
-                      const isSelected = normalizeId(selectedScheduleId) === scheduleId;
-                      const isDisabled = !isScheduleAvailable(schedule);
-
-                      return (
-                        <button
-                          key={scheduleId}
-                          type="button"
-                          className={`patient-schedule-card ${isSelected ? "selected" : ""} ${isDisabled ? "disabled" : ""}`}
-                          onClick={() => {
-                            if (isDisabled) return;
-                            setSelectedScheduleId(scheduleId);
-                            setAppointmentDate(schedule.workDate);
-                            setStartTime(schedule.startTime);
-                            setEndTime(schedule.endTime);
-                          }}
-                          disabled={isDisabled}
-                        >
-                          <div className="patient-schedule-head">
-                            <strong>{schedule.displayDate}</strong>
-                            <span className={`patient-schedule-badge ${isDisabled ? "danger" : "success"}`}>{schedule.statusLabel}</span>
-                          </div>
-                          <div className="patient-schedule-time">
-                            <BsClock />
-                            {schedule.displayRange}
-                          </div>
-                          <div className="patient-schedule-meta">
-                            <span>Còn trống: {schedule.remainingSlots}</span>
-                            <span>Tối đa: {schedule.maxPatients}</span>
-                          </div>
-                          {schedule.note && <p>{schedule.note}</p>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="patient-empty-state">
-                    <h4>Chưa có lịch trống</h4>
-                    <p>Không có khung giờ khả dụng trong ngày bạn chọn.</p>
-                  </div>
-                )}
-
-                <Form.Group className="patient-form-group mt-4">
-                  <Form.Label>Lý do khám</Form.Label>
-                  <Form.Control as="textarea" rows={3} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Mô tả ngắn triệu chứng hoặc nhu cầu khám" />
-                </Form.Group>
-
-                <Form.Group className="patient-form-group">
-                  <Form.Label>Triệu chứng chính</Form.Label>
-                  <Form.Control as="textarea" rows={3} value={symptomNote} onChange={(event) => setSymptomNote(event.target.value)} placeholder="Ví dụ: sốt, đau đầu, ho khan..." />
-                </Form.Group>
-              </Card.Body>
-            </Card>
-          )}
-
-          {step === 4 && (
-            <Card className="patient-booking-card">
-              <Card.Body>
-                <div className="patient-section-head compact">
-                  <div>
-                    <h3>Xác nhận đặt lịch</h3>
-                    <p>Kiểm tra lại thông tin trước khi gửi yêu cầu.</p>
-                  </div>
-                </div>
-
-                <div className="patient-booking-summary">
-                  <div>
-                    <span>Chuyên khoa</span>
-                    <strong>{selectedSpecialty === "ALL" ? "Tất cả" : selectedSpecialty}</strong>
-                  </div>
-                  <div>
-                    <span>Dịch vụ</span>
-                    <strong>{selectedService?.name || "Chưa chọn"}</strong>
-                  </div>
-                  <div>
-                    <span>Bác sĩ</span>
-                    <strong>{selectedDoctor?.fullName || "Chưa chọn"}</strong>
-                  </div>
-                  <div>
-                    <span>Ngày giờ</span>
-                    <strong>
-                      {appointmentDate} {startTime}
-                    </strong>
-                  </div>
-                </div>
-
-                {!profile?.id && (
-                  <Alert variant="warning" className="mb-0">
-                    Bạn chưa có hồ sơ bệnh nhân. Hãy tạo hồ sơ trước khi xác nhận để backend xử lý đặt lịch chính xác.
-                  </Alert>
-                )}
+                    <div className="patient-booking-preview-list mt-3">
+                      <div className="patient-booking-preview-item">
+                        <span>Mã bác sĩ</span>
+                        <strong>{selectedDoctor?.doctorCode || "Chưa chọn"}</strong>
+                      </div>
+                      <div className="patient-booking-preview-item">
+                        <span>Mã dịch vụ</span>
+                        <strong>{selectedService?.code || "Chưa chọn"}</strong>
+                      </div>
+                      <div className="patient-booking-preview-item">
+                        <span>Giá dịch vụ</span>
+                        <strong>{selectedService ? formatCurrency(selectedService.price) : "Chưa chọn"}</strong>
+                      </div>
+                      <div className="patient-booking-preview-item">
+                        <span>Trạng thái lịch</span>
+                        <strong>{selectedSchedule?.statusLabel || "Chưa chọn"}</strong>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
 
                 <Alert variant="info" className="mt-3 mb-0">
-                  Hóa đơn sẽ được tạo sau khi bác sĩ hoàn tất khám. Bạn có thể thanh toán online trong mục hóa đơn của tài khoản bệnh nhân.
+                  <BsInfoCircle className="me-2" />
+                  Sau khi xác nhận, hệ thống sẽ gửi yêu cầu đặt lịch ngay mà không tải lại trang.
                 </Alert>
-              </Card.Body>
-            </Card>
-          )}
 
-          <div className="patient-booking-actions">
-            <Button type="button" variant="light" className="patient-outline-button" onClick={goBack} disabled={step === 0 || submitting}>
-              <BsArrowLeft /> Quay lại
-            </Button>
+                <div className="patient-booking-actions mt-4">
+                  <Button
+                    type="button"
+                    variant="light"
+                    className="patient-outline-button"
+                    onClick={() => navigate("/patient/appointments")}
+                    disabled={submitting}
+                  >
+                    <BsClock /> Xem lịch hẹn
+                  </Button>
 
-            {step < steps.length - 1 ? (
-              <Button
-                type="button"
-                className="patient-primary-soft"
-                onClick={goNext}
-                disabled={
-                  (step === 1 && !selectedService) ||
-                  (step === 2 && !selectedDoctor) ||
-                  (step === 3 && !selectedSchedule) ||
-                  submitting
-                }
-              >
-                Tiếp tục <BsArrowRight />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                className="patient-primary-soft"
-                onClick={handleConfirm}
-                disabled={submitting || !appointmentDate || !selectedDoctor || !selectedService || !selectedSchedule || !profile?.id}
-              >
-                {submitting ? "Đang đặt..." : "Xác nhận đặt lịch"}
-              </Button>
-            )}
-          </div>
+                  <Button
+                    type="submit"
+                    className="patient-primary-soft"
+                    disabled={submitting || !appointmentDate || !selectedDoctor || !selectedService || !selectedSchedule || !profile?.id}
+                  >
+                    {submitting ? "Đang đặt..." : "Xác nhận đặt lịch"}
+                  </Button>
+                </div>
+              </Form>
+            </Card.Body>
+          </Card>
         </div>
       </section>
     </div>
