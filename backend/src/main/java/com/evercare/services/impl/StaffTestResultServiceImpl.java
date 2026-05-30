@@ -1,11 +1,14 @@
 package com.evercare.services.impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.evercare.dtos.request.TestResultRequest;
 import com.evercare.dtos.response.AppointmentPatientResponse;
 import com.evercare.dtos.response.MedicalRecordServiceResponse;
 import com.evercare.dtos.response.StaffTestRequestDetailResponse;
 import com.evercare.dtos.response.StaffTestRequestSummaryResponse;
 import com.evercare.dtos.response.TestResultResponse;
+import com.evercare.exceptions.CloudinaryUploadException;
 import com.evercare.mappers.MedicalRecordMapper;
 import com.evercare.mappers.MedicalRecordServiceMapper;
 import com.evercare.mappers.TestResultMapper;
@@ -35,6 +38,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -56,6 +60,9 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private Cloudinary cloudinary;
 
     @Override
     public List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username) {
@@ -153,6 +160,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
         MedicalService service = loadService(request);
         validateServiceWasOrdered(medicalRecord.getId(), service.getId());
+        validateResultNotDuplicated(medicalRecord.getId(), service.getId(), null);
         Date now = new Date();
 
         TestResult testResult = new TestResult();
@@ -164,9 +172,14 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
         testResult.setCreatedAt(now);
         testResult.setUpdatedAt(now);
         testResult.setActive(true);
-        applyRequest(testResult, request, service);
+        UploadedFile uploadedFile = applyRequest(testResult, request, service);
 
-        this.testResultRepo.addTestResult(testResult);
+        try {
+            this.testResultRepo.addTestResult(testResult);
+        } catch (RuntimeException ex) {
+            deleteUploadedFile(uploadedFile);
+            throw ex;
+        }
 
         return TestResultMapper.toResponse(testResult);
     }
@@ -183,13 +196,19 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
         MedicalService service = request != null && request.getServiceId() != null ? loadService(request) : testResult.getServiceId();
         if (service != null && testResult.getMedicalRecordId() != null) {
             validateServiceWasOrdered(testResult.getMedicalRecordId().getId(), service.getId());
+            validateResultNotDuplicated(testResult.getMedicalRecordId().getId(), service.getId(), testResult.getId());
         }
-        applyRequest(testResult, request, service);
+        UploadedFile uploadedFile = applyRequest(testResult, request, service);
         testResult.setServiceId(service);
         testResult.setPerformedBy(employee);
         testResult.setUpdatedAt(new Date());
 
-        this.testResultRepo.updateTestResult(testResult);
+        try {
+            this.testResultRepo.updateTestResult(testResult);
+        } catch (RuntimeException ex) {
+            deleteUploadedFile(uploadedFile);
+            throw ex;
+        }
 
         return TestResultMapper.toResponse(testResult);
     }
@@ -207,9 +226,9 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
         return service;
     }
 
-    private void applyRequest(TestResult testResult, TestResultRequest request, MedicalService service) {
+    private UploadedFile applyRequest(TestResult testResult, TestResultRequest request, MedicalService service) {
         if (request == null) {
-            return;
+            return null;
         }
 
         if (request.getResultTitle() != null && !request.getResultTitle().isBlank()) {
@@ -222,13 +241,17 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
             testResult.setResultContent(request.getResultContent().trim());
         }
 
-        if (request.getFileUrl() != null) {
-            testResult.setFileUrl(request.getFileUrl().trim());
+        UploadedFile uploadedFile = null;
+        if (request.getFile() != null && !request.getFile().isEmpty()) {
+            uploadedFile = uploadResultFile(request.getFile());
+            testResult.setFileUrl(uploadedFile.secureUrl());
         }
 
         if (request.getConclusion() != null) {
             testResult.setConclusion(request.getConclusion().trim());
         }
+
+        return uploadedFile;
     }
 
     private void validateServiceWasOrdered(Long recordId, Long serviceId) {
@@ -239,6 +262,12 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
         if (!ordered) {
             throw new IllegalStateException("Dịch vụ này chưa được bác sĩ chỉ định trong bệnh án");
+        }
+    }
+
+    private void validateResultNotDuplicated(Long recordId, Long serviceId, Long excludeResultId) {
+        if (this.testResultRepo.existsByMedicalRecordIdAndServiceId(recordId, serviceId, excludeResultId)) {
+            throw new IllegalStateException("Dịch vụ này đã có kết quả xét nghiệm");
         }
     }
 
@@ -274,6 +303,86 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     private String generateResultCode() {
         return "TR" + System.currentTimeMillis();
+    }
+
+    private UploadedFile uploadResultFile(MultipartFile file) {
+        validateResultFile(file);
+
+        try {
+            Map res = this.cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "resource_type", "raw",
+                            "folder", "evercare/test-results"
+                    )
+            );
+
+            Object secureUrl = res.get("secure_url");
+            if (secureUrl == null) {
+                throw new CloudinaryUploadException("Cloudinary không trả về đường dẫn file");
+            }
+
+            Object publicId = res.get("public_id");
+            return new UploadedFile(secureUrl.toString(), publicId != null ? publicId.toString() : null);
+        } catch (CloudinaryUploadException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new CloudinaryUploadException("Không thể upload file kết quả lên Cloudinary", ex);
+        }
+    }
+
+    private void validateResultFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return;
+        }
+
+        long maxSize = 10 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("File kết quả không được vượt quá 10MB");
+        }
+
+        String contentType = file.getContentType();
+        if (!"application/pdf".equalsIgnoreCase(contentType)) {
+            throw new IllegalArgumentException("File kết quả phải là PDF");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.trim().toLowerCase().endsWith(".pdf")) {
+            throw new IllegalArgumentException("File kết quả phải có đuôi .pdf");
+        }
+
+        try {
+            byte[] header = file.getInputStream().readNBytes(4);
+            if (header.length < 4
+                    || header[0] != '%'
+                    || header[1] != 'P'
+                    || header[2] != 'D'
+                    || header[3] != 'F') {
+                throw new IllegalArgumentException("Nội dung file không đúng định dạng PDF");
+            }
+        } catch (IllegalArgumentException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Không thể đọc file kết quả");
+        }
+    }
+
+    private void deleteUploadedFile(UploadedFile uploadedFile) {
+        if (uploadedFile == null || uploadedFile.publicId() == null || uploadedFile.publicId().isBlank()) {
+            return;
+        }
+
+        try {
+            this.cloudinary.uploader().destroy(
+                    uploadedFile.publicId(),
+                    ObjectUtils.asMap("resource_type", "raw")
+            );
+        } catch (Exception ignored) {
+            // Best effort cleanup: DB transaction result is more important than cleanup failure here.
+        }
+    }
+
+    private record UploadedFile(String secureUrl, String publicId) {
     }
 
     private StaffTestRequestSummaryResponse toSummaryResponse(MedicalRecord medicalRecord) {

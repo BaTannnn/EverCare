@@ -124,7 +124,7 @@ function DoctorExaminationEntryPage() {
             <h2>Vào ca khám từ lịch hẹn</h2>
             <p>Khu vực khám bệnh cần một mã lịch hẹn để tải bệnh nhân, bệnh án, chỉ định và đơn thuốc.</p>
           </div>
-          <Button type="button" onClick={() => navigate("/doctor/appointments")}>
+          <Button type="button" onClick={() => navigate("/doctor/patient-appointments")}>
             Xem lịch hẹn hôm nay
           </Button>
         </Card.Body>
@@ -154,7 +154,7 @@ function DoctorExaminationEntryPage() {
               description="Không có ca đang khám hoặc bệnh nhân chờ trong hôm nay."
             />
             <div className="mt-3">
-              <Button type="button" onClick={() => navigate("/doctor/appointments")}>
+              <Button type="button" onClick={() => navigate("/doctor/patient-appointments")}>
                 Xem lịch hẹn
               </Button>
             </div>

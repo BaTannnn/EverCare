@@ -40,7 +40,7 @@ public class DispatcherServletInit extends AbstractAnnotationConfigDispatcherSer
     @Override
     protected void customizeRegistration(ServletRegistration.Dynamic registration) {
         String location = System.getProperty("java.io.tmpdir");
-        long maxFileSize = 5242880; // 5MB
+        long maxFileSize = 10485760; // 10MB
         long maxRequestSize = 20971520; // 20MB
         int fileSizeThreshold = 1048576; // 1MB
 

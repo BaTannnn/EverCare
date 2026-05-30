@@ -77,6 +77,34 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     }
 
     @Override
+    public boolean existsByMedicalRecordIdAndServiceId(Long recordId, Long serviceId, Long excludeId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        String hql = """
+                SELECT COUNT(tr.id)
+                FROM TestResult tr
+                WHERE tr.active = true
+                    AND tr.medicalRecordId.id = :recordId
+                    AND tr.serviceId.id = :serviceId
+                """;
+
+        if (excludeId != null) {
+            hql += " AND tr.id <> :excludeId";
+        }
+
+        Query<Long> query = session.createQuery(hql, Long.class)
+                .setParameter("recordId", recordId)
+                .setParameter("serviceId", serviceId);
+
+        if (excludeId != null) {
+            query.setParameter("excludeId", excludeId);
+        }
+
+        Long count = query.uniqueResult();
+        return count != null && count > 0;
+    }
+
+    @Override
     public List<TestResult> getTestResults(Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();

@@ -1,10 +1,13 @@
 package com.evercare.dtos.request;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public class TestResultRequest {
     private Long serviceId;
     private String resultTitle;
     private String resultContent;
     private String fileUrl;
+    private MultipartFile file;
     private String conclusion;
 
     public Long getServiceId() {
@@ -37,6 +40,14 @@ public class TestResultRequest {
 
     public void setFileUrl(String fileUrl) {
         this.fileUrl = fileUrl;
+    }
+
+    public MultipartFile getFile() {
+        return file;
+    }
+
+    public void setFile(MultipartFile file) {
+        this.file = file;
     }
 
     public String getConclusion() {

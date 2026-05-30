@@ -286,6 +286,11 @@
   margin: 15svh auto 24px;
 }
 
+.modal-dialog.modal-xl {
+  width: min(1120px, calc(100% - 32px));
+  margin-top: 5svh;
+}
+
 .modal-content {
   border: 1px solid #dbe4ef;
   border-radius: 8px;
@@ -318,6 +323,15 @@
 
 .modal-body {
   padding: 16px;
+}
+
+.result-file-viewer {
+  display: block;
+  width: 100%;
+  height: min(78svh, 820px);
+  min-height: 560px;
+  border: 0;
+  background: #f8fafc;
 }
 
 .btn-close {

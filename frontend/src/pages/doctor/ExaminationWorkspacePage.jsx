@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Table } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "../../components/common/ConfirmModal";
 import EmptyState from "../../components/common/EmptyState";
@@ -11,6 +11,7 @@ import { getAppointmentDetail } from "../../services/doctor/doctorAppointmentApi
 import {
   addMedicalRecordService,
   completeMedicalRecord,
+  getDoctorTestResultFile,
   getMedicalRecordServices,
   updateMedicalRecord,
 } from "../../services/doctor/doctorMedicalRecordApi";
@@ -105,6 +106,8 @@ function ExaminationWorkspacePage() {
   const [savingPrescription, setSavingPrescription] = useState(false);
   const [medicineLoading, setMedicineLoading] = useState(false);
   const [medicineSearchError, setMedicineSearchError] = useState("");
+  const [openingResultFileId, setOpeningResultFileId] = useState(null);
+  const [resultFileViewer, setResultFileViewer] = useState({ show: false, url: "", title: "" });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [completeModal, setCompleteModal] = useState(false);
@@ -187,6 +190,12 @@ function ExaminationWorkspacePage() {
   useEffect(() => {
     loadWorkspace();
   }, [loadWorkspace]);
+
+  useEffect(() => () => {
+    if (resultFileViewer.url) {
+      URL.revokeObjectURL(resultFileViewer.url);
+    }
+  }, [resultFileViewer.url]);
 
   useEffect(() => {
     const keyword = serviceKeyword.trim();
@@ -381,6 +390,46 @@ function ExaminationWorkspacePage() {
   const removePendingService = (serviceId) => {
     setServices((current) => current.filter((item) => item.id !== serviceId || !item.pending));
     setSelectedServiceIds((current) => current.filter((id) => id !== serviceId));
+  };
+
+  const closeResultFileViewer = () => {
+    setResultFileViewer((current) => {
+      if (current.url) {
+        URL.revokeObjectURL(current.url);
+      }
+
+      return { show: false, url: "", title: "" };
+    });
+  };
+
+  const openResultFile = async (result) => {
+    if (!result?.id) {
+      return;
+    }
+
+    setOpeningResultFileId(result.id);
+    setNotice("");
+
+    try {
+      const response = await getDoctorTestResultFile(result.id);
+      const fileUrl = URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+
+      setResultFileViewer((current) => {
+        if (current.url) {
+          URL.revokeObjectURL(current.url);
+        }
+
+        return {
+          show: true,
+          url: fileUrl,
+          title: result.resultTitle || result.serviceName || "Tệp kết quả",
+        };
+      });
+    } catch (err) {
+      setNotice(getErrorMessage(err));
+    } finally {
+      setOpeningResultFileId(null);
+    }
   };
 
   const removeSelectedPendingServices = () => {
@@ -823,6 +872,7 @@ function ExaminationWorkspacePage() {
                       <th>Kết luận</th>
                       <th>Ngày trả kết quả</th>
                       <th>Thực hiện bởi</th>
+                      <th>Tệp kết quả</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -833,6 +883,21 @@ function ExaminationWorkspacePage() {
                         <td>{result.conclusion || "--"}</td>
                         <td>{formatDate(result.resultDate)}</td>
                         <td>{result.performedByName || "--"}</td>
+                        <td>
+                          {result.fileUrl ? (
+                            <Button
+                              type="button"
+                              onClick={() => openResultFile(result)}
+                              disabled={openingResultFileId === result.id}
+                              size="sm"
+                              variant="outline-primary"
+                            >
+                              {openingResultFileId === result.id ? "Đang mở..." : "Xem PDF"}
+                            </Button>
+                          ) : (
+                            "--"
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1085,6 +1150,21 @@ function ExaminationWorkspacePage() {
           {completingRecord ? "Đang hoàn tất..." : "Hoàn tất bệnh án"}
         </Button>
       </div>
+
+      <Modal show={resultFileViewer.show} onHide={closeResultFileViewer} size="xl" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{resultFileViewer.title}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          {resultFileViewer.url && (
+            <iframe
+              title={resultFileViewer.title}
+              src={resultFileViewer.url}
+              className="result-file-viewer"
+            />
+          )}
+        </Modal.Body>
+      </Modal>
 
       <ConfirmModal
         show={completeModal}

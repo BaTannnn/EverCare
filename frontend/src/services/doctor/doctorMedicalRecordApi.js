@@ -16,4 +16,10 @@ export const addMedicalRecordService = (recordId, payload) => {
   return authApis().post(endpoints["doctor-medical-record-services"](recordId), payload);
 };
 
+export const getDoctorTestResultFile = (resultId) => {
+  return authApis().get(endpoints["doctor-test-result-file"](resultId), {
+    responseType: "blob",
+  });
+};
+
 export default Apis;

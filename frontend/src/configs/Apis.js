@@ -18,6 +18,7 @@ export const endpoints = {
   "doctor-medical-record": (id) => `/doctor/medical-records/${id}`,
   "doctor-complete-medical-record": (id) => `/doctor/medical-records/${id}/complete`,
   "doctor-medical-record-services": (id) => `/doctor/medical-records/${id}/services`,
+  "doctor-test-result-file": (id) => `/doctor/test-results/${id}/file`,
   "doctor-medical-record-prescriptions": (id) => `/doctor/medical-records/${id}/prescriptions`,
   "doctor-prescriptions": "/doctor/prescriptions",
   "doctor-prescription": (id) => `/doctor/prescriptions/${id}`,

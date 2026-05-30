@@ -8,8 +8,30 @@ const emptyForm = {
   serviceId: "",
   resultTitle: "",
   resultContent: "",
-  fileUrl: "",
+  file: null,
   conclusion: "",
+};
+
+const MAX_RESULT_FILE_SIZE = 10 * 1024 * 1024;
+
+const validatePdfFile = (file) => {
+  if (!file) {
+    return "";
+  }
+
+  if (file.type && file.type !== "application/pdf") {
+    return "File kết quả phải là PDF.";
+  }
+
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    return "File kết quả phải có đuôi .pdf.";
+  }
+
+  if (file.size > MAX_RESULT_FILE_SIZE) {
+    return "File kết quả không được vượt quá 10MB.";
+  }
+
+  return "";
 };
 
 function StaffTestRequestDetailPage() {
@@ -20,6 +42,7 @@ function StaffTestRequestDetailPage() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -65,6 +88,16 @@ function StaffTestRequestDetailPage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    const validationMessage = validatePdfFile(file);
+    setNotice(validationMessage);
+    updateField("file", validationMessage ? null : file);
+    if (validationMessage) {
+      e.target.value = "";
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -82,12 +115,13 @@ function StaffTestRequestDetailPage() {
         serviceId: Number(form.serviceId),
         resultTitle: form.resultTitle,
         resultContent: form.resultContent,
-        fileUrl: form.fileUrl,
+        file: form.file,
         conclusion: form.conclusion,
       });
       const selectedServiceId = Number(form.serviceId);
       setServices((current) => current.filter((service) => Number(service.serviceId) !== selectedServiceId));
       setForm(emptyForm);
+      setFileInputKey((current) => current + 1);
       setNotice("Đã lưu kết quả. Bác sĩ có thể xem kết quả trong khu vực khám bệnh.");
     } catch (err) {
       setError(getErrorMessage(err));
@@ -245,14 +279,18 @@ function StaffTestRequestDetailPage() {
                   </Form.Group>
                 </Col>
                 <Col md={6}>
-                  <Form.Group controlId="staffFileUrl">
-                    <Form.Label>Đường dẫn tệp kết quả</Form.Label>
+                  <Form.Group controlId="staffResultFile">
+                    <Form.Label>Tệp kết quả PDF</Form.Label>
                     <Form.Control
-                      value={form.fileUrl}
-                      onChange={(e) => updateField("fileUrl", e.target.value)}
-                      placeholder="https://..."
+                      key={fileInputKey}
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={handleFileChange}
                       disabled={saving}
                     />
+                    <Form.Text className="text-muted">
+                      Tệp sẽ được upload lên Cloudinary khi lưu kết quả. Tối đa 10MB.
+                    </Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={6}>

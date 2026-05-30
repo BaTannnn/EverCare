@@ -17,7 +17,30 @@ const emptyForm = {
   resultTitle: "",
   resultContent: "",
   fileUrl: "",
+  file: null,
   conclusion: "",
+};
+
+const MAX_RESULT_FILE_SIZE = 10 * 1024 * 1024;
+
+const validatePdfFile = (file) => {
+  if (!file) {
+    return "";
+  }
+
+  if (file.type && file.type !== "application/pdf") {
+    return "File kết quả phải là PDF.";
+  }
+
+  if (!file.name.toLowerCase().endsWith(".pdf")) {
+    return "File kết quả phải có đuôi .pdf.";
+  }
+
+  if (file.size > MAX_RESULT_FILE_SIZE) {
+    return "File kết quả không được vượt quá 10MB.";
+  }
+
+  return "";
 };
 
 function StaffTestResultsPage() {
@@ -27,6 +50,7 @@ function StaffTestResultsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -75,8 +99,10 @@ function StaffTestResultsPage() {
         resultTitle: result.resultTitle || "",
         resultContent: result.resultContent || "",
         fileUrl: result.fileUrl || "",
+        file: null,
         conclusion: result.conclusion || "",
       });
+      setFileInputKey((current) => current + 1);
       setShowUpdateModal(true);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -101,7 +127,7 @@ function StaffTestResultsPage() {
       await updateStaffTestResult(form.resultId.trim(), {
         resultTitle: form.resultTitle,
         resultContent: form.resultContent,
-        fileUrl: form.fileUrl,
+        file: form.file,
         conclusion: form.conclusion,
       });
       setNotice("Đã cập nhật kết quả.");
@@ -111,6 +137,16 @@ function StaffTestResultsPage() {
       setError(getErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    const validationMessage = validatePdfFile(file);
+    setNotice(validationMessage);
+    updateField("file", validationMessage ? null : file);
+    if (validationMessage) {
+      e.target.value = "";
     }
   };
 
@@ -288,13 +324,20 @@ function StaffTestResultsPage() {
                 </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Group controlId="staffHistoryFileUrl">
-                  <Form.Label>Đường dẫn tệp kết quả</Form.Label>
+                <Form.Group controlId="staffHistoryResultFile">
+                  <Form.Label>Tệp kết quả PDF</Form.Label>
                   <Form.Control
-                    value={form.fileUrl}
-                    onChange={(e) => updateField("fileUrl", e.target.value)}
+                    key={fileInputKey}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={handleFileChange}
                     disabled={saving}
                   />
+                  {form.fileUrl && (
+                    <Form.Text className="text-muted d-block">
+                      Đang có tệp kết quả. Chọn PDF mới nếu cần thay thế.
+                    </Form.Text>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={6}>

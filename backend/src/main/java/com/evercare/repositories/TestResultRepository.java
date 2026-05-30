@@ -12,6 +12,8 @@ public interface TestResultRepository {
 
     void updateTestResult(TestResult testResult);
 
+    boolean existsByMedicalRecordIdAndServiceId(Long recordId, Long serviceId, Long excludeId);
+
     List<TestResult> getTestResults(Map<String, String> params);
 
     List<TestResult> getTestResultsByMedicalRecordId(Long recordId);
