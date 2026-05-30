@@ -15,6 +15,19 @@ public class PatientRepositoryImpl implements PatientRepository {
     private LocalSessionFactoryBean factory;
 
     @Override
+    public Patient getPatientById(Long id) {
+        Session session = this.factory.getObject().getCurrentSession();
+        return session.createQuery("""
+                SELECT p
+                FROM Patient p
+                LEFT JOIN FETCH p.userId u
+                WHERE p.id = :id
+                """, Patient.class)
+                .setParameter("id", id)
+                .uniqueResult();
+    }
+
+    @Override
     public Patient getPatientByUserId(Long userId) {
         Session session = this.factory.getObject().getCurrentSession();
         return session.createQuery("""
@@ -24,6 +37,40 @@ public class PatientRepositoryImpl implements PatientRepository {
                 WHERE u.id = :userId
                 """, Patient.class)
                 .setParameter("userId", userId)
+                .uniqueResult();
+    }
+
+    @Override
+    public Patient getPatientByPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        return session.createQuery("""
+                SELECT p
+                FROM Patient p
+                LEFT JOIN FETCH p.userId u
+                WHERE p.phone = :phone
+                """, Patient.class)
+                .setParameter("phone", phone.trim())
+                .uniqueResult();
+    }
+
+    @Override
+    public Patient getPatientByCitizenId(String citizenId) {
+        if (citizenId == null || citizenId.isBlank()) {
+            return null;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        return session.createQuery("""
+                SELECT p
+                FROM Patient p
+                LEFT JOIN FETCH p.userId u
+                WHERE p.citizenId = :citizenId
+                """, Patient.class)
+                .setParameter("citizenId", citizenId.trim())
                 .uniqueResult();
     }
 

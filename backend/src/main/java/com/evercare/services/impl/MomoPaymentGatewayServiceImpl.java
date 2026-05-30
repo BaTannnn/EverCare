@@ -3,12 +3,11 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
-import com.evercare.services.PaymentGatewayResult;
+import com.evercare.dtos.response.PaymentGatewayResultResponse;
 import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -17,7 +16,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -158,8 +156,8 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult parseCallback(Map<String, String> params) {
-        PaymentGatewayResult result = new PaymentGatewayResult();
+    public PaymentGatewayResultResponse parseCallback(Map<String, String> params) {
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(PaymentGatewaySupport.value(params, "orderId", "requestId"));
         result.setGatewayTransactionId(PaymentGatewaySupport.value(params, "transId"));
         result.setAmount(PaymentGatewaySupport.amountFromString(PaymentGatewaySupport.value(params, "amount")));
@@ -170,7 +168,7 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult refund(Payment payment, BigDecimal amount, String reason) {
+    public PaymentGatewayResultResponse refund(Payment payment, BigDecimal amount, String reason) {
         String endpoint = PaymentGatewaySupport.optionalProperty(this.env, "payment.momo.refundEndpoint");
         String partnerCode = PaymentGatewaySupport.optionalProperty(this.env, "payment.momo.partnerCode");
         String accessKey = PaymentGatewaySupport.optionalProperty(this.env, "payment.momo.accessKey");
@@ -202,7 +200,7 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
 
         String response = PaymentGatewaySupport.postJson(endpoint, PaymentGatewaySupport.toJson(body));
         JsonNode json = PaymentGatewaySupport.readJson(response);
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(requestId);
         result.setAmount(amount);
         result.setGatewayTransactionId(json.hasNonNull("transId") ? json.get("transId").asText() : null);

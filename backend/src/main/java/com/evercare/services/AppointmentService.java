@@ -2,6 +2,7 @@ package com.evercare.services;
 
 import com.evercare.dtos.request.AppointmentCancelRequest;
 import com.evercare.dtos.request.AppointmentRequest;
+import com.evercare.dtos.request.CheckInRequest;
 import com.evercare.dtos.response.AppointmentCancelResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 
@@ -13,4 +14,9 @@ public interface AppointmentService {
     List<AppointmentResponse> getAppointmentsByCurrentPatient(Map<String, String> params);
     AppointmentResponse getAppointmentByCurrentPatient(Long appointmentId);
     AppointmentCancelResponse cancelAppointment(Long appointmentId, AppointmentCancelRequest request);
+    List<AppointmentResponse> getAppointmentsForReceptionist(Map<String, String> params);
+    AppointmentResponse getAppointmentForReceptionist(Long appointmentId);
+    AppointmentResponse createAppointmentForReceptionist(AppointmentRequest request);
+    AppointmentResponse updateAppointmentForReceptionist(Long appointmentId, AppointmentRequest request);
+    AppointmentResponse checkInAppointment(Long appointmentId, CheckInRequest request);
 }

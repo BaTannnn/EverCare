@@ -3,7 +3,7 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
-import com.evercare.services.PaymentGatewayResult;
+import com.evercare.dtos.response.PaymentGatewayResultResponse;
 import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
@@ -122,8 +121,8 @@ public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult parseCallback(Map<String, String> params) {
-        PaymentGatewayResult result = new PaymentGatewayResult();
+    public PaymentGatewayResultResponse parseCallback(Map<String, String> params) {
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(PaymentGatewaySupport.value(params, "vnp_TxnRef", "txnRef"));
         result.setGatewayTransactionId(PaymentGatewaySupport.value(params, "vnp_TransactionNo", "transactionNo"));
         result.setAmount(PaymentGatewaySupport.amountFromScaledString(PaymentGatewaySupport.value(params, "vnp_Amount"), 100));
@@ -144,7 +143,7 @@ public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult refund(Payment payment, BigDecimal amount, String reason) {
+    public PaymentGatewayResultResponse refund(Payment payment, BigDecimal amount, String reason) {
         String endpoint = PaymentGatewaySupport.optionalProperty(this.env, "payment.vnpay.refundEndpoint");
         String tmnCode = PaymentGatewaySupport.optionalProperty(this.env, "payment.vnpay.tmnCode");
         String hashSecret = PaymentGatewaySupport.optionalProperty(this.env, "payment.vnpay.hashSecret");
@@ -173,7 +172,7 @@ public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
         String signature = PaymentGatewaySupport.hmacSha512(hashSecret, raw);
         String response = PaymentGatewaySupport.postForm(endpoint, raw + "&vnp_SecureHash=" + signature);
         JsonNode json = PaymentGatewaySupport.readJson(response);
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(requestId);
         result.setAmount(amount);
         result.setGatewayTransactionId(payment.getTransactionCode());

@@ -6,8 +6,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public class AppointmentRequest {
+    private Long patientId;
+    private PatientRequest patient;
+    private Long departmentId;
     private Long doctorId;
     private Long serviceId;
+    private Boolean checkInNow;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate appointmentDate;
@@ -20,6 +24,30 @@ public class AppointmentRequest {
 
     private String reason;
     private String symptomNote;
+
+    public Long getPatientId() {
+        return patientId;
+    }
+
+    public void setPatientId(Long patientId) {
+        this.patientId = patientId;
+    }
+
+    public PatientRequest getPatient() {
+        return patient;
+    }
+
+    public void setPatient(PatientRequest patient) {
+        this.patient = patient;
+    }
+
+    public Long getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(Long departmentId) {
+        this.departmentId = departmentId;
+    }
 
     public Long getDoctorId() {
         return doctorId;
@@ -35,6 +63,14 @@ public class AppointmentRequest {
 
     public void setServiceId(Long serviceId) {
         this.serviceId = serviceId;
+    }
+
+    public Boolean getCheckInNow() {
+        return checkInNow;
+    }
+
+    public void setCheckInNow(Boolean checkInNow) {
+        this.checkInNow = checkInNow;
     }
 
     public LocalDate getAppointmentDate() {

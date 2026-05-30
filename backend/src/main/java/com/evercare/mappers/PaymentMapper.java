@@ -2,6 +2,8 @@ package com.evercare.mappers;
 
 import com.evercare.dtos.response.PaymentResultResponse;
 import com.evercare.dtos.response.PaymentResponse;
+import com.evercare.dtos.response.InvoiceResponse;
+import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
 import java.text.SimpleDateFormat;
 
@@ -25,6 +27,19 @@ public final class PaymentMapper {
         PaymentResultResponse res = new PaymentResultResponse();
         fillBase(payment, res);
         res.setPaymentUrl(paymentUrl);
+        res.setPayment(toResponse(payment));
+        if (payment != null && payment.getInvoiceId() != null) {
+            res.setInvoice(InvoiceMapper.toResponse(payment.getInvoiceId()));
+        }
+        return res;
+    }
+
+    public static PaymentResultResponse toResultResponse(Payment payment, String paymentUrl, Invoice invoice) {
+        PaymentResultResponse res = new PaymentResultResponse();
+        fillBase(payment, res);
+        res.setPaymentUrl(paymentUrl);
+        res.setPayment(toResponse(payment));
+        res.setInvoice(invoice != null ? InvoiceMapper.toResponse(invoice) : null);
         return res;
     }
 
