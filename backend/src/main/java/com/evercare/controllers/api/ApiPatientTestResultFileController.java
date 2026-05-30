@@ -2,6 +2,7 @@ package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.TestResultFileResponse;
 import com.evercare.services.TestResultFileService;
+import com.evercare.utils.PdfInlineResponseHelper;
 import java.security.Principal;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -29,7 +30,7 @@ public class ApiPatientTestResultFileController {
 
         try {
             TestResultFileResponse file = this.testResultFileService.getFileForPatient(principal.getName(), id);
-            return TestResultFileResponseBuilder.inlinePdf(file);
+            return PdfInlineResponseHelper.inlinePdf(file);
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
         } catch (NoSuchElementException ex) {

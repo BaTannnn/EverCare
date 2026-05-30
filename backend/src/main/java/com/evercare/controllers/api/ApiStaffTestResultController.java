@@ -8,6 +8,7 @@ import com.evercare.dtos.response.TestResultResponse;
 import com.evercare.exceptions.CloudinaryUploadException;
 import com.evercare.services.StaffTestResultService;
 import com.evercare.services.TestResultFileService;
+import com.evercare.utils.PdfInlineResponseHelper;
 import java.security.Principal;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -127,7 +128,7 @@ public class ApiStaffTestResultController {
 
         try {
             TestResultFileResponse file = this.testResultFileService.getFileForStaff(principal.getName(), id);
-            return TestResultFileResponseBuilder.inlinePdf(file);
+            return PdfInlineResponseHelper.inlinePdf(file);
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
         } catch (NoSuchElementException ex) {
