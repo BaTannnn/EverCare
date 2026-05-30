@@ -4,6 +4,10 @@ export const getDoctorPrescriptions = (params = {}) => {
   return authApis().get(endpoints["doctor-prescriptions"], { params });
 };
 
+export const getDoctorPrescription = (prescriptionId) => {
+  return authApis().get(endpoints["doctor-prescription"](prescriptionId));
+};
+
 export const createDoctorPrescription = (recordId, payload) => {
   return authApis().post(endpoints["doctor-medical-record-prescriptions"](recordId), payload);
 };

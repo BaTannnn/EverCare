@@ -1,5 +1,6 @@
 package com.evercare.repositories.impl;
 
+import com.evercare.enums.MedicalServiceType;
 import com.evercare.pojo.MedicalService;
 import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.utils.PaginationUtils;
@@ -50,12 +51,36 @@ public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
                 ));
             }
 
-            String serviceType = params.get("serviceType");
-            if (serviceType != null && !serviceType.isBlank()) {
-                predicates.add(cb.equal(root.get("serviceType"), serviceType));
+            String serviceTypes = params.get("serviceTypes");
+            if (serviceTypes != null && !serviceTypes.isBlank()) {
+                List<String> normalizedTypes = parseServiceTypes(serviceTypes);
+                CriteriaBuilder.In<String> inClause = cb.in(root.get("serviceType"));
+                normalizedTypes.forEach(inClause::value);
+                predicates.add(inClause);
+            } else {
+                String serviceType = params.get("serviceType");
+                if (serviceType != null && !serviceType.isBlank()) {
+                    predicates.add(cb.equal(root.get("serviceType"), MedicalServiceType.normalize(serviceType)));
+                }
             }
         }
         return predicates;
+    }
+
+    private List<String> parseServiceTypes(String serviceTypes) {
+        List<String> normalizedTypes = new ArrayList<>();
+
+        for (String type : serviceTypes.split(",")) {
+            if (!type.isBlank()) {
+                normalizedTypes.add(MedicalServiceType.normalize(type));
+            }
+        }
+
+        if (normalizedTypes.isEmpty()) {
+            throw new IllegalArgumentException("Loại dịch vụ không hợp lệ");
+        }
+
+        return normalizedTypes;
     }
 
     @Override

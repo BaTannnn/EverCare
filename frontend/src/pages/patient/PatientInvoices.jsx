@@ -154,7 +154,7 @@ function PatientInvoices() {
                   </div>
 
                   <div className="patient-invoice-meta">
-                    <span>Tiền dịch vụ: {formatCurrency(invoice.serviceAmount)}</span>
+                    <span>Tiền khám/dịch vụ khác: {formatCurrency(invoice.serviceAmount)}</span>
                     <span>Tiền thuốc: {formatCurrency(invoice.medicineAmount)}</span>
                     <span>Tiền xét nghiệm: {formatCurrency(invoice.testAmount)}</span>
                     <span>Tổng tiền: {formatCurrency(invoice.totalAmount)}</span>

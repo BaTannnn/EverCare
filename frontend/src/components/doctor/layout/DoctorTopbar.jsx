@@ -49,9 +49,6 @@ function DoctorTopbar() {
         <button type="button" className="icon-button" aria-label="Thông báo">
           !
         </button>
-        <button type="button" className="icon-button" aria-label="Cài đặt" onClick={() => navigate("/doctor/settings")}>
-          ⚙
-        </button>
         <div className="doctor-profile">
           <div className="doctor-avatar">{(user?.fullName || user?.username || "BS").slice(0, 2).toUpperCase()}</div>
           <div>

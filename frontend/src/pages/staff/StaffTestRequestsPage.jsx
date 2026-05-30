@@ -1,10 +1,16 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Form, Spinner, Table } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Form, Spinner, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import { getStaffTestRequests } from "../../services/staff/staffTestResultApi";
 import { formatDateTime, getErrorMessage } from "./staffPageUtils";
+
+const serviceTypeLabels = {
+  TEST: "Xét nghiệm",
+  LAB_TEST: "Xét nghiệm",
+  IMAGING: "Chẩn đoán hình ảnh",
+};
 
 function StaffTestRequestsPage() {
   const navigate = useNavigate();
@@ -105,6 +111,7 @@ function StaffTestRequestsPage() {
                   <th>Mã bệnh án</th>
                   <th>Bệnh nhân</th>
                   <th>Bác sĩ</th>
+                  <th>Dịch vụ chờ</th>
                   <th>Số dịch vụ chờ</th>
                   <th>Thời điểm chỉ định</th>
                   <th>Thao tác</th>
@@ -119,6 +126,18 @@ function StaffTestRequestsPage() {
                       <span className="muted-cell">{request.patientCode || "--"}</span>
                     </td>
                     <td>{request.doctorName || "--"}</td>
+                    <td>
+                      <div className="staff-pending-service-list">
+                        {(request.pendingServices || []).map((service) => (
+                          <span className="staff-pending-service" key={service.id || `${request.medicalRecordId}-${service.serviceId}`}>
+                            <strong>{service.serviceName || "--"}</strong>
+                            <Badge bg={service.serviceType === "IMAGING" ? "info" : "primary"}>
+                              {serviceTypeLabels[service.serviceType] || service.serviceType || "Dịch vụ"}
+                            </Badge>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td>{request.pendingServiceCount || 0}</td>
                     <td>{formatDateTime(request.requestedAt || request.visitDate)}</td>
                     <td>

@@ -9,6 +9,8 @@ public class InvoiceResponse {
     private String patientName;
     private String patientPhone;
     private BigDecimal totalServiceAmount;
+    private BigDecimal totalExamServiceAmount;
+    private BigDecimal totalTestAmount;
     private BigDecimal totalMedicineAmount;
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
@@ -69,6 +71,22 @@ public class InvoiceResponse {
 
     public void setTotalServiceAmount(BigDecimal totalServiceAmount) {
         this.totalServiceAmount = totalServiceAmount;
+    }
+
+    public BigDecimal getTotalExamServiceAmount() {
+        return totalExamServiceAmount;
+    }
+
+    public void setTotalExamServiceAmount(BigDecimal totalExamServiceAmount) {
+        this.totalExamServiceAmount = totalExamServiceAmount;
+    }
+
+    public BigDecimal getTotalTestAmount() {
+        return totalTestAmount;
+    }
+
+    public void setTotalTestAmount(BigDecimal totalTestAmount) {
+        this.totalTestAmount = totalTestAmount;
     }
 
     public BigDecimal getTotalMedicineAmount() {

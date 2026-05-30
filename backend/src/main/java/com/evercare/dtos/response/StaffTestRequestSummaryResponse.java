@@ -1,5 +1,8 @@
 package com.evercare.dtos.response;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class StaffTestRequestSummaryResponse {
     private Long medicalRecordId;
     private String recordCode;
@@ -11,6 +14,7 @@ public class StaffTestRequestSummaryResponse {
     private String doctorName;
     private Integer pendingServiceCount;
     private String requestedAt;
+    private List<MedicalRecordServiceResponse> pendingServices = new ArrayList<>();
 
     public Long getMedicalRecordId() {
         return medicalRecordId;
@@ -90,5 +94,13 @@ public class StaffTestRequestSummaryResponse {
 
     public void setRequestedAt(String requestedAt) {
         this.requestedAt = requestedAt;
+    }
+
+    public List<MedicalRecordServiceResponse> getPendingServices() {
+        return pendingServices;
+    }
+
+    public void setPendingServices(List<MedicalRecordServiceResponse> pendingServices) {
+        this.pendingServices = pendingServices;
     }
 }
