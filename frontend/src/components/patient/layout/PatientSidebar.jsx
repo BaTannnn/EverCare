@@ -8,6 +8,7 @@ import {
   BsFileEarmarkMedical,
   BsGrid1X2,
   BsBell,
+  BsChatDots,
   BsPerson,
   BsBoxArrowRight,
   BsFlask,
@@ -24,6 +25,7 @@ const navItems = [
   { to: "/patient/prescriptions", label: "Đơn thuốc", icon: BsCapsule },
   { to: "/patient/invoices", label: "Hóa đơn", icon: BsCreditCard2Front },
   { to: "/patient/notifications", label: "Thông báo", icon: BsBell },
+  { to: "/patient/support", label: "Tư vấn trực tuyến", icon: BsChatDots },
   { to: "/patient/profile", label: "Hồ sơ cá nhân", icon: BsPerson },
 ];
 

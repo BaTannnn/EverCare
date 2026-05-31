@@ -76,7 +76,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
         }
 
         if (!AppointmentStatus.canStartExamination(appointment.getStatus())) {
-            throw new IllegalStateException("Chỉ có thể bắt đầu khám với lịch hẹn BOOKED hoặc WAITING");
+            throw new IllegalStateException("Chỉ có thể bắt đầu khám với lịch hẹn đã check-in và đang WAITING");
         }
 
         java.util.Date now = new java.util.Date();

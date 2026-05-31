@@ -5,7 +5,6 @@
 package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -107,8 +106,6 @@ public class Appointment implements Serializable {
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     @ManyToOne
     private User createdBy;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "appointmentId")
-    private OnlineConsultation onlineConsultation;
 
     public Appointment() {
     }
@@ -258,14 +255,6 @@ public class Appointment implements Serializable {
 
     public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
-    }
-
-    public OnlineConsultation getOnlineConsultation() {
-        return onlineConsultation;
-    }
-
-    public void setOnlineConsultation(OnlineConsultation onlineConsultation) {
-        this.onlineConsultation = onlineConsultation;
     }
 
     @Override

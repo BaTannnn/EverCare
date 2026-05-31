@@ -5,6 +5,7 @@ const menuItems = [
   { to: "/receptionist/dashboard", icon: "▦", label: "Dashboard" },
   { to: "/receptionist/appointments", icon: "▤", label: "Lịch hẹn" },
   { to: "/receptionist/invoices", icon: "¥", label: "Hóa đơn" },
+  { to: "/receptionist/support", icon: "✉", label: "Tin nhắn hỗ trợ" },
 ];
 
 function ReceptionistSidebar() {

@@ -20,6 +20,7 @@ import ReceptionistDashboardPage from "./pages/receptionist/ReceptionistDashboar
 import ReceptionistInvoiceDetailPage from "./pages/receptionist/ReceptionistInvoiceDetailPage";
 import ReceptionistInvoicesPage from "./pages/receptionist/ReceptionistInvoicesPage";
 import ReceptionistLayout from "./components/receptionist/layout/ReceptionistLayout";
+import ReceptionistSupportMessagesPage from "./pages/receptionist/ReceptionistSupportMessagesPage";
 import RegisterPage from "./pages/RegisterPage";
 import StaffDashboardPage from "./pages/staff/StaffDashboardPage";
 import StaffTestRequestDetailPage from "./pages/staff/StaffTestRequestDetailPage";
@@ -34,6 +35,7 @@ import PatientAppointments from "./pages/patient/PatientAppointments";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientProfile from "./pages/patient/PatientProfile";
 import PatientPrescriptions from "./pages/patient/PatientPrescriptions";
+import PatientSupportChat from "./pages/patient/PatientSupportChat";
 import PatientTestResults from "./pages/patient/PatientTestResults";
 import PaymentResultPage from "./pages/payment/PaymentResultPage";
 import PharmacistBatchesPage from "./pages/pharmacist/PharmacistBatchesPage";
@@ -71,6 +73,7 @@ function App() {
           <Route path="prescriptions" element={<PatientPrescriptions />} />
           <Route path="invoices" element={<PatientInvoices />} />
           <Route path="notifications" element={<PatientNotifications />} />
+          <Route path="support" element={<PatientSupportChat />} />
         </Route>
         <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
       </Route>
@@ -110,6 +113,7 @@ function App() {
           <Route path="appointments/:appointmentId/edit" element={<ReceptionistAppointmentEditPage />} />
           <Route path="invoices" element={<ReceptionistInvoicesPage />} />
           <Route path="invoices/:invoiceId" element={<ReceptionistInvoiceDetailPage />} />
+          <Route path="support" element={<ReceptionistSupportMessagesPage />} />
         </Route>
       </Route>
 
