@@ -16,4 +16,10 @@ export const getPatientTestResultById = (id) => {
   }));
 };
 
+export const getPatientTestResultFile = (id) => {
+  return authApis().get(endpoints["patient-test-result-file"](id), {
+    responseType: "blob",
+  });
+};
+
 export default Apis;

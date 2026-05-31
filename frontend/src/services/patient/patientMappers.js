@@ -193,14 +193,50 @@ export const mapMedicalRecordDetail = (rawRecord) => {
     testResults: unwrapList(detail.testResults).map((testResult) => ({
       id: testResult.id || testResult.resultCode || testResult.resultTitle,
       resultCode: normalizeText(testResult.resultCode, ""),
+      name: normalizeText(testResult.resultTitle, "Kết quả xét nghiệm"),
       resultTitle: normalizeText(testResult.resultTitle, "Kết quả xét nghiệm"),
+      resultContent: normalizeText(testResult.resultContent, ""),
       conclusion: normalizeText(testResult.conclusion, normalizeText(testResult.resultContent, "")),
       resultDate: testResult.resultDate || "",
+      date: testResult.resultDate || "",
+      fileUrl: testResult.fileUrl || "",
+      medicalRecordId: testResult.medicalRecordId || record.id,
+      serviceId: testResult.serviceId || null,
+      serviceName: normalizeText(testResult.serviceName, ""),
+      performedById: testResult.performedById || null,
+      performedByName: normalizeText(testResult.performedByName, ""),
+      doctorName: normalizeText(testResult.performedByName, "Nhân viên xét nghiệm"),
     })),
-    prescription: detail.prescription ? {
-      id: detail.prescription.id,
-      prescriptionCode: normalizeText(detail.prescription.prescriptionCode, ""),
-    } : null,
+    prescription: detail.prescription ? (() => {
+      const prescriptionItems = unwrapList(detail.prescription.items).map((item) => ({
+        id: item.id || item.medicineId || item.medicineCode,
+        medicineId: item.medicineId,
+        medicineCode: normalizeText(item.medicineCode, ""),
+        name: normalizeText(item.medicineName, "Thuốc"),
+        unit: normalizeText(item.unit, ""),
+        quantity: item.quantity ?? 0,
+        unitPrice: normalizeCurrency(item.unitPrice),
+        dosage: normalizeText(item.dosage, ""),
+        frequency: normalizeText(item.frequency, ""),
+        duration: normalizeText(item.duration, ""),
+        instruction: normalizeText(item.instruction, ""),
+      }));
+
+      return {
+        id: detail.prescription.id,
+        prescriptionCode: normalizeText(detail.prescription.prescriptionCode, ""),
+        date: detail.prescription.prescribedAt || "",
+        displayDate: detail.prescription.prescribedAt ? formatShortDate(detail.prescription.prescribedAt) : "",
+        doctorName: normalizeText(detail.prescription.doctorName, record.doctorName),
+        status: normalizeText(detail.prescription.status, "PRESCRIBED"),
+        note: normalizeText(detail.prescription.note, ""),
+        medicalRecordId: detail.prescription.medicalRecordId || record.id,
+        diagnosis: normalizeText(detail.prescription.diagnosis, record.diagnosis),
+        paymentStatus: normalizeText(detail.prescription.paymentStatus, record.paymentStatus),
+        items: prescriptionItems,
+        medicineCount: prescriptionItems.length,
+      };
+    })() : null,
   };
 };
 
@@ -248,8 +284,12 @@ export const mapPrescription = (rawPrescription) => {
   const prescription = unwrapObject(rawPrescription) || {};
   const items = unwrapList(prescription.items).map((item) => ({
     id: item.id || item.medicineId || item.medicineCode,
+    medicineId: item.medicineId,
+    medicineCode: normalizeText(item.medicineCode, ""),
     name: normalizeText(item.medicineName, "Thuốc"),
+    unit: normalizeText(item.unit, ""),
     quantity: item.quantity ?? 0,
+    unitPrice: normalizeCurrency(item.unitPrice),
     dosage: normalizeText(item.dosage, ""),
     frequency: normalizeText(item.frequency, ""),
     duration: normalizeText(item.duration, ""),
@@ -268,6 +308,10 @@ export const mapPrescription = (rawPrescription) => {
     patientCode: normalizeText(prescription.patientCode, ""),
     items,
     medicineCount: items.length,
+    medicalRecordId: prescription.medicalRecordId,
+    appointmentId: prescription.appointmentId,
+    diagnosis: normalizeText(prescription.diagnosis, ""),
+    paymentStatus: normalizeText(prescription.paymentStatus, ""),
   };
 };
 

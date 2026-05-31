@@ -61,6 +61,7 @@ export const endpoints = {
   "patient-medical-records": "/secure/patient/medical-records",
   "patient-medical-record-detail": (id) => `/secure/patient/medical-records/${id}`,
   "patient-test-results": "/secure/patient/test-results",
+  "patient-test-result-file": (id) => `/patient/test-results/${id}/file`,
   "patient-prescriptions": "/secure/patient/prescriptions",
   "patient-prescription-detail": (id) => `/secure/patient/prescriptions/${id}`,
   "patient-notifications": "/secure/notifications",
