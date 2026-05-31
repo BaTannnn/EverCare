@@ -12,6 +12,7 @@ import java.util.NoSuchElementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -27,9 +28,15 @@ import org.springframework.web.bind.annotation.RestController;
 @CrossOrigin
 public class ApiPaymentController {
     private static final Logger logger = LoggerFactory.getLogger(ApiPaymentController.class);
+    private static final String PROVIDER_MOMO = "MOMO";
+    private static final String PROVIDER_ZALOPAY = "ZALOPAY";
+    private static final String PROVIDER_VNPAY = "VNPAY";
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private Environment env;
 
     @PostMapping("/momo/ipn")
     public ResponseEntity<PaymentResponse> momo(
@@ -107,17 +114,66 @@ public class ApiPaymentController {
         logger.debug("{} result endpoint params: {}", provider, params);
         Map<String, String> callbackParams = new LinkedHashMap<>(params);
         callbackParams.remove("frontendReturnUrl");
-        PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
         String frontendReturnUrl = params.get("frontendReturnUrl");
-        if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
-            String redirectUrl = PaymentGatewaySupport.appendQueryParam(frontendReturnUrl.trim(), "paymentId", response.getId() != null ? String.valueOf(response.getId()) : null);
-            redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "invoiceId", response.getInvoiceId() != null ? String.valueOf(response.getInvoiceId()) : null);
-            redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "transactionCode", response.getTransactionCode());
-            redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "paymentStatus", response.getPaymentStatus());
-            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
+        if (frontendReturnUrl == null || frontendReturnUrl.isBlank()) {
+            frontendReturnUrl = resolveFrontendReturnUrl(provider);
         }
 
-        return ResponseEntity.ok(response);
+        try {
+            PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
+            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
+                return redirectToFrontend(frontendReturnUrl, response, null);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            logger.warn("{} result endpoint failed: {}", provider, ex.getMessage());
+            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
+                return redirectToFrontend(frontendReturnUrl, null, ex.getMessage());
+            }
+
+            throw ex;
+        }
+    }
+
+    private String resolveFrontendReturnUrl(String provider) {
+        if (provider == null || provider.isBlank()) {
+            return null;
+        }
+
+        String propertyKey = switch (provider.trim().toUpperCase()) {
+            case PROVIDER_MOMO -> "payment.momo.frontendReturnUrl";
+            case PROVIDER_ZALOPAY -> "payment.zalopay.frontendReturnUrl";
+            case PROVIDER_VNPAY -> "payment.vnpay.frontendReturnUrl";
+            default -> null;
+        };
+
+        return propertyKey != null ? this.env.getProperty(propertyKey) : null;
+    }
+
+    private ResponseEntity<?> redirectToFrontend(String frontendReturnUrl, PaymentResponse response, String errorMessage) {
+        String redirectUrl = frontendReturnUrl.trim();
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "paymentId", response != null && response.getId() != null ? String.valueOf(response.getId()) : null);
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "invoiceId", response != null && response.getInvoiceId() != null ? String.valueOf(response.getInvoiceId()) : null);
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "invoiceCode", response != null ? response.getInvoiceCode() : null);
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "transactionCode", response != null ? response.getTransactionCode() : null);
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "paymentStatus", response != null ? response.getPaymentStatus() : "ERROR");
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "status", resolveFrontendStatus(response, errorMessage));
+        redirectUrl = PaymentGatewaySupport.appendQueryParam(redirectUrl, "message", errorMessage);
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
+    }
+
+    private String resolveFrontendStatus(PaymentResponse response, String errorMessage) {
+        if (errorMessage != null && !errorMessage.isBlank()) {
+            return "error";
+        }
+
+        String paymentStatus = response != null ? response.getPaymentStatus() : null;
+        if (paymentStatus != null && ("SUCCESS".equalsIgnoreCase(paymentStatus) || "PAID".equalsIgnoreCase(paymentStatus))) {
+            return "success";
+        }
+
+        return "failed";
     }
 
     private Map<String, String> vnpayResponse(String rspCode, String message) {

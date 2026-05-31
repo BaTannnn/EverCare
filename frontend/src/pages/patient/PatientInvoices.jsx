@@ -85,6 +85,11 @@ function PatientInvoices() {
     { value: "ZALOPAY", label: "ZaloPay QR", channel: "QR" },
   ];
 
+  const buildPaymentResultUrl = (method) => {
+    const provider = String(method || "vnpay").trim().toLowerCase();
+    return `${window.location.origin}/payment/${provider}/result`;
+  };
+
   const openInvoiceDetail = (invoice) => {
     setSelectedInvoice(invoice);
     setShowPaymentModal(false);
@@ -105,8 +110,8 @@ function PatientInvoices() {
       const response = await payPatientInvoice(selectedInvoice.id, {
         paymentMethod,
         paymentChannel,
-        returnUrl: `${window.location.origin}/patient/invoices`,
-        cancelUrl: `${window.location.origin}/patient/invoices`,
+        returnUrl: buildPaymentResultUrl(paymentMethod),
+        cancelUrl: buildPaymentResultUrl(paymentMethod),
       });
 
       const payment = response.data || {};

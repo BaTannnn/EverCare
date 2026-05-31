@@ -56,6 +56,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
+      <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>
@@ -75,7 +77,6 @@ function App() {
           <Route path="notifications" element={<PatientNotifications />} />
           <Route path="support" element={<PatientSupportChat />} />
         </Route>
-        <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["DOCTOR", "ROLE_DOCTOR"]} />}>
