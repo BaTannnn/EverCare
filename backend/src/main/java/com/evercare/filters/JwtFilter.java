@@ -48,7 +48,7 @@ public class JwtFilter implements Filter {
 
         boolean protectedApi =
                 uri.startsWith(secureApiPrefix)
-                        || uri.startsWith(doctorApiPrefix)
+                        || uri.equals(doctorApiPrefix) || uri.startsWith(doctorApiPrefix + '/')
                         || uri.startsWith(staffApiPrefix)
                         || uri.startsWith(patientApiPrefix)
                         || uri.startsWith(pharmacistApiPrefix);
