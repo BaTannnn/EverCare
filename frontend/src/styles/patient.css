@@ -2013,3 +2013,248 @@
     flex-direction: column;
   }
 }
+
+.support-chat-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.support-chat-list-card,
+.support-chat-window-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.support-new-chat-form textarea {
+  resize: vertical;
+}
+
+.support-conversation-list {
+  display: grid;
+  gap: 8px;
+}
+
+.support-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.support-pagination span {
+  color: #64748b;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.support-conversation-list .list-group-item {
+  position: relative;
+  border: 1px solid #dbe5ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.support-conversation-list .list-group-item:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+}
+
+.support-conversation-list .list-group-item.active {
+  background: linear-gradient(135deg, #ecfeff 0%, #eff6ff 100%);
+  border-color: #0891b2;
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(8, 145, 178, 0.14);
+}
+
+.support-conversation-list span,
+.support-conversation-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.support-conversation-list .badge {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: #ffffff;
+  font-weight: 800;
+  opacity: 1;
+}
+
+.support-conversation-list .badge.bg-secondary {
+  background-color: #475569 !important;
+  color: #ffffff;
+}
+
+.support-conversation-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.support-conversation-title strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1e293b;
+  font-size: 0.98rem;
+}
+
+.support-chat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.support-chat-header h5 {
+  margin: 0 0 4px;
+}
+
+.support-chat-header span {
+  color: #64748b;
+}
+
+.support-chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.support-message-list {
+  min-height: 420px;
+  max-height: 56vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 4px;
+}
+
+.support-message {
+  display: flex;
+}
+
+.support-message.mine {
+  justify-content: flex-end;
+}
+
+.support-message.theirs {
+  justify-content: flex-start;
+}
+
+.support-message-bubble {
+  max-width: min(72%, 620px);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.support-message.mine .support-message-bubble {
+  background: #0f766e;
+  color: #ffffff;
+  border-color: #0f766e;
+}
+
+.support-message.schedule .support-message-bubble {
+  background: #ecfeff;
+  color: #164e63;
+  border-color: #a5f3fc;
+}
+
+.support-message-bubble strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.support-message-bubble p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.support-message-bubble span {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  opacity: 0.78;
+}
+
+.support-message-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.support-filter-form {
+  display: grid;
+}
+
+.support-search-control {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.support-schedule-card {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.support-schedule-card h5 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1200px) {
+  .support-chat-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .support-chat-header,
+  .support-chat-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .support-message-bubble {
+    max-width: 92%;
+  }
+
+  .support-message-form {
+    grid-template-columns: 1fr;
+  }
+}
