@@ -118,6 +118,8 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
             throw new IllegalStateException("Vui lòng nhập chẩn đoán trước khi hoàn tất bệnh án");
         }
 
+        validateRequiredResultsCompleted(medicalRecord);
+
         Date now = new Date();
         appointment.setStatus(AppointmentStatus.COMPLETED.getCode());
         appointment.setUpdatedAt(now);
@@ -195,6 +197,57 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
                                 : Collections.emptyList()
                 ))
                 .toList();
+    }
+
+    private void validateRequiredResultsCompleted(MedicalRecord medicalRecord) {
+        List<MedicalRecordService> orderedServices = this.medicalRecordServiceRepo
+                .getServicesByMedicalRecordId(medicalRecord.getId());
+
+        List<MedicalRecordService> requiredServices = orderedServices.stream()
+                .filter(service -> !Boolean.FALSE.equals(service.getActive()))
+                .filter(this::isRequiredResultService)
+                .toList();
+
+        if (requiredServices.isEmpty()) {
+            return;
+        }
+
+        var completedServiceIds = this.testResultRepo
+                .getTestResultsByMedicalRecordId(medicalRecord.getId())
+                .stream()
+                .filter(result -> !Boolean.FALSE.equals(result.getActive()))
+                .filter(result -> result.getServiceId() != null && result.getServiceId().getId() != null)
+                .map(result -> result.getServiceId().getId())
+                .collect(Collectors.toSet());
+
+        List<String> pendingServices = requiredServices.stream()
+                .filter(service -> service.getServiceId() == null
+                        || service.getServiceId().getId() == null
+                        || !completedServiceIds.contains(service.getServiceId().getId()))
+                .map(service -> service.getServiceId() != null && service.getServiceId().getName() != null
+                        ? service.getServiceId().getName()
+                        : "Dịch vụ #" + service.getId())
+                .distinct()
+                .toList();
+
+        if (!pendingServices.isEmpty()) {
+            throw new IllegalStateException(
+                    "Không thể hoàn tất bệnh án vì còn chỉ định chưa có kết quả: "
+                            + String.join(", ", pendingServices)
+            );
+        }
+    }
+
+    private boolean isRequiredResultService(MedicalRecordService recordService) {
+        if (recordService == null
+                || recordService.getServiceId() == null
+                || recordService.getServiceId().getServiceType() == null) {
+            return false;
+        }
+
+        String serviceType = recordService.getServiceId().getServiceType().trim();
+        return MedicalServiceType.TEST.getCode().equalsIgnoreCase(serviceType)
+                || MedicalServiceType.IMAGING.getCode().equalsIgnoreCase(serviceType);
     }
 
     private boolean createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {

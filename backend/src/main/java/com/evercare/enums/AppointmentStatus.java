@@ -56,7 +56,6 @@ public enum AppointmentStatus {
         }
 
         String normalizedCode = code.trim();
-        return BOOKED.name().equalsIgnoreCase(normalizedCode)
-                || WAITING.name().equalsIgnoreCase(normalizedCode);
+        return WAITING.name().equalsIgnoreCase(normalizedCode);
     }
 }
