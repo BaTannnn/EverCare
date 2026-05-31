@@ -38,6 +38,45 @@ const deriveStatusLabel = (status) => {
   return String(status).replaceAll("_", " ");
 };
 
+const normalizeAppointmentStatus = (status) => {
+  const normalized = String(status || "").trim().toUpperCase();
+
+  if (!normalized) return "BOOKED";
+  if (normalized === "PENDING" || normalized === "CONFIRMED") return "BOOKED";
+  if (normalized === "IN_PROGRESS") return "WAITING";
+
+  return normalized;
+};
+
+const deriveAppointmentStatusLabel = (status) => {
+  switch (normalizeAppointmentStatus(status)) {
+    case "BOOKED":
+      return "Chờ xác nhận";
+    case "WAITING":
+      return "Đang chờ khám";
+    case "COMPLETED":
+      return "Đã khám xong";
+    case "CANCELLED":
+      return "Đã hủy";
+    case "NO_SHOW":
+      return "Không đến";
+    default:
+      return deriveStatusLabel(status);
+  }
+};
+
+const normalizeNotificationType = (type) => {
+  const normalized = String(type || "").trim().toUpperCase();
+
+  if (!normalized) return "SYSTEM";
+  if (normalized === "APPOINTMENT_REMINDER" || normalized === "APPOINTMENT") return "APPOINTMENT";
+  if (normalized === "PRESCRIPTION_EXPORT" || normalized === "PRESCRIPTION") return "PRESCRIPTION";
+  if (normalized === "PAYMENT") return "PAYMENT";
+  if (normalized === "TEST" || normalized === "LAB_TEST") return "TEST";
+
+  return normalized;
+};
+
 const createAvatar = (name) => makeAvatarDataUri(name || "EverCare");
 
 const pickAvatarUrl = (source) =>
@@ -61,6 +100,7 @@ export const mapPatientProfile = (rawProfile) => {
     fullName,
     avatar: pickAvatarUrl(profile) || createAvatar(fullName),
     dateOfBirth: formatShortDate(profile.dateOfBirth),
+    dateOfBirthRaw: normalizeText(profile.dateOfBirth, ""),
     gender: normalizeText(profile.gender, "Chưa cập nhật"),
     phone: normalizeText(profile.phone, "Chưa cập nhật"),
     email: normalizeText(profile.email, "Chưa cập nhật"),
@@ -81,6 +121,7 @@ export const mapAppointment = (rawAppointment) => {
   const doctorName = normalizeText(appointment.doctorName, "Bác sĩ EverCare");
   const appointmentDate = appointment.appointmentDate || appointment.date || "";
   const startTime = appointment.startTime || appointment.time || "";
+  const status = normalizeAppointmentStatus(appointment.status);
 
   return {
     id: appointment.id || appointment.appointmentCode || appointment.appointmentId,
@@ -96,8 +137,9 @@ export const mapAppointment = (rawAppointment) => {
     endTime: normalizeText(appointment.endTime, ""),
     displayDate: appointmentDate ? formatShortDate(appointmentDate) : "",
     displayTime: normalizeTime(startTime),
-    status: normalizeText(appointment.status, "PENDING"),
-    statusLabel: normalizeText(appointment.statusLabel, deriveStatusLabel(appointment.status)),
+    status,
+    rawStatus: normalizeText(appointment.status, ""),
+    statusLabel: normalizeText(appointment.statusLabel, deriveAppointmentStatusLabel(status)),
     reason: normalizeText(appointment.reason, ""),
     symptomNote: normalizeText(appointment.symptomNote, ""),
     invoiceId: appointment.invoiceId || appointment.invoice?.id || null,
@@ -174,16 +216,26 @@ const inferTestCategory = (result) => {
   if (text.includes("huyết")) return "Huyết học";
   if (text.includes("sinh hóa") || text.includes("sinh hoc")) return "Sinh hóa";
   if (text.includes("nước tiểu") || text.includes("nuoc tieu")) return "Nước tiểu";
+  if (text.includes("vi sinh")) return "Vi sinh";
+  if (text.includes("siêu âm") || text.includes("sieu am")) return "Siêu âm";
+  if (text.includes("điện tim") || text.includes("dien tim") || text.includes("ecg") || text.includes("ekg")) return "Điện tim";
+  if (text.includes("x-quang") || text.includes("x quang") || text.includes("ct") || text.includes("mri") || text.includes("chẩn đoán hình ảnh")) return "Chẩn đoán hình ảnh";
+  if (text.includes("nội soi") || text.includes("noi soi")) return "Nội soi";
   return "Khác";
 };
 
 export const mapTestResult = (rawResult) => {
   const result = unwrapObject(rawResult) || {};
+  const category = inferTestCategory(result);
   return {
     id: result.id || result.resultCode,
     resultCode: normalizeText(result.resultCode, result.id || ""),
     name: normalizeText(result.resultTitle, "Xét nghiệm"),
-    category: inferTestCategory(result),
+    resultTitle: normalizeText(result.resultTitle, "Xét nghiệm"),
+    resultContent: normalizeText(result.resultContent, ""),
+    serviceName: normalizeText(result.serviceName, ""),
+    category,
+    categoryLabel: category,
     date: result.resultDate || "",
     doctorName: normalizeText(result.performedByName, "Bác sĩ EverCare"),
     conclusion: normalizeText(result.conclusion, normalizeText(result.resultContent, "")),
@@ -222,12 +274,14 @@ export const mapPrescription = (rawPrescription) => {
 export const mapNotification = (rawNotification) => {
   const notification = unwrapObject(rawNotification) || {};
   const read = Boolean(notification.readAt);
+  const type = normalizeNotificationType(notification.notificationType);
 
   return {
     id: notification.id,
     title: normalizeText(notification.title, "Thông báo"),
     content: normalizeText(notification.content, ""),
-    type: normalizeText(notification.notificationType, "SYSTEM"),
+    type,
+    typeLabel: deriveStatusLabel(type),
     relatedId: notification.relatedId,
     createdAt: notification.createdAt || "",
     time: notification.createdAt ? formatShortDate(notification.createdAt) : "",
@@ -290,6 +344,7 @@ export const mapDoctor = (rawDoctor) => {
     avatar: doctor.avatarUrl || createAvatar(fullName),
     qualification: normalizeText(doctor.qualification, ""),
     specialization: normalizeText(doctor.specialization, normalizeText(doctor.departmentName, "Chuyên khoa")),
+    departmentId: doctor.departmentId?.id ?? doctor.departmentId ?? null,
     departmentName: normalizeText(doctor.departmentName, ""),
     workStatus: normalizeText(doctor.workStatus, "AVAILABLE"),
     active: doctor.active ?? true,
@@ -328,6 +383,7 @@ export const mapMedicalService = (rawService) => {
     description: normalizeText(service.description, ""),
     price: normalizeCurrency(service.price),
     serviceType: normalizeText(service.serviceType, ""),
+    departmentId: service.departmentId?.id ?? service.departmentId ?? null,
     departmentName: normalizeText(service.departmentName, ""),
     active: service.active ?? true,
   };

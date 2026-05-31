@@ -4,8 +4,6 @@ import { BsArrowRight, BsDownload, BsEyedropper, BsFileEarmarkArrowDown, BsFlask
 import { getPatientTestResults } from "../../services/patient/patientTestResultApi";
 import { countByStatus, getPatientStatusMeta } from "./patientPageUtils";
 
-const tabs = ["ALL", "Huyết học", "Sinh hóa", "Nước tiểu"];
-
 function PatientTestResults() {
   const [results, setResults] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
@@ -43,6 +41,17 @@ function PatientTestResults() {
     }),
     [results],
   );
+
+  const tabs = useMemo(() => {
+    const categories = [...new Set(results.map((item) => item.category).filter(Boolean))];
+    return ["ALL", ...categories];
+  }, [results]);
+
+  useEffect(() => {
+    if (activeTab !== "ALL" && !tabs.includes(activeTab)) {
+      setActiveTab("ALL");
+    }
+  }, [activeTab, tabs]);
 
   const filtered = useMemo(() => {
     if (activeTab === "ALL") return results;
@@ -118,7 +127,7 @@ function PatientTestResults() {
                     <div className="patient-result-meta">
                       <span>{result.date}</span>
                       <span>{result.doctorName}</span>
-                      <span>{result.category}</span>
+                      <span>{result.categoryLabel || result.category}</span>
                     </div>
                     <p>{result.conclusion}</p>
                   </div>
@@ -167,9 +176,20 @@ function PatientTestResults() {
           {selectedResult && (
             <div className="patient-modal-details">
               <h4>{selectedResult.name}</h4>
-              <p>{selectedResult.conclusion}</p>
+              <p>{selectedResult.categoryLabel || selectedResult.category}</p>
+              <div className="patient-modal-note">{selectedResult.resultTitle}</div>
+              {selectedResult.serviceName && <div className="patient-modal-note mt-3">{selectedResult.serviceName}</div>}
+              {selectedResult.resultContent && <div className="patient-modal-note mt-3">{selectedResult.resultContent}</div>}
+              <p className="mt-3">{selectedResult.conclusion}</p>
               <strong>Kết luận chuyên môn:</strong>
               <div className="patient-modal-note">{selectedResult.conclusion}</div>
+              {selectedResult.fileUrl && (
+                <div className="mt-3">
+                  <Button type="button" variant="outline-primary" as="a" href={selectedResult.fileUrl} target="_blank" rel="noreferrer">
+                    Mở file đính kèm
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Modal.Body>

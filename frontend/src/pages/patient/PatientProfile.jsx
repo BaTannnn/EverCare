@@ -33,7 +33,7 @@ function PatientProfile() {
   useEffect(() => {
     setForm({
       fullName: data.fullName || "",
-      dateOfBirth: data.dateOfBirth || "",
+      dateOfBirth: data.dateOfBirthRaw || data.dateOfBirth || "",
       gender: data.gender || "",
       phone: data.phone || "",
       email: data.email || "",
@@ -52,6 +52,7 @@ function PatientProfile() {
     data.bloodType,
     data.citizenId,
     data.dateOfBirth,
+    data.dateOfBirthRaw,
     data.email,
     data.emergencyContactName,
     data.emergencyContactPhone,

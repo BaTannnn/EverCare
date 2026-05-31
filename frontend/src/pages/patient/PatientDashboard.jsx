@@ -100,7 +100,7 @@ function PatientDashboard() {
 
   const dashboard = useMemo(() => {
     const upcomingAppointment = sortByLatestDate(
-      appointments.filter((item) => ["PENDING", "CONFIRMED"].includes(item.status)),
+      appointments.filter((item) => ["BOOKED", "WAITING"].includes(item.status)),
       "appointmentDate",
     )[0];
     const latestRecord = sortByLatestDate(records, "visitDate")[0];
