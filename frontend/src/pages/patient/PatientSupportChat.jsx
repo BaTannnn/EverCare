@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Card, Form, ListGroup } from "react-bootstrap";
 import { BsChatDots, BsCheck2Circle, BsPlusCircle, BsSend } from "react-icons/bs";
 import EmptyState from "../../components/common/EmptyState";
@@ -34,6 +34,28 @@ const pickConversationId = (items, preferredId, fallbackId) => {
   return items[0]?.id || null;
 };
 
+const MESSAGE_INITIAL_LIMIT = 50;
+const MESSAGE_POLL_LIMIT = 50;
+const MESSAGE_POLL_VISIBLE_MS = 3000;
+const MESSAGE_POLL_HIDDEN_MS = 30000;
+const CONVERSATION_POLL_VISIBLE_MS = 12000;
+const CONVERSATION_POLL_HIDDEN_MS = 60000;
+
+const getPollDelay = (visibleMs, hiddenMs) => (document.visibilityState === "hidden" ? hiddenMs : visibleMs);
+
+const getLatestMessageId = (items) => items.reduce((maxId, item) => {
+  const id = Number(item?.id);
+  return Number.isFinite(id) && id > maxId ? id : maxId;
+}, 0);
+
+const mergeMessagesById = (current, incoming) => {
+  const byId = new Map(current.map((item) => [String(item.id), item]));
+  incoming.forEach((item) => {
+    if (item?.id) byId.set(String(item.id), item);
+  });
+  return Array.from(byId.values()).sort((first, second) => Number(first.id) - Number(second.id));
+};
+
 function PatientSupportChat() {
   const [conversations, setConversations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -48,6 +70,9 @@ function PatientSupportChat() {
     initialMessage: "",
   });
   const [messageText, setMessageText] = useState("");
+  const latestMessageIdRef = useRef(0);
+  const messagePollInFlightRef = useRef(false);
+  const conversationPollInFlightRef = useRef(false);
 
   const selectedConversation = useMemo(
     () => conversations.find((conversation) => String(conversation.id) === String(selectedId)),
@@ -65,23 +90,37 @@ function PatientSupportChat() {
     return nextSelectedId;
   }, []);
 
-  const loadMessages = useCallback(async (conversationId, silent = false) => {
+  const loadMessages = useCallback(async (conversationId, options = {}) => {
+    const { silent = false, afterId = null, append = false } = options;
     if (!conversationId) {
+      latestMessageIdRef.current = 0;
       setMessages([]);
       return;
     }
 
     if (!silent) setMessagesLoading(true);
     try {
-      const response = await getPatientSupportMessages(conversationId);
-      setMessages(response.data || []);
+      const params = {
+        limit: afterId ? MESSAGE_POLL_LIMIT : MESSAGE_INITIAL_LIMIT,
+      };
+      if (afterId) params.afterId = afterId;
+
+      const response = await getPatientSupportMessages(conversationId, params);
+      const incoming = response.data || [];
+      setMessages((current) => (append ? mergeMessagesById(current, incoming) : incoming));
     } catch (err) {
-      setError(getErrorMessage(err));
-      setMessages([]);
+      if (!silent) {
+        setError(getErrorMessage(err));
+        setMessages([]);
+      }
     } finally {
       if (!silent) setMessagesLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    latestMessageIdRef.current = getLatestMessageId(messages);
+  }, [messages]);
 
   useEffect(() => {
     let mounted = true;
@@ -111,15 +150,92 @@ function PatientSupportChat() {
 
   useEffect(() => {
     if (!selectedId) return undefined;
-    const timer = window.setInterval(() => {
-      loadMessages(selectedId, true);
-      loadConversations(selectedId, selectedId).catch(() => {});
-    }, 3000);
-    return () => window.clearInterval(timer);
-  }, [loadConversations, loadMessages, selectedId]);
+    let timerId;
+    let cancelled = false;
+
+    function scheduleNext() {
+      window.clearTimeout(timerId);
+      timerId = window.setTimeout(poll, getPollDelay(MESSAGE_POLL_VISIBLE_MS, MESSAGE_POLL_HIDDEN_MS));
+    }
+
+    async function poll() {
+      if (!messagePollInFlightRef.current) {
+        messagePollInFlightRef.current = true;
+        const afterId = latestMessageIdRef.current || null;
+        try {
+          await loadMessages(selectedId, {
+            silent: true,
+            afterId,
+            append: Boolean(afterId),
+          });
+        } finally {
+          messagePollInFlightRef.current = false;
+        }
+      }
+
+      if (!cancelled) {
+        scheduleNext();
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (!messagePollInFlightRef.current) {
+        scheduleNext();
+      }
+    };
+
+    scheduleNext();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadMessages, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId) return undefined;
+    let timerId;
+    let cancelled = false;
+
+    function scheduleNext() {
+      window.clearTimeout(timerId);
+      timerId = window.setTimeout(poll, getPollDelay(CONVERSATION_POLL_VISIBLE_MS, CONVERSATION_POLL_HIDDEN_MS));
+    }
+
+    async function poll() {
+      if (!conversationPollInFlightRef.current) {
+        conversationPollInFlightRef.current = true;
+        try {
+          await loadConversations(selectedId, selectedId);
+        } finally {
+          conversationPollInFlightRef.current = false;
+        }
+      }
+
+      if (!cancelled) {
+        scheduleNext();
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (!conversationPollInFlightRef.current) {
+        scheduleNext();
+      }
+    };
+
+    scheduleNext();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timerId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadConversations, selectedId]);
 
   const selectConversation = (conversationId) => {
     setSelectedId(conversationId);
+    latestMessageIdRef.current = 0;
     loadMessages(conversationId);
   };
 

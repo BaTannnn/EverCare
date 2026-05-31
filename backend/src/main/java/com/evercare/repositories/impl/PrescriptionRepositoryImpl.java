@@ -59,17 +59,24 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
             status = "PRESCRIBED";
         }
 
-        return session.createQuery("""
-                SELECT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                WHERE p.active = true
-                    AND p.status = :status
-                ORDER BY p.prescribedAt ASC, p.id ASC
-                """, Prescription.class)
-                .setParameter("status", status.trim().toUpperCase())
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        root.fetch("doctorId");
+        root.fetch("patientId");
+        root.fetch("medicalRecordId");
+        root.fetch("prescriptionItemSet", jakarta.persistence.criteria.JoinType.LEFT)
+                .fetch("medicineId", jakarta.persistence.criteria.JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.isTrue(root.get("active")),
+                cb.equal(root.get("status"), status.trim().toUpperCase())
+        );
+        cq.orderBy(cb.asc(root.get("prescribedAt")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override

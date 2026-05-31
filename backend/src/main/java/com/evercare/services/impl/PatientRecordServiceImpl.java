@@ -124,7 +124,7 @@ public class PatientRecordServiceImpl implements PatientRecordService {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
         }
 
-        return PrescriptionMapper.toResponse(prescription, null);
+        return PrescriptionMapper.toResponse(prescription, (java.util.function.Function<Long, Long>) null);
     }
 
     private PrescriptionResponse toPrescriptionSummaryResponse(Prescription prescription) {

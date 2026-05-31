@@ -39,8 +39,15 @@ public class MedicineServiceImpl implements MedicineService {
     @Override
     public List<MedicineSearchResponse> searchMedicines(Map<String, String> params) {
         Date today = java.sql.Date.valueOf(LocalDate.now());
+        List<Medicine> medicines = this.medicineRepo.getMedicines(params);
+        Map<Long, Long> availableQuantities = this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(
+                medicines.stream()
+                        .map(Medicine::getId)
+                        .toList(),
+                today
+        );
 
-        return this.medicineRepo.getMedicines(params)
+        return medicines
                 .stream()
                 .map(medicine -> {
                     MedicineSearchResponse res = new MedicineSearchResponse();
@@ -48,9 +55,7 @@ public class MedicineServiceImpl implements MedicineService {
                     res.setMedicineName(medicine.getName());
                     res.setUnit(medicine.getUnit());
                     res.setUnitPrice(medicine.getUnitPrice());
-                    res.setAvailableQuantity(
-                            this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicine.getId(), today)
-                    );
+                    res.setAvailableQuantity(availableQuantities.getOrDefault(medicine.getId(), 0L));
 
                     return res;
                 })

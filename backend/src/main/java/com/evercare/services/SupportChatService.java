@@ -14,7 +14,7 @@ public interface SupportChatService {
 
     SupportConversationResponse createPatientConversation(SupportConversationRequest request);
 
-    List<SupportMessageResponse> getPatientMessages(Long conversationId);
+    List<SupportMessageResponse> getPatientMessages(Long conversationId, Long afterId, Integer limit);
 
     SupportMessageResponse sendPatientMessage(Long conversationId, SupportMessageRequest request);
 
@@ -24,7 +24,7 @@ public interface SupportChatService {
 
     SupportConversationResponse acceptConversation(Long conversationId);
 
-    List<SupportMessageResponse> getReceptionistMessages(Long conversationId);
+    List<SupportMessageResponse> getReceptionistMessages(Long conversationId, Long afterId, Integer limit);
 
     SupportMessageResponse sendReceptionistMessage(Long conversationId, SupportMessageRequest request);
 
