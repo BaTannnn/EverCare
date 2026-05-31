@@ -61,8 +61,6 @@ export const endpoints = {
   "patient-notifications": "/secure/notifications",
   "patient-invoices": "/secure/patient/invoices",
   "patient-invoice-detail": (id) => `/secure/patient/invoices/${id}`,
-  "medical-services": "/medical-services",
-  doctors: "/doctors",
   medicines: "/medicines",
   "medicine-detail": (id) => `/medicines/${id}`,
 };
