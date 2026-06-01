@@ -29,7 +29,6 @@ import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final Logger logger = LoggerFactory.getLogger(AppointmentServiceImpl.class);
 
     private static final String TYPE_APPOINTMENT_REMINDER = "APPOINTMENT_REMINDER";
-    private static final String TYPE_APPOINTMENT = "APPOINTMENT";
     private static final String STATUS_BOOKED = AppointmentStatus.BOOKED.getCode();
     private static final String STATUS_CANCELLED = AppointmentStatus.CANCELLED.getCode();
     private static final String STATUS_WAITING = AppointmentStatus.WAITING.getCode();
@@ -73,97 +71,32 @@ public class AppointmentServiceImpl implements AppointmentService {
     private LookupSupport lookupSupport;
 
     @Override
-    @Transactional
     public AppointmentResponse bookAppointment(AppointmentRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Dữ liệu đặt lịch không hợp lệ");
-        }
-
+        validateBookingRequest(request);
         User currentUser = this.authSupport.getCurrentUser();
         Patient currentPatient = this.authSupport.requireCurrentPatient(new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám."));
         Doctor doctor = this.lookupSupport.requireWorkingDoctor(request.getDoctorId());
         MedicalService service = this.lookupSupport.requireActiveExaminationService(request.getServiceId());
 
-        if (doctor.getDepartmentId() != null && service.getDepartmentId() != null
-                && doctor.getDepartmentId().getId() != null
-                && service.getDepartmentId().getId() != null
-                && !doctor.getDepartmentId().getId().equals(service.getDepartmentId().getId())) {
-            throw new IllegalStateException("Dịch vụ không thuộc chuyên khoa của bác sĩ");
-        }
+        validateDepartmentMatch(null, doctor, service);
+        LocalDate appointmentDate = requireAppointmentDate(request.getAppointmentDate());
+        LocalTime startTime = requireStartTime(request.getStartTime());
+        LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
+        validateDateTime(appointmentDate, startTime, endTime);
+        validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
-        if (request.getAppointmentDate() == null) {
-            throw new IllegalArgumentException("Vui lòng chọn ngày khám");
-        }
-
-        if (request.getStartTime() == null) {
-            throw new IllegalArgumentException("Vui lòng chọn giờ khám");
-        }
-
-        java.time.LocalDate appointmentDate = request.getAppointmentDate();
-        java.time.LocalTime startTime = request.getStartTime();
-        java.time.LocalTime endTime = request.getEndTime();
-        if (endTime == null) {
-            endTime = startTime.plusMinutes(DEFAULT_APPOINTMENT_MINUTES);
-        }
-
-        if (!endTime.isAfter(startTime)) {
-            throw new IllegalArgumentException("Giờ kết thúc phải lớn hơn giờ bắt đầu");
-        }
-
-        if (appointmentDate.isBefore(java.time.LocalDate.now())
-                || (appointmentDate.isEqual(java.time.LocalDate.now()) && startTime.isBefore(java.time.LocalTime.now()))) {
-            throw new IllegalStateException("Không thể đặt lịch trong quá khứ");
-        }
-
-        DoctorSchedule schedule = this.scheduleRepo.getScheduleCoveringAppointmentTime(
-                doctor.getId(),
+        Appointment saved = createAndPersistAppointment(
+                currentUser,
+                currentPatient,
+                doctor,
+                service,
                 appointmentDate,
                 startTime,
-                endTime
+                endTime,
+                STATUS_BOOKED,
+                request.getReason(),
+                request.getSymptomNote()
         );
-
-        if (schedule == null) {
-            throw new IllegalStateException("Bác sĩ không có lịch trống trong khung giờ này.");
-        }
-
-        if (this.appointmentRepo.existsAppointmentByDoctorAndTime(
-                doctor.getId(),
-                java.sql.Date.valueOf(appointmentDate),
-                Time.valueOf(startTime),
-                null
-        )) {
-            throw new IllegalStateException("Khung giờ này đã có người đặt.");
-        }
-
-        long bookedCount = this.appointmentRepo.countBookedAppointmentsByDoctorAndDateAndWindow(
-                doctor.getId(),
-                java.sql.Date.valueOf(appointmentDate),
-                Time.valueOf(schedule.getStartTime()),
-                Time.valueOf(schedule.getEndTime())
-        );
-
-        if (schedule.getMaxPatients() != null && bookedCount >= schedule.getMaxPatients()) {
-            throw new IllegalStateException("Khung giờ này đã đủ số lượng bệnh nhân.");
-        }
-
-        Appointment appointment = new Appointment();
-        appointment.setAppointmentCode(generateAppointmentCode());
-        appointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
-        appointment.setStartTime(Time.valueOf(startTime));
-        appointment.setEndTime(Time.valueOf(endTime));
-        appointment.setReason(trimToNull(request.getReason()));
-        appointment.setSymptomNote(trimToNull(request.getSymptomNote()));
-        appointment.setStatus(STATUS_BOOKED);
-        appointment.setPatientId(currentPatient);
-        appointment.setDoctorId(doctor);
-        appointment.setServiceId(service);
-        appointment.setCreatedBy(currentUser);
-        appointment.setActive(true);
-        Date now = new Date();
-        appointment.setCreatedAt(now);
-        appointment.setUpdatedAt(now);
-
-        Appointment saved = this.appointmentRepo.createAppointment(appointment);
         createNotification(currentUser, "Đặt lịch khám thành công", "Bạn đã đặt lịch khám thành công.", saved.getId());
 
         return AppointmentMapper.toPatientResponse(saved);
@@ -173,14 +106,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     public List<AppointmentResponse> getAppointmentsByCurrentPatient(Map<String, String> params) {
         Patient currentPatient = this.authSupport.getCurrentPatientOrNull();
         if (currentPatient == null) {
-            return new ArrayList<>();
+            return List.of();
         }
 
-        List<AppointmentResponse> result = new ArrayList<>();
-        for (Appointment appointment : this.appointmentRepo.getAppointmentsByPatientId(currentPatient.getId(), params)) {
-            result.add(AppointmentMapper.toPatientResponse(appointment));
-        }
-        return result;
+        return toPatientResponses(this.appointmentRepo.getAppointmentsByPatientId(currentPatient.getId(), params));
     }
 
     @Override
@@ -238,12 +167,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<AppointmentResponse> getAppointmentsForReceptionist(Map<String, String> params) {
         this.authSupport.requireReceptionistUser();
-
-        List<AppointmentResponse> result = new ArrayList<>();
-        for (Appointment appointment : this.appointmentRepo.getAppointmentsForReceptionist(params)) {
-            result.add(AppointmentMapper.toPatientResponse(appointment));
-        }
-        return result;
+        return toPatientResponses(this.appointmentRepo.getAppointmentsForReceptionist(params));
     }
 
     @Override
@@ -262,9 +186,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public AppointmentResponse createAppointmentForReceptionist(AppointmentRequest request) {
         User currentUser = this.authSupport.requireReceptionistUser();
-        if (request == null) {
-            throw new IllegalArgumentException("Dữ liệu tạo lịch không hợp lệ");
-        }
+        validateBookingRequest(request);
 
         Patient patient = resolveReceptionistPatient(request);
         Doctor doctor = this.lookupSupport.requireWorkingDoctor(request.getDoctorId());
@@ -273,38 +195,33 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         LocalDate appointmentDate = requireAppointmentDate(request.getAppointmentDate());
         LocalTime startTime = requireStartTime(request.getStartTime());
-        LocalTime endTime = request.getEndTime() != null ? request.getEndTime() : startTime.plusMinutes(DEFAULT_APPOINTMENT_MINUTES);
+        LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
 
         validateDateTime(appointmentDate, startTime, endTime);
         validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
-        Appointment appointment = new Appointment();
-        appointment.setAppointmentCode(generateAppointmentCode());
-        appointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
-        appointment.setStartTime(Time.valueOf(startTime));
-        appointment.setEndTime(Time.valueOf(endTime));
-        appointment.setReason(trimToNull(request.getReason()));
-        appointment.setSymptomNote(trimToNull(request.getSymptomNote()));
-        appointment.setStatus(Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now())
-                ? STATUS_WAITING
-                : STATUS_BOOKED);
-        appointment.setPatientId(patient);
-        appointment.setDoctorId(doctor);
-        appointment.setServiceId(service);
-        appointment.setCreatedBy(currentUser);
-        appointment.setActive(true);
-        Date now = new Date();
-        appointment.setCreatedAt(now);
-        appointment.setUpdatedAt(now);
-
-        Appointment saved = this.appointmentRepo.createAppointment(appointment);
-        notifyPatientByAppointment(patient, saved,
-                Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now())
-                        ? "Bạn đã được tiếp nhận"
-                        : "Đặt lịch khám thành công",
-                Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now())
+        boolean checkInNow = Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now());
+        String status = checkInNow ? STATUS_WAITING : STATUS_BOOKED;
+        Appointment saved = createAndPersistAppointment(
+                currentUser,
+                patient,
+                doctor,
+                service,
+                appointmentDate,
+                startTime,
+                endTime,
+                status,
+                request.getReason(),
+                request.getSymptomNote()
+        );
+        notifyPatientByAppointment(
+                patient,
+                saved,
+                checkInNow ? "Bạn đã được tiếp nhận" : "Đặt lịch khám thành công",
+                checkInNow
                         ? "Bạn đã được tiếp nhận tại quầy và đang chờ bác sĩ khám."
-                        : "Bạn đã đặt lịch khám thành công.");
+                        : "Bạn đã đặt lịch khám thành công."
+        );
 
         return AppointmentMapper.toPatientResponse(saved);
     }
@@ -428,10 +345,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setUpdatedAt(new Date());
         this.appointmentRepo.updateAppointment(appointment);
 
-        if (request != null && request.getNote() != null) {
-            // Note is accepted by API for future audit fields, but schema currently has no slot to store it.
-        }
-
         notifyPatientByAppointment(
                 patient,
                 appointment,
@@ -440,6 +353,55 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
 
         return AppointmentMapper.toPatientResponse(appointment);
+    }
+
+    private void validateBookingRequest(AppointmentRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu đặt lịch không hợp lệ");
+        }
+    }
+
+    private List<AppointmentResponse> toPatientResponses(List<Appointment> appointments) {
+        if (appointments == null || appointments.isEmpty()) {
+            return List.of();
+        }
+
+        return appointments.stream()
+                .map(AppointmentMapper::toPatientResponse)
+                .toList();
+    }
+
+    private Appointment createAndPersistAppointment(
+            User createdBy,
+            Patient patient,
+            Doctor doctor,
+            MedicalService service,
+            LocalDate appointmentDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            String status,
+            String reason,
+            String symptomNote
+    ) {
+        Appointment appointment = new Appointment();
+        appointment.setAppointmentCode(generateAppointmentCode());
+        appointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
+        appointment.setStartTime(Time.valueOf(startTime));
+        appointment.setEndTime(Time.valueOf(endTime));
+        appointment.setReason(trimToNull(reason));
+        appointment.setSymptomNote(trimToNull(symptomNote));
+        appointment.setStatus(status);
+        appointment.setPatientId(patient);
+        appointment.setDoctorId(doctor);
+        appointment.setServiceId(service);
+        appointment.setCreatedBy(createdBy);
+        appointment.setActive(true);
+
+        Date now = new Date();
+        appointment.setCreatedAt(now);
+        appointment.setUpdatedAt(now);
+
+        return this.appointmentRepo.createAppointment(appointment);
     }
 
     private Patient resolveReceptionistPatient(AppointmentRequest request) {
@@ -551,15 +513,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalStateException("Bác sĩ không có lịch trống trong khung giờ này.");
         }
 
-        if (this.appointmentRepo.existsAppointmentByDoctorAndTime(
-                doctorId,
-                java.sql.Date.valueOf(appointmentDate),
-                Time.valueOf(startTime),
-                excludeAppointmentId
-        )) {
-            throw new IllegalStateException("Khung giờ này đã có người đặt.");
-        }
-
         long bookedCount = this.appointmentRepo.countBookedAppointmentsByDoctorAndDateAndWindow(
                 doctorId,
                 java.sql.Date.valueOf(appointmentDate),
@@ -595,6 +548,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                 || (appointmentDate.isEqual(today) && startTime.isBefore(LocalTime.now()))) {
             throw new IllegalStateException("Không thể đặt lịch trong quá khứ");
         }
+    }
+
+    private LocalTime resolveAppointmentEndTime(LocalTime startTime, LocalTime endTime) {
+        return endTime != null ? endTime : startTime.plusMinutes(DEFAULT_APPOINTMENT_MINUTES);
     }
 
     private LocalDate requireAppointmentDate(LocalDate appointmentDate) {

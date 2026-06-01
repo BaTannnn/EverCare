@@ -15,7 +15,6 @@ public interface AppointmentRepository {
     long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime, Long excludeId);
     List<Appointment> getAppointmentsByPatientId(Long patientId, Map<String, String> params);
     Appointment getAppointmentByPatientIdAndId(Long patientId, Long appointmentId);
-    boolean existsAppointmentByDoctorAndTime(Long doctorId, Date appointmentDate, Time startTime, Long excludeId);
     Appointment createAppointment(Appointment appointment);
 
     Appointment getAppointmentById(Long appointmentId);
