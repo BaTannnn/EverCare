@@ -16,12 +16,11 @@ import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.InvoiceRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.NotificationRepository;
-import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.PaymentRepository;
 import com.evercare.dtos.response.PaymentGatewayResultResponse;
 import com.evercare.services.PaymentGatewayService;
 import com.evercare.services.PaymentService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import com.evercare.utils.PaymentGatewaySupport;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -39,8 +38,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,10 +54,6 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     private PaymentRepository paymentRepo;
-
-    @Autowired
-    private PatientRepository patientRepo;
-
     @Autowired
     private NotificationRepository notificationRepo;
 
@@ -69,20 +62,19 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     private AppointmentRepository appointmentRepo;
-
-    @Autowired
-    private UserService userService;
-
     @Autowired
     private Environment env;
 
     @Autowired
     private List<PaymentGatewayService> gatewayServices;
 
+    @Autowired
+    private AuthSupport authSupport;
+
     @Override
     @Transactional(noRollbackFor = IllegalStateException.class)
     public PaymentResultResponse createPayment(Long invoiceId, PaymentRequest request) {
-        Patient currentPatient = requireCurrentPatient();
+        Patient currentPatient = this.authSupport.requireCurrentPatient(new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi thanh toán hóa đơn."));
         Invoice invoice = this.invoiceRepo.getInvoiceByPatientIdAndId(currentPatient.getId(), invoiceId);
         if (invoice == null) {
             throw new NoSuchElementException("Không tìm thấy hóa đơn");
@@ -93,7 +85,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(noRollbackFor = IllegalStateException.class)
     public PaymentResultResponse createReceptionistPayment(Long invoiceId, PaymentRequest request) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
         Invoice invoice = this.invoiceRepo.getInvoiceById(invoiceId);
         if (invoice == null) {
             throw new NoSuchElementException("Không tìm thấy hóa đơn");
@@ -262,31 +254,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         throw new IllegalArgumentException("Cổng thanh toán không hợp lệ");
-    }
-
-    private Patient requireCurrentPatient() {
-        User currentUser = getCurrentUser();
-        Patient patient = this.patientRepo.getPatientByUserId(currentUser.getId());
-        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-            throw new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi thanh toán hóa đơn.");
-        }
-        return patient;
-    }
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication() != null
-                ? SecurityContextHolder.getContext().getAuthentication().getName()
-                : null;
-
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-        return user;
     }
 
     private String generateCode(String prefix) {
@@ -534,33 +501,6 @@ public class PaymentServiceImpl implements PaymentService {
         return "MOMO".equalsIgnoreCase(paymentMethod)
                 || "ZALOPAY".equalsIgnoreCase(paymentMethod)
                 || "VNPAY".equalsIgnoreCase(paymentMethod);
-    }
-
-    private User requireReceptionistUser() {
-        User user = getCurrentUser();
-        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
-            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
-        }
-        return user;
-    }
-
-    private boolean hasAnyRole(User user, String... roles) {
-        if (user == null || user.getRoleSet() == null || roles == null) {
-            return false;
-        }
-
-        for (var role : user.getRoleSet()) {
-            if (role == null || role.getCode() == null) {
-                continue;
-            }
-            for (String expectedRole : roles) {
-                if (expectedRole != null && expectedRole.equalsIgnoreCase(role.getCode())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private void createNotification(Invoice invoice, String title, String content, Long relatedId) {

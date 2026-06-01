@@ -8,6 +8,7 @@ import com.evercare.pojo.User;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.UserRepository;
 import com.evercare.services.PatientService;
+import com.evercare.utils.AuthSupport;
 import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -17,8 +18,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,9 +33,12 @@ public class PatientServiceImpl implements PatientService {
     @Autowired
     private PatientRepository patientRepository;
 
+    @Autowired
+    private AuthSupport authSupport;
+
     @Override
     public PatientResponse createProfile(PatientRequest request) {
-        User currentUser = getCurrentUser();
+        User currentUser = this.authSupport.getCurrentUserAllowInactive();
         requireActiveUser(currentUser);
 
         if (currentUser.getPatient() != null) {
@@ -60,15 +62,17 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PatientResponse getMyProfile() {
-        Patient patient = requirePatientProfile();
+        User currentUser = this.authSupport.getCurrentUserAllowInactive();
+        requireActiveUser(currentUser);
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         return PatientMapper.toResponse(patient);
     }
 
     @Override
     public PatientResponse updateMyProfile(PatientRequest request) {
-        User currentUser = getCurrentUser();
+        User currentUser = this.authSupport.getCurrentUserAllowInactive();
         requireActiveUser(currentUser);
-        Patient patient = requirePatientProfile();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
 
         applyMedicalFields(patient, request, true);
         syncUserFromPatientRequest(currentUser, request);
@@ -77,33 +81,6 @@ public class PatientServiceImpl implements PatientService {
         userRepository.update(currentUser);
         Patient updated = patientRepository.update(patient);
         return PatientMapper.toResponse(updated);
-    }
-
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = userRepository.findByUsername(authentication.getName());
-        if (user == null) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-        return user;
-    }
-
-    private Patient getCurrentPatientOrThrow() {
-        User currentUser = getCurrentUser();
-        requireActiveUser(currentUser);
-        Patient patient = patientRepository.getPatientByUserId(currentUser.getId());
-        if (patient == null || !Boolean.TRUE.equals(patient.getActive())) {
-            throw new java.util.NoSuchElementException("Bạn chưa tạo hồ sơ bệnh nhân");
-        }
-        return patient;
-    }
-
-    private Patient requirePatientProfile() {
-        return getCurrentPatientOrThrow();
     }
 
     private void requireActiveUser(User user) {

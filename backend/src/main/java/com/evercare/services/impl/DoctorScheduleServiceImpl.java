@@ -6,13 +6,12 @@ import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
-import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.services.DoctorScheduleService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
+import com.evercare.utils.LookupSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,9 +32,10 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     private DoctorScheduleRepository scheduleRepo;
 
     @Autowired
-    private DoctorRepository doctorRepo;
+    private AuthSupport authSupport;
+
     @Autowired
-    private UserService userService;
+    private LookupSupport lookupSupport;
 
     @Autowired
     private AppointmentRepository appointmentRepo;
@@ -71,7 +71,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
     @Override
     public List<DoctorScheduleResponse> getCurrentDoctorSchedules(String username, Map<String, String> params) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Map<String, String> filters = params != null ? new HashMap<>(params) : new HashMap<>();
 
         String date = filters.get("date");
@@ -97,7 +97,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     public DoctorSchedule createSchedule(DoctorScheduleRequest req) {
         validateSchedule(req, null);
 
-        Doctor doctor = loadValidDoctor(req.getDoctorId());
+        Doctor doctor = this.lookupSupport.requireActiveDoctor(req.getDoctorId());
 
         DoctorSchedule schedule = DoctorScheduleMapper.toEntityForCreate(req, doctor);
 
@@ -120,7 +120,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
         validateSchedule(req, existing.getId());
 
-        Doctor doctor = loadValidDoctor(req.getDoctorId());
+        Doctor doctor = this.lookupSupport.requireActiveDoctor(req.getDoctorId());
 
         DoctorScheduleMapper.updateEntity(existing, req, doctor);
 
@@ -159,50 +159,6 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
                 Time.valueOf(schedule.getStartTime()),
                 Time.valueOf(schedule.getEndTime())
         );
-    }
-
-    private Doctor loadValidDoctor(Long doctorId) {
-        if (doctorId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn bác sĩ");
-        }
-
-        Doctor doctor = this.doctorRepo.getDoctorById(doctorId.intValue());
-
-        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new IllegalArgumentException("Bác sĩ không tồn tại hoặc đã ngưng hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private Doctor getCurrentDoctor(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
-
-        if (!hasRole(user, "DOCTOR")
-                || doctor == null
-                || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private void validateSchedule(DoctorScheduleRequest req, Long excludeId) {

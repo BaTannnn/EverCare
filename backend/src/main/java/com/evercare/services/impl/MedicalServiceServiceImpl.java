@@ -7,6 +7,7 @@ import com.evercare.pojo.MedicalService;
 import com.evercare.repositories.DepartmentRepository;
 import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.services.MedicalServiceService;
+import com.evercare.utils.LookupSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,9 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
 
     @Autowired
     private DepartmentRepository departmentRepo;
+
+    @Autowired
+    private LookupSupport lookupSupport;
 
     @Override
     public List<MedicalService> getServices(Map<String, String> params) {
@@ -54,7 +58,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     public MedicalService createService(MedicalServiceRequest req) {
         validateService(req);
 
-        Department department = loadValidDepartment(req.getDepartmentId());
+        Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
 
         MedicalService service = MedicalServiceMapper.toEntityForCreate(req, department);
 
@@ -77,7 +81,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
             throw new IllegalArgumentException("Dịch vụ đã bị xóa hoặc ngưng hoạt động");
         }
 
-        Department department = loadValidDepartment(req.getDepartmentId());
+        Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
 
         MedicalServiceMapper.updateEntity(existing, req, department);
 
@@ -102,20 +106,6 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     @Override
     public long getTotalPages(Map<String, String> params) {
         return this.serviceRepo.getTotalPages(params);
-    }
-
-    private Department loadValidDepartment(Long departmentId) {
-        if (departmentId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn khoa");
-        }
-
-        Department department = this.departmentRepo.getDepartmentById(departmentId.intValue());
-
-        if (department == null || Boolean.FALSE.equals(department.getActive())) {
-            throw new IllegalArgumentException("Khoa không tồn tại hoặc đã ngưng hoạt động");
-        }
-
-        return department;
     }
 
     private void validateService(MedicalServiceRequest req) {

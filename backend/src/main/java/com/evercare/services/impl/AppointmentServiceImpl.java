@@ -19,12 +19,11 @@ import com.evercare.pojo.Patient;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
 import com.evercare.repositories.DoctorScheduleRepository;
-import com.evercare.repositories.DoctorRepository;
-import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.services.AppointmentService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
+import com.evercare.utils.LookupSupport;
 import java.math.BigInteger;
 import java.sql.Time;
 import java.time.LocalDate;
@@ -39,8 +38,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,15 +57,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private AppointmentRepository appointmentRepo;
-
-    @Autowired
-    private DoctorRepository doctorRepo;
-
     @Autowired
     private DoctorScheduleRepository scheduleRepo;
-
-    @Autowired
-    private MedicalServiceRepository serviceRepo;
 
     @Autowired
     private PatientRepository patientRepo;
@@ -77,7 +67,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     private NotificationRepository notificationRepo;
 
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
+
+    @Autowired
+    private LookupSupport lookupSupport;
 
     @Override
     @Transactional
@@ -86,10 +79,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalArgumentException("Dữ liệu đặt lịch không hợp lệ");
         }
 
-        User currentUser = getCurrentUser();
-        Patient currentPatient = requireCurrentPatient();
-        Doctor doctor = loadValidDoctor(request.getDoctorId());
-        MedicalService service = loadValidExaminationService(request.getServiceId());
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient currentPatient = this.authSupport.requireCurrentPatient(new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám."));
+        Doctor doctor = this.lookupSupport.requireWorkingDoctor(request.getDoctorId());
+        MedicalService service = this.lookupSupport.requireActiveExaminationService(request.getServiceId());
 
         if (doctor.getDepartmentId() != null && service.getDepartmentId() != null
                 && doctor.getDepartmentId().getId() != null
@@ -178,7 +171,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<AppointmentResponse> getAppointmentsByCurrentPatient(Map<String, String> params) {
-        Patient currentPatient = getCurrentPatientOrNull();
+        Patient currentPatient = this.authSupport.getCurrentPatientOrNull();
         if (currentPatient == null) {
             return new ArrayList<>();
         }
@@ -192,7 +185,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public AppointmentResponse getAppointmentByCurrentPatient(Long appointmentId) {
-        Patient currentPatient = requireCurrentPatient();
+        Patient currentPatient = this.authSupport.requireCurrentPatient(new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám."));
         Appointment appointment = this.appointmentRepo.getAppointmentByPatientIdAndId(currentPatient.getId(), appointmentId);
         if (appointment == null) {
             throw new NoSuchElementException("Không tìm thấy lịch hẹn");
@@ -203,8 +196,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentCancelResponse cancelAppointment(Long appointmentId, AppointmentCancelRequest request) {
-        User currentUser = getCurrentUser();
-        Patient currentPatient = requireCurrentPatient();
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient currentPatient = this.authSupport.requireCurrentPatient(new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám."));
         Appointment appointment = this.appointmentRepo.getAppointmentByPatientIdAndId(currentPatient.getId(), appointmentId);
 
         if (appointment == null) {
@@ -244,7 +237,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<AppointmentResponse> getAppointmentsForReceptionist(Map<String, String> params) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
 
         List<AppointmentResponse> result = new ArrayList<>();
         for (Appointment appointment : this.appointmentRepo.getAppointmentsForReceptionist(params)) {
@@ -255,7 +248,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public AppointmentResponse getAppointmentForReceptionist(Long appointmentId) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
 
         Appointment appointment = this.appointmentRepo.getAppointmentById(appointmentId);
         if (appointment == null) {
@@ -268,14 +261,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentResponse createAppointmentForReceptionist(AppointmentRequest request) {
-        User currentUser = requireReceptionistUser();
+        User currentUser = this.authSupport.requireReceptionistUser();
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu tạo lịch không hợp lệ");
         }
 
         Patient patient = resolveReceptionistPatient(request);
-        Doctor doctor = loadValidDoctor(request.getDoctorId());
-        MedicalService service = loadValidExaminationService(request.getServiceId());
+        Doctor doctor = this.lookupSupport.requireWorkingDoctor(request.getDoctorId());
+        MedicalService service = this.lookupSupport.requireActiveExaminationService(request.getServiceId());
         validateDepartmentMatch(request.getDepartmentId(), doctor, service);
 
         LocalDate appointmentDate = requireAppointmentDate(request.getAppointmentDate());
@@ -319,7 +312,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentResponse updateAppointmentForReceptionist(Long appointmentId, AppointmentRequest request) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu cập nhật không hợp lệ");
         }
@@ -341,8 +334,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                 || request.getStartTime() != null
                 || request.getEndTime() != null;
 
-        Doctor doctor = request.getDoctorId() != null ? loadValidDoctor(request.getDoctorId()) : appointment.getDoctorId();
-        MedicalService service = request.getServiceId() != null ? loadValidExaminationService(request.getServiceId()) : appointment.getServiceId();
+        Doctor doctor = request.getDoctorId() != null ? this.lookupSupport.requireWorkingDoctor(request.getDoctorId()) : appointment.getDoctorId();
+        MedicalService service = request.getServiceId() != null ? this.lookupSupport.requireActiveExaminationService(request.getServiceId()) : appointment.getServiceId();
 
         if (scheduleChangeRequested) {
             validateExaminationService(service);
@@ -391,7 +384,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     @Transactional
     public AppointmentResponse checkInAppointment(Long appointmentId, CheckInRequest request) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
 
         Appointment appointment = this.appointmentRepo.getAppointmentById(appointmentId);
         if (appointment == null) {
@@ -447,52 +440,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         );
 
         return AppointmentMapper.toPatientResponse(appointment);
-    }
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication() != null
-                ? SecurityContextHolder.getContext().getAuthentication().getName()
-                : null;
-
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-
-        return user;
-    }
-
-    private User requireReceptionistUser() {
-        User user = getCurrentUser();
-        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
-            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
-        }
-        return user;
-    }
-
-    private Patient getCurrentPatientOrNull() {
-        try {
-            User user = getCurrentUser();
-            Patient patient = this.patientRepo.getPatientByUserId(user.getId());
-            if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-                return null;
-            }
-            return patient;
-        } catch (SecurityException ex) {
-            return null;
-        }
-    }
-
-    private Patient requireCurrentPatient() {
-        Patient patient = getCurrentPatientOrNull();
-        if (patient == null) {
-            throw new IllegalStateException("Bạn cần tạo hồ sơ bệnh nhân trước khi đặt lịch khám.");
-        }
-        return patient;
     }
 
     private Patient resolveReceptionistPatient(AppointmentRequest request) {
@@ -684,25 +631,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return time.toInstant().atZone(ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0);
     }
 
-    private boolean hasAnyRole(User user, String... roles) {
-        if (user == null || user.getRoleSet() == null || roles == null) {
-            return false;
-        }
-
-        for (var role : user.getRoleSet()) {
-            if (role == null || role.getCode() == null) {
-                continue;
-            }
-            for (String expectedRole : roles) {
-                if (expectedRole != null && expectedRole.equalsIgnoreCase(role.getCode())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     private void notifyPatientByAppointment(Patient patient, Appointment appointment, String title, String content) {
         if (patient == null || patient.getUserId() == null || Boolean.FALSE.equals(patient.getUserId().getActive())) {
             return;
@@ -714,42 +642,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     private String generatePatientCode() {
         return "PAT_" + new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new Date())
                 + "_" + String.format("%06d", Math.abs(UUID.randomUUID().hashCode()) % 1_000_000);
-    }
-
-    private Doctor loadValidDoctor(Long doctorId) {
-        if (doctorId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn bác sĩ");
-        }
-
-        Doctor doctor = this.doctorRepo.getDoctorById(doctorId.intValue());
-        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new IllegalStateException("Bác sĩ không tồn tại hoặc đã ngưng hoạt động");
-        }
-
-        if (DoctorWorkStatus.INACTIVE.getCode().equalsIgnoreCase(doctor.getWorkStatus())) {
-            throw new IllegalStateException("Bác sĩ không còn làm việc");
-        }
-
-        return doctor;
-    }
-
-    private MedicalService loadValidExaminationService(Long serviceId) {
-        if (serviceId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn dịch vụ");
-        }
-
-        MedicalService service = this.serviceRepo.getServiceById(serviceId.intValue());
-        if (service == null) {
-            throw new NoSuchElementException("Không tìm thấy dịch vụ");
-        }
-
-        if (Boolean.FALSE.equals(service.getActive())) {
-            throw new IllegalStateException("Dịch vụ không khả dụng");
-        }
-
-        validateExaminationService(service);
-
-        return service;
     }
 
     private void validateExaminationService(MedicalService service) {

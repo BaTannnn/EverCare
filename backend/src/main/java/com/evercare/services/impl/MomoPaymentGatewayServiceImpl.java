@@ -4,7 +4,6 @@ import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
 import com.evercare.dtos.response.PaymentGatewayResultResponse;
-import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
@@ -20,7 +19,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
-public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
+public class MomoPaymentGatewayServiceImpl extends AbstractPaymentGatewayService {
     private static final String METHOD = "MOMO";
     private static final Logger logger = LoggerFactory.getLogger(MomoPaymentGatewayServiceImpl.class);
 
@@ -28,12 +27,7 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
     private Environment env;
 
     @Override
-    public boolean supports(String paymentMethod) {
-        return paymentMethod != null && METHOD.equalsIgnoreCase(paymentMethod.trim());
-    }
-
-    @Override
-    public String getProvider() {
+    protected String getMethod() {
         return METHOD;
     }
 
@@ -44,7 +38,7 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
         String accessKey = PaymentGatewaySupport.requireProperty(this.env, "payment.momo.accessKey");
         String secretKey = PaymentGatewaySupport.requireProperty(this.env, "payment.momo.secretKey");
         String frontendReturnUrl = request != null ? request.getReturnUrl() : null;
-        String returnUrl = buildBackendReturnUrl("payment.momo.returnUrl", frontendReturnUrl);
+        String returnUrl = buildBackendReturnUrl(this.env, "payment.momo.returnUrl", frontendReturnUrl);
         String ipnUrl = PaymentGatewaySupport.requireProperty(this.env, "payment.momo.ipnUrl");
         String requestType = resolveRequestType(request);
         String requestId = payment.getTransactionCode();
@@ -110,15 +104,6 @@ public class MomoPaymentGatewayServiceImpl implements PaymentGatewayService {
             case "METHOD", "ALL" -> "payWithMethod";
             default -> "payWithMethod";
         };
-    }
-
-    private String buildBackendReturnUrl(String propertyKey, String frontendReturnUrl) {
-        String backendUrl = PaymentGatewaySupport.requireProperty(this.env, propertyKey);
-        if (frontendReturnUrl == null || frontendReturnUrl.isBlank()) {
-            return backendUrl;
-        }
-
-        return PaymentGatewaySupport.appendQueryParam(backendUrl, "frontendReturnUrl", frontendReturnUrl.trim());
     }
 
     @Override

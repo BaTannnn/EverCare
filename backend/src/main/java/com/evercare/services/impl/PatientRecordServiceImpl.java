@@ -14,18 +14,16 @@ import com.evercare.pojo.TestResult;
 import com.evercare.pojo.User;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.MedicalRecordServiceRepository;
-import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.PatientRecordService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,14 +44,11 @@ public class PatientRecordServiceImpl implements PatientRecordService {
     private PrescriptionRepository prescriptionRepo;
 
     @Autowired
-    private PatientRepository patientRepo;
-
-    @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<MedicalRecordResponse> getMedicalRecordsByCurrentPatient(Map<String, String> params) {
-        Patient patient = getCurrentPatientOrNull();
+        Patient patient = this.authSupport.getCurrentPatientOrNull();
         if (patient == null) {
             return Collections.emptyList();
         }
@@ -68,7 +63,7 @@ public class PatientRecordServiceImpl implements PatientRecordService {
 
     @Override
     public MedicalRecordDetailResponse getMedicalRecordByCurrentPatient(Long recordId) {
-        Patient patient = requireCurrentPatient();
+        Patient patient = this.authSupport.requireCurrentPatient("Bạn chưa tạo hồ sơ bệnh nhân");
         MedicalRecord medicalRecord = this.medicalRecordRepo.getMedicalRecordByPatientIdAndId(patient.getId(), recordId);
         if (medicalRecord == null) {
             throw new NoSuchElementException("Không tìm thấy bệnh án");
@@ -84,7 +79,7 @@ public class PatientRecordServiceImpl implements PatientRecordService {
 
     @Override
     public List<TestResultResponse> getTestResultsByCurrentPatient(Map<String, String> params) {
-        Patient patient = getCurrentPatientOrNull();
+        Patient patient = this.authSupport.getCurrentPatientOrNull();
         if (patient == null) {
             return Collections.emptyList();
         }
@@ -99,7 +94,7 @@ public class PatientRecordServiceImpl implements PatientRecordService {
 
     @Override
     public List<PrescriptionResponse> getPrescriptionsByCurrentPatient(Map<String, String> params) {
-        Patient patient = getCurrentPatientOrNull();
+        Patient patient = this.authSupport.getCurrentPatientOrNull();
         if (patient == null) {
             return Collections.emptyList();
         }
@@ -118,7 +113,7 @@ public class PatientRecordServiceImpl implements PatientRecordService {
 
     @Override
     public PrescriptionResponse getPrescriptionByCurrentPatient(Long prescriptionId) {
-        Patient patient = requireCurrentPatient();
+        Patient patient = this.authSupport.requireCurrentPatient("Bạn chưa tạo hồ sơ bệnh nhân");
         Prescription prescription = this.prescriptionRepo.getPrescriptionByPatientIdAndId(patient.getId(), prescriptionId);
         if (prescription == null) {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
@@ -144,39 +139,6 @@ public class PatientRecordServiceImpl implements PatientRecordService {
         response.setPatientName(prescription.getPatientId() != null ? prescription.getPatientId().getFullName() : null);
         response.setItems(Collections.emptyList());
         return response;
-    }
-
-    private Patient getCurrentPatientOrNull() {
-        User currentUser = getCurrentUser();
-        Patient patient = this.patientRepo.getPatientByUserId(currentUser.getId());
-        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-            return null;
-        }
-        return patient;
-    }
-
-    private Patient requireCurrentPatient() {
-        Patient patient = getCurrentPatientOrNull();
-        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-            throw new NoSuchElementException("Bạn chưa tạo hồ sơ bệnh nhân");
-        }
-        return patient;
-    }
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication() != null
-                ? SecurityContextHolder.getContext().getAuthentication().getName()
-                : null;
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-
-        return user;
     }
 
     private DateRange parseDateRange(Map<String, String> params) {

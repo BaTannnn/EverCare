@@ -10,19 +10,16 @@ import com.evercare.mappers.SupportChatMapper;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.Employee;
 import com.evercare.pojo.Patient;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.SupportConsultationSchedule;
 import com.evercare.pojo.SupportConversation;
 import com.evercare.pojo.SupportMessage;
 import com.evercare.pojo.User;
 import com.evercare.repositories.DoctorRepository;
-import com.evercare.repositories.EmployeeRepository;
-import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.SupportConsultationScheduleRepository;
 import com.evercare.repositories.SupportConversationRepository;
 import com.evercare.repositories.SupportMessageRepository;
 import com.evercare.services.SupportChatService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -34,8 +31,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,28 +58,22 @@ public class SupportChatServiceImpl implements SupportChatService {
     private SupportConsultationScheduleRepository scheduleRepo;
 
     @Autowired
-    private PatientRepository patientRepo;
-
-    @Autowired
-    private EmployeeRepository employeeRepo;
-
-    @Autowired
     private DoctorRepository doctorRepo;
 
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<SupportConversationResponse> getPatientConversations() {
-        User currentUser = getCurrentUser();
-        Patient patient = requireCurrentPatient(currentUser);
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         return toConversationResponses(this.conversationRepo.getConversationsByPatientId(patient.getId()), currentUser);
     }
 
     @Override
     public SupportConversationResponse createPatientConversation(SupportConversationRequest request) {
-        User currentUser = getCurrentUser();
-        Patient patient = requireCurrentPatient(currentUser);
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         String initialMessage = trimToNull(request != null ? request.getInitialMessage() : null);
         if (initialMessage == null) {
             throw new IllegalArgumentException("Vui lòng nhập nội dung cần hỗ trợ");
@@ -107,8 +96,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public List<SupportMessageResponse> getPatientMessages(Long conversationId, Long afterId, Integer limit) {
-        User currentUser = getCurrentUser();
-        Patient patient = requireCurrentPatient(currentUser);
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         SupportConversation conversation = requireConversation(conversationId);
         ensurePatientOwnsConversation(conversation, patient);
 
@@ -125,8 +114,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public SupportMessageResponse sendPatientMessage(Long conversationId, SupportMessageRequest request) {
-        User currentUser = getCurrentUser();
-        Patient patient = requireCurrentPatient(currentUser);
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         SupportConversation conversation = requireConversation(conversationId);
         ensurePatientOwnsConversation(conversation, patient);
         ensureConversationOpen(conversation);
@@ -144,8 +133,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public SupportConversationResponse closePatientConversation(Long conversationId) {
-        User currentUser = getCurrentUser();
-        Patient patient = requireCurrentPatient(currentUser);
+        User currentUser = this.authSupport.getCurrentUser();
+        Patient patient = this.authSupport.requireCurrentPatient(currentUser, "Bạn chưa tạo hồ sơ bệnh nhân");
         SupportConversation conversation = requireConversation(conversationId);
         ensurePatientOwnsConversation(conversation, patient);
         closeConversation(conversation);
@@ -154,8 +143,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public List<SupportConversationResponse> getReceptionistConversations(Map<String, String> params) {
-        User currentUser = requireReceptionistUser();
-        Employee employee = getCurrentReceptionistEmployee(currentUser);
+        User currentUser = this.authSupport.requireReceptionistUser();
+        Employee employee = this.authSupport.getCurrentReceptionistEmployee(currentUser);
         List<SupportConversation> conversations = this.conversationRepo.getConversationsForReceptionist(params)
                 .stream()
                 .filter(conversation -> canListConversation(conversation, currentUser, employee))
@@ -166,8 +155,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public SupportConversationResponse acceptConversation(Long conversationId) {
-        User currentUser = requireReceptionistUser();
-        Employee employee = getCurrentReceptionistEmployee(currentUser);
+        User currentUser = this.authSupport.requireReceptionistUser();
+        Employee employee = this.authSupport.getCurrentReceptionistEmployee(currentUser);
         SupportConversation conversation = requireConversation(conversationId);
         ensureConversationOpen(conversation);
 
@@ -191,7 +180,7 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public List<SupportMessageResponse> getReceptionistMessages(Long conversationId, Long afterId, Integer limit) {
-        User currentUser = requireReceptionistUser();
+        User currentUser = this.authSupport.requireReceptionistUser();
         SupportConversation conversation = requireConversation(conversationId);
         ensureReceptionistCanAccess(conversation, currentUser);
 
@@ -208,8 +197,8 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public SupportMessageResponse sendReceptionistMessage(Long conversationId, SupportMessageRequest request) {
-        User currentUser = requireReceptionistUser();
-        Employee employee = getCurrentReceptionistEmployee(currentUser);
+        User currentUser = this.authSupport.requireReceptionistUser();
+        Employee employee = this.authSupport.getCurrentReceptionistEmployee(currentUser);
         SupportConversation conversation = requireConversation(conversationId);
         ensureReceptionistCanAccess(conversation, currentUser);
         ensureConversationOpen(conversation);
@@ -233,8 +222,8 @@ public class SupportChatServiceImpl implements SupportChatService {
             Long conversationId,
             SupportConsultationScheduleRequest request
     ) {
-        User currentUser = requireReceptionistUser();
-        Employee employee = getCurrentReceptionistEmployee(currentUser);
+        User currentUser = this.authSupport.requireReceptionistUser();
+        Employee employee = this.authSupport.getCurrentReceptionistEmployee(currentUser);
         SupportConversation conversation = requireConversation(conversationId);
         ensureReceptionistCanAccess(conversation, currentUser);
         ensureConversationOpen(conversation);
@@ -295,7 +284,7 @@ public class SupportChatServiceImpl implements SupportChatService {
 
     @Override
     public SupportConversationResponse closeReceptionistConversation(Long conversationId) {
-        User currentUser = requireReceptionistUser();
+        User currentUser = this.authSupport.requireReceptionistUser();
         SupportConversation conversation = requireConversation(conversationId);
         ensureReceptionistCanAccess(conversation, currentUser);
         closeConversation(conversation);
@@ -407,11 +396,11 @@ public class SupportChatServiceImpl implements SupportChatService {
     }
 
     private void ensureReceptionistCanAccess(SupportConversation conversation, User currentUser) {
-        if (hasAnyRole(currentUser, "ROLE_ADMIN")) {
+        if (this.authSupport.hasAnyRole(currentUser, "ROLE_ADMIN")) {
             return;
         }
 
-        Employee employee = getCurrentReceptionistEmployee(currentUser);
+        Employee employee = this.authSupport.getCurrentReceptionistEmployee(currentUser);
         if (conversation.getStaffId() == null) {
             return;
         }
@@ -422,7 +411,7 @@ public class SupportChatServiceImpl implements SupportChatService {
     }
 
     private boolean canListConversation(SupportConversation conversation, User currentUser, Employee employee) {
-        if (hasAnyRole(currentUser, "ROLE_ADMIN")) {
+        if (this.authSupport.hasAnyRole(currentUser, "ROLE_ADMIN")) {
             return true;
         }
         return conversation.getStaffId() == null
@@ -433,64 +422,6 @@ public class SupportChatServiceImpl implements SupportChatService {
         if (STATUS_CLOSED.equalsIgnoreCase(conversation.getStatus())) {
             throw new IllegalStateException("Cuộc trò chuyện đã đóng");
         }
-    }
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication() != null
-                ? SecurityContextHolder.getContext().getAuthentication().getName()
-                : null;
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-
-        return user;
-    }
-
-    private Patient requireCurrentPatient(User currentUser) {
-        Patient patient = this.patientRepo.getPatientByUserId(currentUser.getId());
-        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-            throw new NoSuchElementException("Bạn chưa tạo hồ sơ bệnh nhân");
-        }
-        return patient;
-    }
-
-    private User requireReceptionistUser() {
-        User user = getCurrentUser();
-        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
-            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
-        }
-        return user;
-    }
-
-    private Employee getCurrentReceptionistEmployee(User user) {
-        Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
-        if (employee == null && !hasAnyRole(user, "ROLE_ADMIN")) {
-            throw new AccessDeniedException("Tài khoản lễ tân chưa liên kết hồ sơ nhân viên");
-        }
-        return employee;
-    }
-
-    private boolean hasAnyRole(User user, String... roles) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-        for (Role role : user.getRoleSet()) {
-            if (role == null || role.getCode() == null) {
-                continue;
-            }
-            for (String expected : roles) {
-                if (role.getCode().equalsIgnoreCase(expected)
-                        || role.getCode().equalsIgnoreCase(expected.replace("ROLE_", ""))) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private String resolveSubject(SupportConversationRequest request) {

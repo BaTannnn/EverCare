@@ -3,7 +3,7 @@ package com.evercare.repositories.impl;
 import com.evercare.enums.InvoiceStatus;
 import com.evercare.pojo.Invoice;
 import com.evercare.repositories.InvoiceRepository;
-import com.evercare.utils.PaginationUtils;
+import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Join;
@@ -52,9 +52,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
 
         Query<Invoice> query = session.createQuery(cq);
         int pageSize = resolvePageSize(params);
-        int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), countInvoicesForReceptionist(params), pageSize);
-        query.setFirstResult((page - 1) * pageSize);
-        query.setMaxResults(pageSize);
+        QueryPagingSupport.applyPaging(query, params, countInvoicesForReceptionist(params), pageSize);
 
         return query.getResultList();
     }
@@ -248,21 +246,6 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     private int resolvePageSize(Map<String, String> params) {
-        int defaultPageSize = this.env.getProperty("invoice.pageSize", Integer.class, 10);
-        if (params == null) {
-            return defaultPageSize;
-        }
-
-        String sizeValue = params.get("size");
-        if (sizeValue == null || sizeValue.isBlank()) {
-            return defaultPageSize;
-        }
-
-        try {
-            int size = Integer.parseInt(sizeValue.trim());
-            return size > 0 ? size : defaultPageSize;
-        } catch (NumberFormatException ex) {
-            return defaultPageSize;
-        }
+        return QueryPagingSupport.resolvePageSize(this.env, "invoice.pageSize", params, 10);
     }
 }

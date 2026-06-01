@@ -22,6 +22,7 @@ import com.evercare.pojo.Department;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.MedicalService;
 import com.evercare.pojo.Patient;
+import com.evercare.utils.QueryPagingSupport;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,13 +67,7 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
         if (params != null) {
             int pageSize = resolvePageSize(params);
-            int page = PaginationUtils.normalizePage(
-                    PaginationUtils.getPage(params),
-                    countAppointmentsForReceptionist(params),
-                    pageSize
-            );
-            hQuery.setFirstResult((page - 1) * pageSize);
-            hQuery.setMaxResults(pageSize);
+            QueryPagingSupport.applyPaging(hQuery, params, countAppointmentsForReceptionist(params), pageSize);
         }
 
         return hQuery.getResultList();
@@ -444,21 +439,6 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     private int resolvePageSize(Map<String, String> params) {
-        int defaultPageSize = this.env.getProperty("appointment.pageSize", Integer.class);
-        if (params == null) {
-            return defaultPageSize;
-        }
-
-        String sizeValue = params.get("size");
-        if (sizeValue == null || sizeValue.isBlank()) {
-            return defaultPageSize;
-        }
-
-        try {
-            int size = Integer.parseInt(sizeValue.trim());
-            return size > 0 ? size : defaultPageSize;
-        } catch (NumberFormatException ex) {
-            return defaultPageSize;
-        }
+        return QueryPagingSupport.resolvePageSize(this.env, "appointment.pageSize", params, 10);
     }
 }

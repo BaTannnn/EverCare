@@ -14,7 +14,7 @@ import com.evercare.repositories.InventoryTransactionRepository;
 import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.services.PrescriptionService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -39,9 +39,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Autowired
     private InventoryTransactionRepository transactionRepo;
-
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<PrescriptionResponse> getPrescriptions(Map<String, String> params) {
@@ -70,7 +69,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Override
     public PrescriptionResponse dispensePrescription(String username, Long id) {
-        User user = this.userService.getUserByUsername(username);
+        User user = this.authSupport.getCurrentUser(username);
         Prescription prescription = this.prescriptionRepo.getPrescriptionByIdForUpdate(id);
 
         if (prescription == null) {

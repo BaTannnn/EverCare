@@ -7,19 +7,16 @@ import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Patient;
 import com.evercare.pojo.User;
 import com.evercare.repositories.InvoiceRepository;
-import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.PaymentRepository;
 import com.evercare.services.InvoiceService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,14 +31,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     private PaymentRepository paymentRepo;
 
     @Autowired
-    private PatientRepository patientRepo;
-
-    @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<InvoiceResponse> getInvoicesByCurrentPatient(Map<String, String> params) {
-        Patient currentPatient = getCurrentPatientOrNull();
+        Patient currentPatient = this.authSupport.getCurrentPatientOrNull();
         if (currentPatient == null) {
             return new ArrayList<>();
         }
@@ -58,7 +52,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public InvoiceDetailResponse getInvoiceByCurrentPatient(Long invoiceId) {
-        Patient currentPatient = requireCurrentPatient();
+        Patient currentPatient = this.authSupport.requireCurrentPatient("Bạn chưa có hồ sơ bệnh nhân");
         Invoice invoice = this.invoiceRepo.getInvoiceByPatientIdAndId(currentPatient.getId(), invoiceId);
         if (invoice == null) {
             throw new java.util.NoSuchElementException("Không tìm thấy hóa đơn");
@@ -69,7 +63,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public List<InvoiceResponse> getInvoicesForReceptionist(Map<String, String> params) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
         return this.invoiceRepo.getInvoicesForReceptionist(params)
                 .stream()
                 .map(InvoiceMapper::toResponse)
@@ -78,54 +72,13 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public InvoiceDetailResponse getInvoiceForReceptionist(Long invoiceId) {
-        requireReceptionistUser();
+        this.authSupport.requireReceptionistUser();
         Invoice invoice = this.invoiceRepo.getInvoiceById(invoiceId);
         if (invoice == null) {
             throw new NoSuchElementException("Không tìm thấy hóa đơn");
         }
 
         return InvoiceMapper.toDetailResponse(invoice, this.paymentRepo.getPaymentsByInvoiceId(invoice.getId()));
-    }
-
-    private Patient getCurrentPatientOrNull() {
-        try {
-            return requireCurrentPatient();
-        } catch (java.util.NoSuchElementException ex) {
-            return null;
-        }
-    }
-
-    private Patient requireCurrentPatient() {
-        User currentUser = getCurrentUser();
-        Patient patient = this.patientRepo.getPatientByUserId(currentUser.getId());
-        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
-            throw new java.util.NoSuchElementException("Bạn chưa có hồ sơ bệnh nhân");
-        }
-        return patient;
-    }
-
-    private User getCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication() != null
-                ? SecurityContextHolder.getContext().getAuthentication().getName()
-                : null;
-
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-        return user;
-    }
-
-    private User requireReceptionistUser() {
-        User user = getCurrentUser();
-        if (!hasAnyRole(user, "ROLE_RECEPTIONIST", "ROLE_ADMIN")) {
-            throw new AccessDeniedException("Tài khoản không có quyền lễ tân");
-        }
-        return user;
     }
 
     private LocalDate parseDate(String value, String fieldName) {
@@ -140,22 +93,4 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
     }
 
-    private boolean hasAnyRole(User user, String... roles) {
-        if (user == null || user.getRoleSet() == null || roles == null) {
-            return false;
-        }
-
-        for (var role : user.getRoleSet()) {
-            if (role == null || role.getCode() == null) {
-                continue;
-            }
-            for (String expectedRole : roles) {
-                if (expectedRole != null && expectedRole.equalsIgnoreCase(role.getCode())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
 }
