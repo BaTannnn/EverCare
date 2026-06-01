@@ -142,24 +142,29 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
     public DoctorSchedule getScheduleCoveringAppointmentTime(Long doctorId, LocalDate workDate, LocalTime startTime, LocalTime endTime) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT s
-                FROM DoctorSchedule s
-                JOIN FETCH s.doctorId d
-                WHERE d.id = :doctorId
-                    AND s.workDate = :workDate
-                    AND s.active = true
-                    AND s.status = 'AVAILABLE'
-                    AND s.startTime <= :startTime
-                    AND s.endTime >= :endTime
-                ORDER BY s.startTime ASC
-                """, DoctorSchedule.class)
-                .setParameter("doctorId", doctorId)
-                .setParameter("workDate", workDate)
-                .setParameter("startTime", startTime)
-                .setParameter("endTime", endTime)
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<DoctorSchedule> query = builder.createQuery(DoctorSchedule.class);
+        Root<DoctorSchedule> root = query.from(DoctorSchedule.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        predicates.add(builder.equal(root.get("doctorId").get("id"), doctorId));
+        predicates.add(builder.equal(root.get("workDate"), workDate));
+        predicates.add(builder.isTrue(root.get("active")));
+        predicates.add(builder.equal(root.get("status"), "AVAILABLE"));
+        predicates.add(builder.lessThanOrEqualTo(root.get("startTime"), startTime));
+        predicates.add(builder.greaterThanOrEqualTo(root.get("endTime"), endTime));
+
+        query.select(root);
+        query.where(predicates.toArray(Predicate[]::new));
+        query.orderBy(builder.asc(root.get("startTime")));
+
+        return session.createQuery(query)
+                .setLockMode(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
                 .setMaxResults(1)
-                .uniqueResult();
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
