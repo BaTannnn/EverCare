@@ -2,8 +2,8 @@ import Apis, { endpoints, authApis } from "../../configs/Apis";
 import { unwrapPatientList } from "./patientApiHelpers";
 import { mapInvoice, mapPaymentResult } from "./patientMappers";
 
-export const getPatientInvoices = () => {
-  return authApis().get(endpoints["patient-invoices"]).then((response) => ({
+export const getPatientInvoices = (params = {}) => {
+  return authApis().get(endpoints["patient-invoices"], { params }).then((response) => ({
     ...response,
     data: unwrapPatientList(response).map(mapInvoice),
   }));

@@ -61,6 +61,7 @@ export const endpoints = {
   "patient-medical-records": "/secure/patient/medical-records",
   "patient-medical-record-detail": (id) => `/secure/patient/medical-records/${id}`,
   "patient-test-results": "/secure/patient/test-results",
+  "patient-test-result-file": (id) => `/patient/test-results/${id}/file`,
   "patient-prescriptions": "/secure/patient/prescriptions",
   "patient-prescription-detail": (id) => `/secure/patient/prescriptions/${id}`,
   "patient-notifications": "/secure/notifications",
@@ -69,8 +70,6 @@ export const endpoints = {
   "patient-support-conversations": "/secure/support/conversations",
   "patient-support-messages": (id) => `/secure/support/conversations/${id}/messages`,
   "patient-support-close": (id) => `/secure/support/conversations/${id}/close`,
-  "medical-services": "/medical-services",
-  doctors: "/doctors",
   medicines: "/medicines",
   "medicine-detail": (id) => `/medicines/${id}`,
 };

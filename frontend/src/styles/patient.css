@@ -2,7 +2,7 @@
   min-height: 100svh;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  background: #f7fbff;
+  background: linear-gradient(180deg, #f6fbff 0%, #eef6fb 100%);
 }
 
 .patient-sidebar {
@@ -267,7 +267,7 @@
 
 .patient-content {
   flex: 1;
-  padding: 24px;
+  padding: 32px;
 }
 
 .patient-footer {
@@ -287,7 +287,7 @@
 .patient-page {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
 }
 
 .patient-page-header-row,
@@ -328,7 +328,7 @@
 .patient-header-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .patient-eyebrow {
@@ -361,12 +361,16 @@
 .patient-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .patient-summary-grid.results,
 .patient-summary-grid.invoices {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.patient-summary-grid.notifications {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .patient-summary-card,
@@ -391,10 +395,10 @@
 .patient-payment-card,
 .patient-filter-card.records,
 .patient-appointment-banner {
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(10, 95, 213, 0.08);
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.055);
 }
 
 .patient-summary-card .card-body,
@@ -416,7 +420,7 @@
 .patient-detail-side-card .card-body,
 .patient-payment-card .card-body,
 .patient-appointment-banner .card-body {
-  padding: 18px;
+  padding: 22px;
 }
 
 .patient-summary-card .card-body,
@@ -471,7 +475,7 @@
 .patient-dashboard-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.75fr);
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -487,7 +491,7 @@
 }
 
 .patient-section-head {
-  margin-bottom: 14px;
+  margin-bottom: 18px;
 }
 
 .patient-section-head.compact {
@@ -796,7 +800,7 @@
 
 .patient-profile-card .card-body,
 .patient-detail-main .card-body {
-  padding: 28px;
+  padding: 30px;
 }
 
 .patient-profile-top {
@@ -932,7 +936,7 @@
 .patient-invoice-layout {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  gap: 18px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -947,7 +951,7 @@
 .patient-filter-card .card-body,
 .patient-booking-card .card-body,
 .patient-record-summary .card-body {
-  padding: 22px;
+  padding: 24px;
 }
 
 .patient-form-group {
@@ -1551,11 +1555,11 @@
 
 .patient-detail-side {
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .patient-detail-block {
-  padding: 16px 0;
+  padding: 20px 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
@@ -1580,7 +1584,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
+  padding: 14px 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.07);
 }
 
@@ -1591,7 +1595,7 @@
 .patient-result-card .patient-result-main {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
-  gap: 18px;
+  gap: 20px;
   align-items: start;
 }
 
@@ -1617,8 +1621,9 @@
 .patient-result-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
+  margin-top: 18px;
 }
 
 .patient-result-benefits {
@@ -1633,9 +1638,11 @@
 }
 
 .patient-modal-note {
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: 16px;
-  background: #eef4fd;
+  color: #1f2a3a;
+  background: #eef7ff;
+  border: 1px solid rgba(10, 95, 213, 0.08);
 }
 
 .patient-prescription-title {
@@ -1666,6 +1673,46 @@
   background: #f6f9ff;
 }
 
+.patient-linked-detail,
+.patient-linked-medicine-list {
+  display: grid;
+  gap: 14px;
+}
+
+.patient-linked-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.patient-linked-detail-head strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.04rem;
+  font-weight: 800;
+}
+
+.patient-linked-detail-head span {
+  display: block;
+  margin-top: 4px;
+  color: #607083;
+  font-size: 0.9rem;
+}
+
+.patient-linked-detail-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.patient-linked-detail-meta span {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #39485c;
+  background: #f3f7fc;
+}
+
 .patient-medicine-row span,
 .patient-medicine-row p {
   display: block;
@@ -1673,124 +1720,717 @@
   color: #566273;
 }
 
+.patient-medicine-row.compact {
+  padding: 14px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 14px;
+  background: #f8fbff;
+}
+
+.patient-medicine-row.compact strong {
+  color: #0f172a;
+}
+
 .patient-invoice-layout {
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
 }
 
 .patient-invoice-card.unpaid {
-  border-left: 4px solid #d12c2c;
+  border-left: 4px solid #e04f4f;
+  background: linear-gradient(180deg, #ffffff 0%, #fffafa 100%);
+}
+
+.patient-invoice-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.patient-invoice-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 16px;
+  color: #0a5fd5;
+  background: rgba(10, 95, 213, 0.1);
+  font-size: 1.35rem;
+}
+
+.patient-invoice-top {
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.patient-invoice-top p {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .patient-invoice-total {
   flex-shrink: 0;
-  padding: 0.55rem 0.9rem;
-  border-radius: 10px;
+  min-width: 170px;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
   color: #0a5fd5;
-  background: rgba(0, 89, 187, 0.08);
+  background: #eef7ff;
+  border: 1px solid rgba(10, 95, 213, 0.1);
   font-size: 1.4rem;
   font-weight: 800;
+  text-align: right;
 }
 
-.patient-invoice-meta {
-  flex-wrap: wrap;
+.patient-invoice-total.compact {
+  width: fit-content;
+  font-size: 1.15rem;
 }
 
-.patient-invoice-meta span {
-  padding: 10px 12px;
-  border-radius: 999px;
-  background: #f3f6fb;
-}
-
-.patient-payment-panel {
+.patient-invoice-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
+.patient-invoice-breakdown div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 14px;
+  background: #f7fbff;
+}
+
+.patient-invoice-breakdown div.total {
+  background: linear-gradient(180deg, #edfdf5, #ffffff);
+  border-color: rgba(32, 201, 151, 0.18);
+}
+
+.patient-invoice-breakdown span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #607083;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.patient-invoice-breakdown strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.patient-invoice-breakdown .total strong {
+  color: #0b7d5d;
+}
+
+.patient-invoice-actions {
+  justify-content: space-between;
+  padding-top: 4px;
+}
+
+.patient-invoice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.patient-payment-panel {
+  gap: 14px;
+}
+
 .patient-payment-method {
-  padding: 16px;
-  border-radius: 20px;
+  display: grid;
+  gap: 4px;
+  padding: 18px;
+  border-radius: 16px;
   color: #ffffff;
-  background: linear-gradient(135deg, #23272f, #464d57);
+  background: linear-gradient(135deg, #0a5fd5, #20c997);
+  box-shadow: 0 12px 24px rgba(10, 95, 213, 0.14);
+}
+
+.patient-payment-method span {
+  font-size: 0.86rem;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.patient-payment-method strong {
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .patient-payment-method.light {
   color: #152033;
-  background: linear-gradient(135deg, #ffffff, #eef3fb);
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  border: 1px solid rgba(10, 95, 213, 0.1);
+  box-shadow: none;
 }
 
 .patient-payment-method.outline {
   color: #0a5fd5;
-  background: transparent;
-  border: 2px dashed rgba(10, 95, 213, 0.28);
-  text-align: center;
+  background: #f7fbff;
+  border: 1px dashed rgba(10, 95, 213, 0.3);
+  box-shadow: none;
   font-weight: 700;
+}
+
+.patient-payment-modal-body {
+  padding: 24px;
+  background: #f7fbff;
 }
 
 .patient-payment-modal {
   display: grid;
-  gap: 14px;
-}
-
-.patient-notification-list {
-  gap: 14px;
-}
-
-.patient-notification-card.unread {
-  box-shadow: 0 18px 32px rgba(0, 89, 187, 0.05);
-}
-
-.patient-notification-card .card-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 18px;
 }
 
+.patient-invoice-detail-dialog .modal-content {
+  border: 1px solid rgba(10, 95, 213, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.patient-invoice-detail-dialog .modal-header,
+.patient-invoice-detail-dialog .modal-footer {
+  padding: 22px 24px;
+  background: #ffffff;
+}
+
+.patient-invoice-detail-dialog .modal-header {
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.patient-invoice-detail-dialog .modal-title {
+  color: #0d1727;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.patient-invoice-detail-modal {
+  display: grid;
+  gap: 18px;
+}
+
+.patient-invoice-detail-modal .patient-payment-modal-head {
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: flex-start;
+}
+
+.patient-invoice-detail-modal .patient-payment-modal-head p {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.patient-invoice-breakdown.detail {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.patient-invoice-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patient-invoice-detail-grid div {
+  padding: 14px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.patient-invoice-detail-grid span {
+  display: block;
+  color: #607083;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.patient-invoice-detail-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.patient-payment-modal-head {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.patient-payment-modal-head h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.patient-payment-modal-head p {
+  margin: 6px 0 0;
+  color: #5c6677;
+}
+
+.patient-payment-modal .form-select {
+  min-height: 44px;
+  border-color: rgba(10, 95, 213, 0.16);
+  border-radius: 12px;
+}
+
+.patient-payment-summary {
+  padding: 16px;
+  border: 1px solid rgba(32, 201, 151, 0.18);
+  border-radius: 16px;
+  background: #edfdf5;
+}
+
+.patient-tab-header.notifications {
+  padding: 8px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+}
+
+.patient-tab-header.notifications .patient-tabs {
+  border-bottom: 0;
+}
+
+.patient-tab-header.notifications .nav-link {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+}
+
+.patient-tab-header.notifications .nav-link.active {
+  color: #0a5fd5;
+  background: #eef7ff;
+}
+
+.patient-notification-list {
+  gap: 16px;
+}
+
+.patient-notification-card {
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.patient-notification-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.075);
+}
+
+.patient-notification-card.unread {
+  border-color: rgba(10, 95, 213, 0.18);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 16px 32px rgba(0, 89, 187, 0.07);
+}
+
+.patient-notification-card.read {
+  background: #ffffff;
+}
+
+.patient-notification-card .card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  padding: 20px 22px;
+}
+
 .patient-notification-main {
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: flex-start;
   gap: 16px;
 }
 
 .patient-notification-icon {
+  width: 62px;
+  height: 62px;
   flex-shrink: 0;
+  border-radius: 18px;
+  color: #0a5fd5;
+  background: rgba(10, 95, 213, 0.1);
+  font-size: 1.35rem;
+}
+
+.patient-notification-card.unread .patient-notification-icon {
+  color: #0b7d5d;
+  background: rgba(32, 201, 151, 0.14);
 }
 
 .patient-notification-copy {
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.patient-notification-title-row {
+  justify-content: flex-start;
+}
+
+.patient-notification-title-row h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.patient-notification-copy p {
+  margin: 0;
+  color: #536273;
+  line-height: 1.55;
+}
+
+.patient-notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.patient-notification-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #607083;
+  background: #eef3fa;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .patient-notification-dot-small {
   width: 10px;
   height: 10px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: #0a5fd5;
+  background: #20c997;
+  box-shadow: 0 0 0 5px rgba(32, 201, 151, 0.14);
+}
+
+.patient-notification-actions {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+}
+
+.patient-notification-actions .patient-link-button {
+  padding: 0;
+  color: #0a5fd5;
+  background: transparent;
+  border: 0;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .patient-notification-footer {
   display: flex;
   justify-content: center;
+  padding-top: 4px;
+}
+
+.patient-notification-end {
+  padding: 12px 16px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 999px;
+  color: #607083;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.patient-page .modal-content {
+  border: 1px solid rgba(10, 95, 213, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+}
+
+.patient-page .modal-header,
+.patient-page .modal-body {
+  padding: 22px 24px;
+}
+
+.patient-page .modal-header {
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.patient-page .modal-title {
+  color: #0d1727;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.patient-page .modal-body .patient-result-list {
+  gap: 18px;
+}
+
+.patient-page .modal-body .patient-result-card {
+  border-color: rgba(10, 95, 213, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.patient-page .modal-body .patient-result-card .card-body {
+  padding: 20px;
+}
+
+.patient-page .modal-body .patient-result-meta {
+  margin: 8px 0 14px;
+}
+
+.patient-related-test-dialog .modal-content {
+  border: 1px solid rgba(10, 95, 213, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.patient-related-test-dialog .modal-header {
+  padding: 22px 24px;
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.patient-related-test-dialog .modal-title {
+  color: #0d1727;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.patient-related-test-body {
+  padding: 24px;
+  background: #f7fbff;
+}
+
+.patient-related-test-list {
+  display: grid;
+  gap: 18px;
+}
+
+.patient-related-test-card {
+  border: 1px solid rgba(10, 95, 213, 0.1);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.055);
+}
+
+.patient-related-test-card .card-body {
+  padding: 20px;
+}
+
+.patient-related-test-card .patient-result-main {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr);
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.patient-related-test-card .patient-result-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+}
+
+.patient-related-test-card .patient-result-title-row {
+  align-items: flex-start;
+}
+
+.patient-related-test-card .patient-result-title-row h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.patient-related-test-card .patient-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.patient-related-test-card .patient-result-meta span {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: #46566b;
+  background: #eef3fa;
+}
+
+.patient-related-test-card .patient-result-actions {
+  justify-content: flex-start;
+}
+
+.patient-test-result-dialog .modal-content {
+  border: 1px solid rgba(10, 95, 213, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.patient-test-result-dialog .modal-header,
+.patient-test-result-dialog .modal-footer {
+  padding: 22px 24px;
+  background: #ffffff;
+}
+
+.patient-test-result-dialog .modal-header {
+  background: linear-gradient(180deg, #f6fbff, #ffffff);
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.patient-test-result-dialog .modal-title {
+  color: #0d1727;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.patient-test-result-dialog .modal-footer {
+  gap: 12px;
+  border-top-color: rgba(15, 23, 42, 0.08);
+}
+
+.patient-test-result-detail-body {
+  padding: 24px;
+  background: #f7fbff;
+}
+
+.patient-test-result-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.patient-test-result-hero {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid rgba(10, 95, 213, 0.1);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.patient-test-result-hero-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  color: #0a5fd5;
+  background: rgba(10, 95, 213, 0.1);
+  font-size: 1.55rem;
+}
+
+.patient-test-result-hero span,
+.patient-test-result-section > span {
+  color: #607083;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.patient-test-result-hero h4 {
+  margin: 4px 0 6px;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.patient-test-result-hero p {
+  margin: 0;
+  color: #5c6677;
+}
+
+.patient-result-code-badge {
+  align-self: flex-start;
+  border: 1px solid rgba(10, 95, 213, 0.12);
+  border-radius: 999px;
+  padding: 0.55rem 0.9rem;
+  color: #0a5fd5 !important;
+  background: #eef7ff !important;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.patient-test-result-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patient-test-result-info-grid div {
+  padding: 14px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.patient-test-result-info-grid span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #607083;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.patient-test-result-info-grid strong {
+  display: block;
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.patient-test-result-section {
+  display: grid;
+  gap: 8px;
+}
+
+.patient-test-result-section.important .patient-modal-note {
+  background: #edfdf5;
+  border-color: rgba(32, 201, 151, 0.18);
 }
 
 .payment-result-page {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 32px;
   background:
-    radial-gradient(circle at top right, rgba(32, 201, 151, 0.12), transparent 26%),
-    linear-gradient(180deg, #f6f9ff 0%, #eef4ff 100%);
+    linear-gradient(135deg, rgba(10, 95, 213, 0.08), rgba(32, 201, 151, 0.08)),
+    linear-gradient(180deg, #f7fbff 0%, #edf6fb 100%);
 }
 
 .payment-result-card {
   width: min(760px, 100%);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 28px;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(10, 95, 213, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.11);
 }
 
 .payment-result-card .card-body {
-  padding: 34px;
+  padding: 40px;
   text-align: center;
 }
 
@@ -1839,15 +2479,16 @@
 .payment-result-meta {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin: 24px 0;
+  gap: 16px;
+  margin: 28px 0;
   text-align: left;
 }
 
 .payment-result-meta div {
-  padding: 16px;
-  border-radius: 18px;
-  background: #f6f9ff;
+  padding: 18px;
+  border: 1px solid rgba(10, 95, 213, 0.08);
+  border-radius: 16px;
+  background: #f7fbff;
 }
 
 .payment-result-meta span {
@@ -1872,9 +2513,9 @@
 .payment-result-actions {
   display: flex;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .patient-modal-grid {
@@ -1959,6 +2600,14 @@
     grid-template-columns: 1fr;
   }
 
+  .patient-summary-grid.notifications {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .patient-invoice-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .patient-stepper {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2000,6 +2649,33 @@
     align-items: flex-start;
   }
 
+  .patient-invoice-total {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .patient-invoice-breakdown,
+  .patient-invoice-breakdown.detail,
+  .patient-invoice-detail-grid,
+  .patient-invoice-detail-modal .patient-payment-modal-head,
+  .patient-payment-modal-head {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-invoice-actions,
+  .patient-invoice-buttons {
+    justify-content: flex-start;
+  }
+
+  .patient-notification-card .card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-notification-actions {
+    justify-items: start;
+  }
+
   .patient-notification-card .card-body {
     align-items: flex-start;
   }
@@ -2007,6 +2683,40 @@
   .patient-user-chip {
     padding-left: 0;
     border-left: 0;
+  }
+
+  .patient-related-test-body {
+    padding: 18px;
+  }
+
+  .patient-related-test-card .patient-result-main {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-related-test-card .patient-result-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .patient-related-test-card .patient-result-title-row,
+  .patient-related-test-card .patient-result-actions {
+    justify-content: flex-start;
+  }
+
+  .patient-test-result-detail-body {
+    padding: 18px;
+  }
+
+  .patient-test-result-hero,
+  .patient-summary-grid.notifications,
+  .patient-test-result-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-test-result-hero-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 15px;
   }
 
   .patient-footer {

@@ -14,13 +14,17 @@ function PaymentResultPage() {
   const { provider = "" } = useParams();
   const [searchParams] = useSearchParams();
 
-  const status = (searchParams.get("status") || searchParams.get("paymentStatus") || "success").toLowerCase();
-  const invoiceCode = searchParams.get("invoiceCode") || searchParams.get("invoice") || "";
+  const rawStatus = searchParams.get("status") || searchParams.get("paymentStatus") || "";
+  const status = rawStatus.toLowerCase();
+  const invoiceId = searchParams.get("invoiceId") || "";
+  const invoiceCode = searchParams.get("invoiceCode") || searchParams.get("invoice") || invoiceId;
   const transactionCode = searchParams.get("transactionCode") || searchParams.get("txnRef") || "";
   const message = searchParams.get("message") || searchParams.get("error") || "";
 
   const content = useMemo(() => {
-    if (status.includes("fail") || status.includes("cancel") || status.includes("error")) {
+    const successStatuses = ["success", "paid"];
+    const isSuccess = successStatuses.some((item) => status.includes(item));
+    if (!isSuccess) {
       return {
         variant: "danger",
         icon: BsXCircle,
@@ -71,7 +75,21 @@ function PaymentResultPage() {
           </Alert>
 
           <div className="payment-result-actions">
-            <Button type="button" variant="light" className="patient-outline-button" onClick={() => navigate("/patient/invoices")}>
+            <Button
+              type="button"
+              variant="light"
+              className="patient-outline-button"
+              onClick={() =>
+                navigate("/patient/invoices", {
+                  state: invoiceId
+                    ? {
+                        invoiceId,
+                        action: "detail",
+                      }
+                    : undefined,
+                })
+              }
+            >
               <BsArrowLeft /> Về hóa đơn
             </Button>
             <Button type="button" className="patient-primary-soft" onClick={() => navigate("/patient/dashboard")}>

@@ -23,7 +23,6 @@ import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
-import com.evercare.services.PaymentService;
 import com.evercare.services.AppointmentService;
 import com.evercare.services.UserService;
 import java.math.BigInteger;
@@ -79,9 +78,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private PaymentService paymentService;
 
     @Override
     @Transactional
@@ -237,22 +233,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentCancelResponse response = new AppointmentCancelResponse();
         response.setAppointment(AppointmentMapper.toPatientResponse(appointment));
 
-        com.evercare.dtos.response.RefundResponse refundResponse;
         try {
-            refundResponse = this.paymentService.refundInvoiceAfterAppointmentCancelled(appointment);
-        } catch (RuntimeException ex) {
-            logger.error("Cancel appointment refund failed for appointmentId={}", appointmentId, ex);
-            refundResponse = new com.evercare.dtos.response.RefundResponse();
-            refundResponse.setRefundEligible(true);
-            refundResponse.setRefundStatus("FAILED");
-            refundResponse.setRefundMessage("Lịch khám đã hủy nhưng hoàn tiền chưa thành công. Vui lòng liên hệ phòng khám.");
-        }
-        response.setRefund(refundResponse);
-
-        try {
-            if (refundResponse == null || "NOT_APPLICABLE".equalsIgnoreCase(refundResponse.getRefundStatus())) {
-                createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId(), TYPE_APPOINTMENT_REMINDER);
-            }
+            createNotification(currentUser, "Đã hủy lịch khám", "Lịch khám của bạn đã được hủy.", appointment.getId(), TYPE_APPOINTMENT_REMINDER);
         } catch (RuntimeException ex) {
             logger.error("Cancel appointment notification failed for appointmentId={}", appointmentId, ex);
         }

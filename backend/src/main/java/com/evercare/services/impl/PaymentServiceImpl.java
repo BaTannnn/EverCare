@@ -3,9 +3,7 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.dtos.response.PaymentResultResponse;
 import com.evercare.dtos.response.PaymentResponse;
-import com.evercare.dtos.response.RefundResponse;
 import com.evercare.mappers.PaymentMapper;
-import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Notification;
@@ -26,9 +24,7 @@ import com.evercare.utils.PaymentGatewaySupport;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -45,7 +41,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
 
 @Service
 @PropertySource("classpath:payments.properties")
@@ -60,10 +55,6 @@ public class PaymentServiceImpl implements PaymentService {
     private static final String STATUS_REFUNDED = "REFUNDED";
     private static final String STATUS_PAID = "PAID";
     private static final String STATUS_PARTIALLY_PAID = "PARTIALLY_PAID";
-    private static final String STATUS_NOT_APPLICABLE = "NOT_APPLICABLE";
-    private static final String STATUS_NOT_ELIGIBLE = "NOT_ELIGIBLE";
-    private static final String STATUS_REFUND_FAILED = "FAILED";
-    private static final String STATUS_REFUNDED_OK = "REFUNDED";
 
     @Autowired
     private InvoiceRepository invoiceRepo;
@@ -205,122 +196,6 @@ public class PaymentServiceImpl implements PaymentService {
         return PaymentMapper.toResponse(payment);
     }
 
-    @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public RefundResponse refundInvoiceAfterAppointmentCancelled(Appointment appointment) {
-        RefundResponse response = new RefundResponse();
-        response.setRefundEligible(false);
-        response.setRefundStatus(STATUS_NOT_APPLICABLE);
-        response.setRefundMessage("Lịch khám đã hủy.");
-
-        if (appointment == null || appointment.getMedicalRecord() == null) {
-            return response;
-        }
-
-        Invoice invoice = this.invoiceRepo.getInvoiceByMedicalRecordId(appointment.getMedicalRecord().getId());
-        if (invoice == null || !STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())) {
-            return response;
-        }
-
-        int minHours = this.env.getProperty("payment.refund.minCancelHours", Integer.class, 24);
-        long remainingHours = getRemainingHours(appointment);
-        if (remainingHours < minHours) {
-            createNotification(
-                    invoice,
-                    "Không đủ điều kiện hoàn tiền",
-                    "Lịch khám đã hủy nhưng không đủ điều kiện hoàn tiền do quá sát giờ khám.",
-                    invoice.getId()
-            );
-            response.setRefundEligible(false);
-            response.setRefundStatus(STATUS_NOT_ELIGIBLE);
-            response.setRefundMessage("Lịch khám đã hủy nhưng không đủ điều kiện hoàn tiền.");
-            return response;
-        }
-
-        List<Payment> successfulPayments = this.paymentRepo.getSuccessPaymentsByInvoiceId(invoice.getId());
-        if (successfulPayments.isEmpty()) {
-            createNotification(
-                    invoice,
-                    "Hoàn tiền chưa thành công",
-                    "Lịch khám đã hủy nhưng hệ thống chưa hoàn tiền thành công. Vui lòng liên hệ phòng khám.",
-                    invoice.getId()
-            );
-            response.setRefundEligible(true);
-            response.setRefundStatus(STATUS_REFUND_FAILED);
-            response.setRefundMessage("Không tìm thấy giao dịch để hoàn tiền.");
-            return response;
-        }
-
-        BigDecimal totalRefunded = BigDecimal.ZERO;
-        String firstRefundTransactionCode = null;
-        boolean allSuccess = true;
-
-        try {
-            for (Payment successfulPayment : successfulPayments) {
-                PaymentGatewayService gateway = resolveGateway(normalizePaymentMethod(successfulPayment.getPaymentMethod()));
-                PaymentGatewayResultResponse refundResult = gateway.refund(
-                        successfulPayment,
-                        successfulPayment.getAmount(),
-                        "Hoan tien hoa don " + invoice.getInvoiceCode()
-                );
-                if (!refundResult.isSuccess()) {
-                    allSuccess = false;
-                    break;
-                }
-
-                successfulPayment.setPaymentStatus(STATUS_REFUNDED);
-                successfulPayment.setUpdatedAt(new Date());
-                this.paymentRepo.updatePayment(successfulPayment);
-                totalRefunded = totalRefunded.add(successfulPayment.getAmount());
-                if (firstRefundTransactionCode == null) {
-                    firstRefundTransactionCode = refundResult.getTransactionCode();
-                }
-            }
-        } catch (Exception ex) {
-            allSuccess = false;
-        }
-
-        if (allSuccess) {
-            invoice.setPaymentStatus(STATUS_REFUNDED);
-            invoice.setUpdatedAt(new Date());
-            this.invoiceRepo.updateInvoice(invoice);
-
-            MedicalRecord medicalRecord = invoice.getMedicalRecordId();
-            if (medicalRecord != null) {
-                medicalRecord.setPaymentStatus(STATUS_REFUNDED);
-                medicalRecord.setUpdatedAt(new Date());
-                this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
-            }
-
-            createNotification(
-                    invoice,
-                    "Hoàn tiền thành công",
-                    "Hóa đơn " + invoice.getInvoiceCode() + " đã được hoàn tiền.",
-                    invoice.getId()
-            );
-
-            response.setRefundEligible(true);
-            response.setRefundStatus(STATUS_REFUNDED_OK);
-            response.setRefundMessage("Hóa đơn đã được hoàn tiền thành công.");
-            response.setRefundAmount(totalRefunded);
-            response.setRefundTransactionCode(firstRefundTransactionCode);
-            return response;
-        }
-
-        createNotification(
-                invoice,
-                "Hoàn tiền chưa thành công",
-                "Lịch khám đã hủy nhưng hệ thống chưa hoàn tiền thành công. Vui lòng liên hệ phòng khám.",
-                invoice.getId()
-        );
-        response.setRefundEligible(true);
-        response.setRefundStatus(STATUS_REFUND_FAILED);
-        response.setRefundMessage("Lịch khám đã hủy nhưng hoàn tiền chưa thành công. Vui lòng liên hệ phòng khám.");
-        response.setRefundAmount(totalRefunded.compareTo(BigDecimal.ZERO) > 0 ? totalRefunded : null);
-        response.setRefundTransactionCode(firstRefundTransactionCode);
-        return response;
-    }
-
     private void markPaymentSuccess(Payment payment) {
         payment.setPaymentStatus(STATUS_SUCCESS);
         payment.setPaidAt(new Date());
@@ -361,18 +236,6 @@ public class PaymentServiceImpl implements PaymentService {
             invoice.setUpdatedAt(new Date());
             this.invoiceRepo.updateInvoice(invoice);
         }
-    }
-
-    private long getRemainingHours(Appointment appointment) {
-        if (appointment.getAppointmentDate() == null || appointment.getStartTime() == null) {
-            return 0;
-        }
-
-        LocalDateTime appointmentDateTime = LocalDateTime.of(
-                appointment.getAppointmentDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-                appointment.getStartTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime()
-        );
-        return Duration.between(LocalDateTime.now(), appointmentDateTime).toHours();
     }
 
     private String normalizePaymentMethod(String paymentMethod) {
