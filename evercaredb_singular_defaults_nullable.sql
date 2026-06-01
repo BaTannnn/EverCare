@@ -2630,7 +2630,156 @@ INSERT INTO notification (id, user_id, title, content, notification_type, relate
 (129, 203, 'Don thuoc cho cap phat', 'Hoa don INV-2026-0009 da thanh toan, don thuoc RX-2026-0009 chua cap phat', 'PRESCRIPTION', 9, NULL, TRUE),
 (130, 203, 'Don thuoc cho cap phat', 'Hoa don INV-2026-0010 da thanh toan, don thuoc RX-2026-0010 chua cap phat', 'PRESCRIPTION', 10, NULL, TRUE);
 
+-- 11. EDGE CASE DATA FOR TESTING
+-- Tat ca dong duoi day hop le ve rang buoc DB, dung de test cac nhanh nghiep vu kho.
+
+-- 11.1. Thuoc va lo thuoc: het ton, chi co lo het han, ton vua du, FIFO nhieu lo.
+INSERT INTO medicine (id, medicine_code, name, unit, description, usage_note, unit_price, min_stock_quantity, active) VALUES
+(9001, 'MED-EDGE-NOSTOCK', 'Thuoc edge khong co ton', 'VIEN', 'Dung test cap phat khi khong co ton kha dung.', 'Dung theo don bac si.', 1000, 10, TRUE),
+(9002, 'MED-EDGE-EXPIRED', 'Thuoc edge chi co lo het han', 'VIEN', 'Dung test bo qua lo het han khi tinh ton.', 'Dung theo don bac si.', 2000, 10, TRUE),
+(9003, 'MED-EDGE-EXACT', 'Thuoc edge ton vua du', 'VIEN', 'Dung test cap phat dung bang so ton kha dung.', 'Dung theo don bac si.', 3000, 5, TRUE),
+(9004, 'MED-EDGE-FIFO', 'Thuoc edge FIFO nhieu lo', 'VIEN', 'Dung test cap phat theo han dung gan nhat truoc.', 'Dung theo don bac si.', 4000, 20, TRUE);
+
+INSERT INTO medicine_batch (id, medicine_id, batch_code, import_date, expiry_date, quantity, remaining_quantity, import_price, supplier_name, active) VALUES
+(9011, 9001, 'EDGE-NOSTOCK-ZERO', '2026-01-01', '2027-01-01', 10, 0, 700, 'Edge Pharma', TRUE),
+(9012, 9002, 'EDGE-EXPIRED-ONLY', '2025-01-01', '2026-02-01', 30, 30, 1400, 'Edge Pharma', TRUE),
+(9013, 9003, 'EDGE-EXACT-A', '2026-01-01', '2027-06-01', 5, 5, 2100, 'Edge Pharma', TRUE),
+(9014, 9003, 'EDGE-EXACT-B', '2026-01-01', '2027-06-02', 7, 7, 2100, 'Edge Pharma', TRUE),
+(9015, 9004, 'EDGE-FIFO-OLD', '2026-01-01', '2026-06-15', 20, 8, 2800, 'Edge Pharma', TRUE),
+(9016, 9004, 'EDGE-FIFO-NEW', '2026-01-01', '2027-12-31', 50, 50, 2800, 'Edge Pharma', TRUE),
+(9017, 9004, 'EDGE-FIFO-ZERO', '2026-01-01', '2027-01-01', 5, 0, 2800, 'Edge Pharma', TRUE),
+(9018, 9004, 'EDGE-FIFO-EXPIRED', '2025-01-01', '2026-03-01', 10, 10, 2800, 'Edge Pharma', TRUE);
+
+-- 11.2. Lich hen edge case cho module bac si.
+INSERT INTO appointment (id, appointment_code, patient_id, doctor_id, service_id, appointment_date, start_time, end_time, status, reason, symptom_note, cancel_reason, created_by, active) VALUES
+(9001, 'APT-EDGE-BOOKED-001', 201, 1, 1, '2026-06-06', '08:00:00', '08:30:00', 'BOOKED', 'Test khong duoc bat dau kham neu chua check-in.', 'Edge appointment: booked only.', NULL, 201, TRUE),
+(9002, 'APT-EDGE-WAITING-001', 202, 1, 1, '2026-06-06', '08:30:00', '09:00:00', 'WAITING', 'Test duoc bat dau kham sau check-in.', 'Edge appointment: waiting queue.', NULL, 201, TRUE),
+(9003, 'APT-EDGE-INPROGRESS-001', 203, 1, 1, '2026-06-06', '09:00:00', '09:30:00', 'IN_PROGRESS', 'Test workspace dang kham.', 'Edge appointment: in progress.', NULL, 201, TRUE),
+(9004, 'APT-EDGE-CANCELLED-001', 204, 1, 1, '2026-06-06', '09:30:00', '10:00:00', 'CANCELLED', 'Test lich da huy.', 'Edge appointment: cancelled.', 'Benh nhan yeu cau huy.', 201, TRUE),
+(9005, 'APT-EDGE-NOSHOW-001', 205, 1, 1, '2026-06-06', '10:00:00', '10:30:00', 'NO_SHOW', 'Test benh nhan khong den.', 'Edge appointment: no show.', NULL, 201, TRUE),
+(9006, 'APT-EDGE-RX-EXACT-001', 206, 2, 1, '2026-06-06', '08:00:00', '08:30:00', 'COMPLETED', 'Test don thuoc ton vua du.', 'Edge prescription exact stock.', NULL, 201, TRUE),
+(9007, 'APT-EDGE-RX-UNPAID-001', 207, 2, 1, '2026-06-06', '08:30:00', '09:00:00', 'COMPLETED', 'Test don thuoc chua thanh toan.', 'Edge prescription unpaid.', NULL, 201, TRUE),
+(9008, 'APT-EDGE-RX-NOSTOCK-001', 208, 2, 1, '2026-06-06', '09:00:00', '09:30:00', 'COMPLETED', 'Test don thuoc het ton.', 'Edge prescription no stock.', NULL, 201, TRUE),
+(9009, 'APT-EDGE-RX-EXPIRED-001', 209, 2, 1, '2026-06-06', '09:30:00', '10:00:00', 'COMPLETED', 'Test don thuoc chi co lo het han.', 'Edge prescription expired stock only.', NULL, 201, TRUE),
+(9010, 'APT-EDGE-LAB-MISSING-001', 210, 3, 1, '2026-06-06', '08:00:00', '08:30:00', 'IN_PROGRESS', 'Test khong hoan tat khi chi dinh chua co ket qua.', 'Edge medical record missing lab result.', NULL, 201, TRUE),
+(9011, 'APT-EDGE-RX-FIFO-001', 211, 3, 1, '2026-06-06', '08:30:00', '09:00:00', 'COMPLETED', 'Test cap phat FIFO nhieu lo.', 'Edge prescription FIFO.', NULL, 201, TRUE),
+(9012, 'APT-EDGE-RX-DUPMED-001', 212, 3, 1, '2026-06-06', '09:00:00', '09:30:00', 'COMPLETED', 'Test don co 2 dong cung mot thuoc.', 'Edge prescription duplicate medicine lines.', NULL, 201, TRUE),
+(9013, 'APT-EDGE-RX-CANCELLED-001', 213, 3, 1, '2026-06-06', '09:30:00', '10:00:00', 'COMPLETED', 'Test don da huy khong duoc cap phat.', 'Edge prescription cancelled.', NULL, 201, TRUE),
+(9014, 'APT-EDGE-RX-DISPENSED-001', 214, 3, 1, '2026-06-06', '10:00:00', '10:30:00', 'COMPLETED', 'Test don da cap phat khong cap lai.', 'Edge prescription already dispensed.', NULL, 201, TRUE),
+(9015, 'APT-EDGE-REFUND-001', 215, 4, 1, '2026-06-06', '08:00:00', '08:30:00', 'COMPLETED', 'Test hoa don hoan tien.', 'Edge refunded invoice.', NULL, 201, TRUE);
+
+-- 11.3. Ho so va chi dinh can chan hoan tat khi thieu ket qua active.
+INSERT INTO medical_record (id, record_code, appointment_id, patient_id, doctor_id, visit_date, chief_complaint, diagnosis, treatment_plan, doctor_note, payment_status, active) VALUES
+(9001, 'MR-EDGE-INPROGRESS-001', 9003, 203, 1, '2026-06-06 09:05:00', 'Dang kham edge case.', NULL, NULL, 'Ho so dang kham, chua co chan doan.', 'UNPAID', TRUE),
+(9002, 'MR-EDGE-LAB-MISSING-001', 9010, 210, 3, '2026-06-06 08:05:00', 'Can xet nghiem truoc khi ket luan.', 'Theo doi bat thuong cong thuc mau.', 'Cho ket qua xet nghiem va chan doan hinh anh.', 'Co chi dinh active nhung chua co ket qua active.', 'UNPAID', TRUE),
+(9003, 'MR-EDGE-RX-EXACT-001', 9006, 206, 2, '2026-06-06 08:05:00', 'Dau dau nhe.', 'Cam lanh.', 'Uong thuoc va theo doi.', 'Ho so da thanh toan, ton vua du.', 'PAID', TRUE),
+(9004, 'MR-EDGE-RX-UNPAID-001', 9007, 207, 2, '2026-06-06 08:35:00', 'Ho va sot.', 'Viem hong nhe.', 'Uong thuoc theo don.', 'Ho so chua thanh toan.', 'UNPAID', TRUE),
+(9005, 'MR-EDGE-RX-NOSTOCK-001', 9008, 208, 2, '2026-06-06 09:05:00', 'Dau bung.', 'Roi loan tieu hoa.', 'Uong thuoc theo don.', 'Thuoc trong don khong co ton kha dung.', 'PAID', TRUE),
+(9006, 'MR-EDGE-RX-EXPIRED-001', 9009, 209, 2, '2026-06-06 09:35:00', 'Di ung nhe.', 'Di ung thoi tiet.', 'Uong thuoc theo don.', 'Thuoc trong don chi co lo het han.', 'PAID', TRUE),
+(9007, 'MR-EDGE-RX-FIFO-001', 9011, 211, 3, '2026-06-06 08:35:00', 'Dau co vai.', 'Cang co.', 'Uong thuoc theo don.', 'Don can lay tu nhieu lo theo FIFO.', 'PAID', TRUE),
+(9008, 'MR-EDGE-RX-DUPMED-001', 9012, 212, 3, '2026-06-06 09:05:00', 'Dau lung.', 'Co that co lung.', 'Uong thuoc theo don.', 'Don co 2 dong cung mot thuoc de test gom so luong.', 'PAID', TRUE),
+(9009, 'MR-EDGE-RX-CANCELLED-001', 9013, 213, 3, '2026-06-06 09:35:00', 'Can huy don.', 'Khong cap phat.', 'Khong dung thuoc.', 'Don thuoc da huy.', 'PAID', TRUE),
+(9010, 'MR-EDGE-RX-DISPENSED-001', 9014, 214, 3, '2026-06-06 10:05:00', 'Da cap thuoc.', 'Cam lanh.', 'Da cap phat thuoc.', 'Don da cap phat truoc do.', 'PAID', TRUE),
+(9011, 'MR-EDGE-REFUND-001', 9015, 215, 4, '2026-06-06 08:05:00', 'Hoan tien dich vu.', 'Khong thuc hien dich vu.', 'Hoan tien.', 'Ho so co hoa don refunded.', 'REFUNDED', TRUE);
+
+INSERT INTO medical_record_service (id, medical_record_id, service_id, quantity, unit_price, result_summary, active) VALUES
+(9001, 9002, 4, 1, 120000, NULL, TRUE),
+(9002, 9002, 5, 1, 250000, NULL, TRUE),
+(9003, 9001, 4, 1, 120000, NULL, FALSE),
+(9004, 9011, 4, 1, 120000, 'Ket qua binh thuong nhung ho so da refund.', TRUE);
+
+INSERT INTO test_result (id, medical_record_id, service_id, result_code, result_title, result_content, file_url, conclusion, performed_by, result_date, active) VALUES
+(9001, 9002, 4, 'TR-EDGE-INACTIVE-001', 'Ket qua inactive', 'Ket qua bi huy, khong duoc tinh la hop le.', NULL, 'Inactive result.', 4, '2026-06-06 08:45:00', FALSE),
+(9002, 9011, 4, 'TR-EDGE-REFUND-001', 'Ket qua ho so refund', 'Chi so trong gioi han binh thuong.', NULL, 'Binh thuong.', 4, '2026-06-06 08:20:00', TRUE);
+
+-- 11.4. Don thuoc: chua thanh toan, thieu ton, lo het han, FIFO, trung thuoc, da huy, da cap.
+INSERT INTO prescription (id, prescription_code, medical_record_id, doctor_id, patient_id, prescribed_at, status, note, active) VALUES
+(9001, 'RX-EDGE-EXACT-001', 9003, 2, 206, '2026-06-06 08:25:00', 'PRESCRIBED', 'Ton kha dung vua du 12 vien.', TRUE),
+(9002, 'RX-EDGE-UNPAID-001', 9004, 2, 207, '2026-06-06 08:55:00', 'PRESCRIBED', 'Ho so chua thanh toan, khong duoc cap phat.', TRUE),
+(9003, 'RX-EDGE-NOSTOCK-001', 9005, 2, 208, '2026-06-06 09:25:00', 'PRESCRIBED', 'Thuoc khong co ton kha dung.', TRUE),
+(9004, 'RX-EDGE-EXPIRED-001', 9006, 2, 209, '2026-06-06 09:55:00', 'PRESCRIBED', 'Thuoc chi co lo het han.', TRUE),
+(9005, 'RX-EDGE-FIFO-001', 9007, 3, 211, '2026-06-06 08:55:00', 'PRESCRIBED', 'Can cap 12 vien tu lo cu truoc, lo moi sau.', TRUE),
+(9006, 'RX-EDGE-DUPMED-001', 9008, 3, 212, '2026-06-06 09:25:00', 'PRESCRIBED', 'Hai dong cung thuoc, can gom tong 11 vien khi validate ton.', TRUE),
+(9007, 'RX-EDGE-CANCELLED-001', 9009, 3, 213, '2026-06-06 09:55:00', 'CANCELLED', 'Don da huy.', TRUE),
+(9008, 'RX-EDGE-DISPENSED-001', 9010, 3, 214, '2026-06-06 10:25:00', 'DISPENSED', 'Don da cap phat, khong duoc cap lai.', TRUE);
+
+INSERT INTO prescription_item (id, prescription_id, medicine_id, quantity, unit_price, dosage, frequency, duration, instruction, active) VALUES
+(9001, 9001, 9003, 12, 3000, '1 vien', '2 lan/ngay', '6 ngay', 'Uong sau an.', TRUE),
+(9002, 9002, 9004, 5, 4000, '1 vien', '1 lan/ngay', '5 ngay', 'Uong sau an.', TRUE),
+(9003, 9003, 9001, 1, 1000, '1 vien', '1 lan/ngay', '1 ngay', 'Test het ton.', TRUE),
+(9004, 9004, 9002, 5, 2000, '1 vien', '1 lan/ngay', '5 ngay', 'Test lo het han.', TRUE),
+(9005, 9005, 9004, 12, 4000, '1 vien', '2 lan/ngay', '6 ngay', 'Test FIFO.', TRUE),
+(9006, 9006, 9004, 5, 4000, '1 vien', '1 lan/ngay', '5 ngay', 'Dong thu nhat cung thuoc.', TRUE),
+(9007, 9006, 9004, 6, 4000, '1 vien', '1 lan/ngay', '6 ngay', 'Dong thu hai cung thuoc.', TRUE),
+(9008, 9007, 9004, 4, 4000, '1 vien', '1 lan/ngay', '4 ngay', 'Don da huy.', TRUE),
+(9009, 9008, 9004, 3, 4000, '1 vien', '1 lan/ngay', '3 ngay', 'Don da cap.', TRUE);
+
+INSERT INTO inventory_transaction (id, medicine_id, batch_id, prescription_item_id, transaction_type, quantity, transaction_date, note, created_by) VALUES
+(9001, 9004, 9015, 9009, 'PRESCRIPTION_EXPORT', -3, '2026-06-06 10:40:00', 'Edge baseline: don da cap phat truoc do.', 207);
+
+-- 11.5. Hoa don va thanh toan: paid, unpaid, failed payment, refunded.
+INSERT INTO invoice (id, invoice_code, medical_record_id, patient_id, cashier_id, total_service_amount, total_medicine_amount, discount_amount, total_amount, payment_method, payment_status, paid_at, note, active) VALUES
+(9001, 'INV-EDGE-EXACT-001', 9003, 206, 202, 150000, 36000, 0, 186000, 'CASH', 'PAID', '2026-06-06 08:35:00', 'Hoa don da thanh toan, ton vua du.', TRUE),
+(9002, 'INV-EDGE-UNPAID-001', 9004, 207, 202, 150000, 20000, 0, 170000, NULL, 'UNPAID', NULL, 'Hoa don chua thanh toan.', TRUE),
+(9003, 'INV-EDGE-NOSTOCK-001', 9005, 208, 202, 150000, 1000, 0, 151000, 'BANK_TRANSFER', 'PAID', '2026-06-06 09:35:00', 'Da thanh toan nhung thuoc het ton.', TRUE),
+(9004, 'INV-EDGE-EXPIRED-001', 9006, 209, 202, 150000, 10000, 0, 160000, 'VIETQR', 'PAID', '2026-06-06 10:05:00', 'Da thanh toan nhung chi co lo het han.', TRUE),
+(9005, 'INV-EDGE-FIFO-001', 9007, 211, 202, 150000, 48000, 0, 198000, 'CASH', 'PAID', '2026-06-06 09:05:00', 'Hoa don test FIFO.', TRUE),
+(9006, 'INV-EDGE-DUPMED-001', 9008, 212, 202, 150000, 44000, 0, 194000, 'CASH', 'PAID', '2026-06-06 09:35:00', 'Hoa don test gom so luong trung thuoc.', TRUE),
+(9007, 'INV-EDGE-CANCELLED-001', 9009, 213, 202, 150000, 16000, 0, 166000, 'CASH', 'PAID', '2026-06-06 10:05:00', 'Hoa don da thanh toan nhung don thuoc da huy.', TRUE),
+(9008, 'INV-EDGE-DISPENSED-001', 9010, 214, 202, 150000, 12000, 0, 162000, 'CASH', 'PAID', '2026-06-06 10:35:00', 'Hoa don cua don da cap.', TRUE),
+(9009, 'INV-EDGE-REFUND-001', 9011, 215, 202, 150000, 0, 0, 150000, 'CASH', 'REFUNDED', '2026-06-06 08:35:00', 'Hoa don da hoan tien.', TRUE);
+
+INSERT INTO payment (id, invoice_id, amount, payment_method, transaction_code, payment_provider, payment_status, paid_at, active) VALUES
+(9001, 9001, 186000, 'CASH', 'PAY-EDGE-EXACT-001', 'COUNTER', 'SUCCESS', '2026-06-06 08:35:00', TRUE),
+(9002, 9002, 170000, 'MOMO', 'PAY-EDGE-UNPAID-FAILED-001', 'MOMO', 'FAILED', NULL, TRUE),
+(9003, 9003, 151000, 'BANK_TRANSFER', 'PAY-EDGE-NOSTOCK-001', 'BANK', 'SUCCESS', '2026-06-06 09:35:00', TRUE),
+(9004, 9004, 160000, 'VIETQR', 'PAY-EDGE-EXPIRED-001', 'VIETQR', 'SUCCESS', '2026-06-06 10:05:00', TRUE),
+(9005, 9005, 198000, 'CASH', 'PAY-EDGE-FIFO-001', 'COUNTER', 'SUCCESS', '2026-06-06 09:05:00', TRUE),
+(9006, 9006, 194000, 'CASH', 'PAY-EDGE-DUPMED-001', 'COUNTER', 'SUCCESS', '2026-06-06 09:35:00', TRUE),
+(9007, 9007, 166000, 'CASH', 'PAY-EDGE-CANCELLED-001', 'COUNTER', 'SUCCESS', '2026-06-06 10:05:00', TRUE),
+(9008, 9008, 162000, 'CASH', 'PAY-EDGE-DISPENSED-001', 'COUNTER', 'SUCCESS', '2026-06-06 10:35:00', TRUE),
+(9009, 9009, 150000, 'CASH', 'PAY-EDGE-REFUND-001', 'COUNTER', 'REFUNDED', '2026-06-06 08:35:00', TRUE);
+
+-- 11.6. Chat edge case: chua gan nhan vien, da gan, dang ho tro, da dong, khong co tin nhan, nhieu tin nhan.
+INSERT INTO support_conversation (id, patient_id, staff_id, status, subject, created_at, updated_at, closed_at, active) VALUES
+(9001, 201, NULL, 'OPEN', 'Edge chat chua gan nhan vien', '2026-06-06 07:30:00', '2026-06-06 07:30:00', NULL, TRUE),
+(9002, 202, 8, 'ASSIGNED', 'Edge chat da gan va co lich Meet', '2026-06-06 07:40:00', '2026-06-06 07:50:00', NULL, TRUE),
+(9003, 203, 8, 'IN_PROGRESS', 'Edge chat nhieu tin nhan', '2026-06-06 08:00:00', '2026-06-06 08:16:00', NULL, TRUE),
+(9004, 204, 8, 'CLOSED', 'Edge chat da dong', '2026-06-06 08:30:00', '2026-06-06 08:45:00', '2026-06-06 08:45:00', TRUE),
+(9005, 205, NULL, 'OPEN', 'Edge chat chua co tin nhan', '2026-06-06 08:50:00', '2026-06-06 08:50:00', NULL, TRUE);
+
+INSERT INTO support_message (id, conversation_id, sender_id, content, message_type, created_at, is_read, active) VALUES
+(9001, 9001, 1201, 'Toi can ho tro gap nhung chua co nhan vien tiep nhan.', 'TEXT', '2026-06-06 07:30:00', FALSE, TRUE),
+(9002, 9002, 1202, 'Toi muon hen tu van truc tuyen voi bac si.', 'TEXT', '2026-06-06 07:40:00', TRUE, TRUE),
+(9003, 9002, 208, 'Le tan da tiep nhan va se gui lich Google Meet.', 'TEXT', '2026-06-06 07:50:00', FALSE, TRUE),
+(9004, 9002, 208, 'Da tao lich tu van online. Vui long xem link Google Meet trong muc lich tu van.', 'MEET_SCHEDULE', '2026-06-06 07:55:00', FALSE, TRUE),
+(9005, 9003, 1203, 'Tin nhan edge 01 tu benh nhan.', 'TEXT', '2026-06-06 08:01:00', TRUE, TRUE),
+(9006, 9003, 208, 'Tin nhan edge 02 tu nhan vien.', 'TEXT', '2026-06-06 08:02:00', TRUE, TRUE),
+(9007, 9003, 1203, 'Tin nhan edge 03 tu benh nhan.', 'TEXT', '2026-06-06 08:03:00', TRUE, TRUE),
+(9008, 9003, 208, 'Tin nhan edge 04 tu nhan vien.', 'TEXT', '2026-06-06 08:04:00', TRUE, TRUE),
+(9009, 9003, 1203, 'Tin nhan edge 05 tu benh nhan.', 'TEXT', '2026-06-06 08:05:00', TRUE, TRUE),
+(9010, 9003, 208, 'Tin nhan edge 06 tu nhan vien.', 'TEXT', '2026-06-06 08:06:00', TRUE, TRUE),
+(9011, 9003, 1203, 'Tin nhan edge 07 tu benh nhan.', 'TEXT', '2026-06-06 08:07:00', TRUE, TRUE),
+(9012, 9003, 208, 'Tin nhan edge 08 tu nhan vien.', 'TEXT', '2026-06-06 08:08:00', TRUE, TRUE),
+(9013, 9003, 1203, 'Tin nhan edge 09 tu benh nhan.', 'TEXT', '2026-06-06 08:09:00', TRUE, TRUE),
+(9014, 9003, 208, 'Tin nhan edge 10 tu nhan vien.', 'TEXT', '2026-06-06 08:10:00', TRUE, TRUE),
+(9015, 9003, 1203, 'Tin nhan edge 11 moi nhat chua doc.', 'TEXT', '2026-06-06 08:15:00', FALSE, TRUE),
+(9016, 9003, 208, 'Tin nhan edge 12 phan hoi moi nhat.', 'TEXT', '2026-06-06 08:16:00', FALSE, TRUE),
+(9017, 9004, 1204, 'Cam on phong kham da ho tro.', 'TEXT', '2026-06-06 08:40:00', TRUE, TRUE);
+
+INSERT INTO online_consultation_schedule (id, conversation_id, patient_id, doctor_id, staff_id, scheduled_start, scheduled_end, meet_link, status, note, active) VALUES
+(9001, 9002, 202, 2, 8, '2026-06-07 09:00:00', '2026-06-07 09:30:00', 'https://meet.google.com/edge-assigned-001', 'SCHEDULED', 'Lich Meet tu chat da gan nhan vien.', TRUE),
+(9002, 9003, 203, 3, 8, '2026-06-07 10:00:00', '2026-06-07 10:30:00', 'https://meet.google.com/edge-cancelled-001', 'CANCELLED', 'Benh nhan huy lich tu van.', TRUE),
+(9003, 9004, 204, 4, 8, '2026-06-07 11:00:00', '2026-06-07 11:30:00', 'https://meet.google.com/edge-completed-001', 'COMPLETED', 'Da tu van xong va dong chat.', TRUE);
+
+-- 11.7. Thong bao edge case.
+INSERT INTO notification (id, user_id, title, content, notification_type, related_id, read_at, active) VALUES
+(9001, 1201, 'Yeu cau ho tro dang cho', 'Yeu cau ho tro cua ban dang cho nhan vien tiep nhan.', 'GENERAL', 9001, NULL, TRUE),
+(9002, 1202, 'Lich tu van Google Meet', 'Le tan da tao lich tu van truc tuyen cho ban.', 'APPOINTMENT_REMINDER', 9001, NULL, TRUE),
+(9003, 1207, 'Thanh toan that bai', 'Hoa don cua ban chua duoc thanh toan thanh cong.', 'PAYMENT', 9002, NULL, TRUE),
+(9004, 1215, 'Hoa don da hoan tien', 'Hoa don cua ban da duoc hoan tien.', 'PAYMENT', 9009, '2026-06-06 08:40:00', TRUE);
+
 -- KIEM TRA NHANH SAU KHI IMPORT:
 -- SELECT COUNT(*) FROM patient; -- 250
 -- SELECT appointment_date, COUNT(*) FROM appointment GROUP BY appointment_date ORDER BY appointment_date;
--- SELECT i.invoice_code, i.payment_status, p.prescription_code, p.status FROM invoice i JOIN prescription p ON p.medical_record_id = i.medical_record_id WHERE i.payment_status='PAID' AND p.status='PRESCRIBED'; -- 10 dong
+-- SELECT i.invoice_code, i.payment_status, p.prescription_code, p.status FROM invoice i JOIN prescription p ON p.medical_record_id = i.medical_record_id WHERE i.payment_status='PAID' AND p.status='PRESCRIBED'; -- gom data goc va edge case

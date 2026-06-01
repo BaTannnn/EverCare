@@ -13,8 +13,8 @@ export const acceptReceptionistSupportConversation = (conversationId) =>
     data: response.data,
   }));
 
-export const getReceptionistSupportMessages = (conversationId) =>
-  authApis().get(endpoints["receptionist-support-messages"](conversationId)).then((response) => ({
+export const getReceptionistSupportMessages = (conversationId, params = {}) =>
+  authApis().get(endpoints["receptionist-support-messages"](conversationId), { params }).then((response) => ({
     ...response,
     data: unwrapList(response),
   }));

@@ -98,23 +98,23 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     @Override
     public List<Appointment> getAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate) {
         Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
 
-        return session.createQuery("""
-                SELECT DISTINCT a FROM Appointment a
-                JOIN FETCH a.patientId p
-                LEFT JOIN FETCH a.serviceId s
-                LEFT JOIN FETCH a.medicalRecord mr
-                LEFT JOIN FETCH mr.prescription pr
-                LEFT JOIN FETCH pr.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE a.doctorId.id = :doctorId
-                    AND a.appointmentDate = :appointmentDate
-                    AND a.active = true
-                ORDER BY a.startTime ASC, a.id ASC
-                """, Appointment.class)
-                .setParameter("doctorId", doctorId)
-                .setParameter("appointmentDate", appointmentDate)
-                .getResultList();
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.LEFT);
+        root.fetch("medicalRecord", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.equal(root.get("doctorId").get("id"), doctorId),
+                builder.equal(root.get("appointmentDate"), appointmentDate),
+                builder.isTrue(root.get("active"))
+        );
+        query.orderBy(builder.asc(root.get("startTime")), builder.asc(root.get("id")));
+
+        return session.createQuery(query).getResultList();
     }
 
     @Override

@@ -28,9 +28,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -76,10 +78,7 @@ public class SupportChatServiceImpl implements SupportChatService {
     public List<SupportConversationResponse> getPatientConversations() {
         User currentUser = getCurrentUser();
         Patient patient = requireCurrentPatient(currentUser);
-        return this.conversationRepo.getConversationsByPatientId(patient.getId())
-                .stream()
-                .map(conversation -> toConversationResponse(conversation, currentUser))
-                .toList();
+        return toConversationResponses(this.conversationRepo.getConversationsByPatientId(patient.getId()), currentUser);
     }
 
     @Override
@@ -107,14 +106,18 @@ public class SupportChatServiceImpl implements SupportChatService {
     }
 
     @Override
-    public List<SupportMessageResponse> getPatientMessages(Long conversationId) {
+    public List<SupportMessageResponse> getPatientMessages(Long conversationId, Long afterId, Integer limit) {
         User currentUser = getCurrentUser();
         Patient patient = requireCurrentPatient(currentUser);
         SupportConversation conversation = requireConversation(conversationId);
         ensurePatientOwnsConversation(conversation, patient);
 
-        this.messageRepo.markMessagesRead(conversation.getId(), currentUser.getId());
-        return this.messageRepo.getMessagesByConversationId(conversation.getId())
+        List<SupportMessage> messages = this.messageRepo.getMessagesByConversationId(conversation.getId(), afterId, limit);
+        if (!messages.isEmpty()) {
+            this.messageRepo.markMessagesRead(conversation.getId(), currentUser.getId());
+        }
+
+        return messages
                 .stream()
                 .map(message -> toMessageResponse(message, conversation))
                 .toList();
@@ -153,11 +156,12 @@ public class SupportChatServiceImpl implements SupportChatService {
     public List<SupportConversationResponse> getReceptionistConversations(Map<String, String> params) {
         User currentUser = requireReceptionistUser();
         Employee employee = getCurrentReceptionistEmployee(currentUser);
-        return this.conversationRepo.getConversationsForReceptionist(params)
+        List<SupportConversation> conversations = this.conversationRepo.getConversationsForReceptionist(params)
                 .stream()
                 .filter(conversation -> canListConversation(conversation, currentUser, employee))
-                .map(conversation -> toConversationResponse(conversation, currentUser))
                 .toList();
+
+        return toConversationResponses(conversations, currentUser);
     }
 
     @Override
@@ -186,13 +190,17 @@ public class SupportChatServiceImpl implements SupportChatService {
     }
 
     @Override
-    public List<SupportMessageResponse> getReceptionistMessages(Long conversationId) {
+    public List<SupportMessageResponse> getReceptionistMessages(Long conversationId, Long afterId, Integer limit) {
         User currentUser = requireReceptionistUser();
         SupportConversation conversation = requireConversation(conversationId);
         ensureReceptionistCanAccess(conversation, currentUser);
 
-        this.messageRepo.markMessagesRead(conversation.getId(), currentUser.getId());
-        return this.messageRepo.getMessagesByConversationId(conversation.getId())
+        List<SupportMessage> messages = this.messageRepo.getMessagesByConversationId(conversation.getId(), afterId, limit);
+        if (!messages.isEmpty()) {
+            this.messageRepo.markMessagesRead(conversation.getId(), currentUser.getId());
+        }
+
+        return messages
                 .stream()
                 .map(message -> toMessageResponse(message, conversation))
                 .toList();
@@ -309,6 +317,28 @@ public class SupportChatServiceImpl implements SupportChatService {
         SupportMessage latestMessage = this.messageRepo.getLatestMessageByConversationId(conversation.getId());
         long unreadCount = reader != null ? this.messageRepo.countUnreadMessages(conversation.getId(), reader.getId()) : 0L;
         return SupportChatMapper.toConversationResponse(conversation, latestMessage, unreadCount);
+    }
+
+    private List<SupportConversationResponse> toConversationResponses(List<SupportConversation> conversations, User reader) {
+        List<Long> conversationIds = conversations.stream()
+                .filter(Objects::nonNull)
+                .map(SupportConversation::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, SupportMessage> latestMessages = this.messageRepo.getLatestMessagesByConversationIds(conversationIds);
+        Map<Long, Long> unreadCounts = reader != null
+                ? this.messageRepo.countUnreadMessagesByConversationIds(conversationIds, reader.getId())
+                : new HashMap<>();
+
+        return conversations.stream()
+                .map(conversation -> SupportChatMapper.toConversationResponse(
+                        conversation,
+                        latestMessages.get(conversation.getId()),
+                        unreadCounts.getOrDefault(conversation.getId(), 0L)
+                ))
+                .toList();
     }
 
     private SupportMessage createMessage(

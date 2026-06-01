@@ -13,8 +13,8 @@ export const createPatientSupportConversation = (payload) =>
     data: response.data,
   }));
 
-export const getPatientSupportMessages = (conversationId) =>
-  authApis().get(endpoints["patient-support-messages"](conversationId)).then((response) => ({
+export const getPatientSupportMessages = (conversationId, params = {}) =>
+  authApis().get(endpoints["patient-support-messages"](conversationId), { params }).then((response) => ({
     ...response,
     data: unwrapPatientList(response),
   }));

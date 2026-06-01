@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -59,10 +60,12 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
     @Override
     public List<PrescriptionResponse> getPrescriptions(String username, Map<String, String> params) {
         Doctor doctor = getCurrentDoctor(username);
+        List<Prescription> prescriptions = this.prescriptionRepo.getPrescriptionsByDoctorId(doctor.getId(), params);
+        Map<Long, Long> availableQuantityByMedicineId = getAvailableQuantities(prescriptions);
 
-        return this.prescriptionRepo.getPrescriptionsByDoctorId(doctor.getId(), params)
+        return prescriptions
                 .stream()
-                .map(this::toResponse)
+                .map(prescription -> PrescriptionMapper.toResponse(prescription, availableQuantityByMedicineId))
                 .toList();
     }
 
@@ -250,11 +253,23 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
     }
 
     private PrescriptionResponse toResponse(Prescription prescription) {
+        return PrescriptionMapper.toResponse(prescription, getAvailableQuantities(List.of(prescription)));
+    }
+
+    private Map<Long, Long> getAvailableQuantities(List<Prescription> prescriptions) {
         Date today = Date.valueOf(LocalDate.now());
-        return PrescriptionMapper.toResponse(
-                prescription,
-                medicineId -> this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicineId, today)
-        );
+        List<Long> medicineIds = prescriptions.stream()
+                .filter(Objects::nonNull)
+                .filter(prescription -> prescription.getPrescriptionItemSet() != null)
+                .flatMap(prescription -> prescription.getPrescriptionItemSet().stream())
+                .map(PrescriptionItem::getMedicineId)
+                .filter(Objects::nonNull)
+                .map(Medicine::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        return this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(medicineIds, today);
     }
 
     private String generatePrescriptionCode(Long recordId) {

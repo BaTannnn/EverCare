@@ -16,9 +16,12 @@ import com.evercare.services.UserService;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.TreeMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,14 +43,12 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Override
     public List<PrescriptionResponse> getPrescriptions(Map<String, String> params) {
-        Date today = Date.valueOf(LocalDate.now());
+        List<Prescription> prescriptions = this.prescriptionRepo.getPrescriptions(params);
+        Map<Long, Long> availableQuantityByMedicineId = getAvailableQuantities(prescriptions, Date.valueOf(LocalDate.now()));
 
-        return this.prescriptionRepo.getPrescriptions(params)
+        return prescriptions
                 .stream()
-                .map(p -> PrescriptionMapper.toResponse(
-                        p,
-                        medicineId -> this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicineId, today)
-                ))
+                .map(prescription -> PrescriptionMapper.toResponse(prescription, availableQuantityByMedicineId))
                 .toList();
     }
 
@@ -59,17 +60,16 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
         }
 
-        Date today = Date.valueOf(LocalDate.now());
         return PrescriptionMapper.toResponse(
                 prescription,
-                medicineId -> this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicineId, today)
+                getAvailableQuantities(List.of(prescription), Date.valueOf(LocalDate.now()))
         );
     }
 
     @Override
     public PrescriptionResponse dispensePrescription(String username, Long id) {
         User user = this.userService.getUserByUsername(username);
-        Prescription prescription = this.prescriptionRepo.getPrescriptionById(id);
+        Prescription prescription = this.prescriptionRepo.getPrescriptionByIdForUpdate(id);
 
         if (prescription == null) {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
@@ -89,7 +89,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         }
 
         Date today = Date.valueOf(LocalDate.now());
-        validateEnoughStock(prescription, today);
+        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = lockAndValidateDispensableBatches(prescription, today);
         java.util.Date now = new java.util.Date();
 
         List<PrescriptionItem> items = prescription.getPrescriptionItemSet()
@@ -98,7 +98,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .toList();
 
         for (PrescriptionItem item : items) {
-            dispenseItem(item, user, now, today);
+            dispenseItem(item, user, now, lockedBatchesByMedicineId);
         }
 
         prescription.setStatus("DISPENSED");
@@ -107,14 +107,39 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
         return PrescriptionMapper.toResponse(
                 prescription,
-                medicineId -> this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicineId, today)
+                getAvailableQuantities(List.of(prescription), today)
         );
     }
 
-    private void validateEnoughStock(Prescription prescription, Date today) {
+    private Map<Long, List<MedicineBatch>> lockAndValidateDispensableBatches(Prescription prescription, Date today) {
+        Map<Long, Long> requiredQuantityByMedicineId = getRequiredQuantitiesByMedicineId(prescription);
+        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = new HashMap<>();
+
+        for (Map.Entry<Long, Long> entry : requiredQuantityByMedicineId.entrySet()) {
+            Long medicineId = entry.getKey();
+            List<MedicineBatch> batches = this.batchRepo.getDispensableBatchesByMedicineIdForUpdate(medicineId, today);
+            long availableQuantity = batches.stream()
+                    .map(MedicineBatch::getRemainingQuantity)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Integer::longValue)
+                    .sum();
+
+            if (availableQuantity < entry.getValue()) {
+                throw new IllegalStateException("Không đủ tồn kho còn hạn cho thuốc " + getMedicineName(prescription, medicineId));
+            }
+
+            lockedBatchesByMedicineId.put(medicineId, batches);
+        }
+
+        return lockedBatchesByMedicineId;
+    }
+
+    private Map<Long, Long> getRequiredQuantitiesByMedicineId(Prescription prescription) {
+        Map<Long, Long> requiredQuantityByMedicineId = new TreeMap<>();
+
         for (PrescriptionItem item : prescription.getPrescriptionItemSet()) {
             Medicine medicine = item.getMedicineId();
-            if (medicine == null) {
+            if (medicine == null || medicine.getId() == null) {
                 throw new IllegalStateException("Đơn thuốc có dòng thuốc không hợp lệ");
             }
 
@@ -123,17 +148,36 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 throw new IllegalStateException("Số lượng thuốc phải lớn hơn 0");
             }
 
-            Long availableQuantity = this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(medicine.getId(), today);
-            if (availableQuantity < requiredQuantity) {
-                throw new IllegalStateException("Không đủ tồn kho còn hạn cho thuốc " + medicine.getName());
-            }
+            requiredQuantityByMedicineId.merge(medicine.getId(), (long) requiredQuantity, Long::sum);
         }
+
+        return requiredQuantityByMedicineId;
     }
 
-    private void dispenseItem(PrescriptionItem item, User user, java.util.Date now, Date today) {
+    private Map<Long, Long> getAvailableQuantities(List<Prescription> prescriptions, Date today) {
+        List<Long> medicineIds = prescriptions.stream()
+                .filter(Objects::nonNull)
+                .filter(prescription -> prescription.getPrescriptionItemSet() != null)
+                .flatMap(prescription -> prescription.getPrescriptionItemSet().stream())
+                .map(PrescriptionItem::getMedicineId)
+                .filter(Objects::nonNull)
+                .map(Medicine::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        return this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(medicineIds, today);
+    }
+
+    private void dispenseItem(
+            PrescriptionItem item,
+            User user,
+            java.util.Date now,
+            Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId
+    ) {
         Medicine medicine = item.getMedicineId();
-        int remainingNeed = item.getQuantity();
-        List<MedicineBatch> batches = this.batchRepo.getDispensableBatchesByMedicineId(medicine.getId(), today);
+        int remainingNeed = item.getQuantity() != null ? item.getQuantity() : 0;
+        List<MedicineBatch> batches = lockedBatchesByMedicineId.getOrDefault(medicine.getId(), List.of());
 
         for (MedicineBatch batch : batches) {
             if (remainingNeed <= 0) {
@@ -164,5 +208,21 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
             remainingNeed -= exportedQuantity;
         }
+
+        if (remainingNeed > 0) {
+            throw new IllegalStateException("Không đủ tồn kho còn hạn cho thuốc " + medicine.getName());
+        }
+    }
+
+    private String getMedicineName(Prescription prescription, Long medicineId) {
+        return prescription.getPrescriptionItemSet()
+                .stream()
+                .map(PrescriptionItem::getMedicineId)
+                .filter(Objects::nonNull)
+                .filter(medicine -> medicineId.equals(medicine.getId()))
+                .map(Medicine::getName)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("#" + medicineId);
     }
 }

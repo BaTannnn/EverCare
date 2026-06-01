@@ -12,12 +12,25 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 public final class PrescriptionMapper {
     private static final String DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
     private PrescriptionMapper() {
+    }
+
+    public static PrescriptionResponse toResponse(
+            Prescription prescription,
+            Map<Long, Long> availableQuantityByMedicineId
+    ) {
+        return toResponse(
+                prescription,
+                medicineId -> availableQuantityByMedicineId != null
+                        ? availableQuantityByMedicineId.getOrDefault(medicineId, 0L)
+                        : null
+        );
     }
 
     public static PrescriptionResponse toResponse(

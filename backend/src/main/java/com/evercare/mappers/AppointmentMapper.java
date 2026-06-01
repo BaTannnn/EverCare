@@ -21,6 +21,14 @@ public final class AppointmentMapper {
     }
 
     public static DoctorAppointmentResponse toDoctorResponse(Appointment appointment) {
+        return toDoctorResponse(appointment, true);
+    }
+
+    public static DoctorAppointmentResponse toDoctorSummaryResponse(Appointment appointment) {
+        return toDoctorResponse(appointment, false);
+    }
+
+    private static DoctorAppointmentResponse toDoctorResponse(Appointment appointment, boolean includePrescription) {
         DoctorAppointmentResponse res = new DoctorAppointmentResponse();
         res.setId(appointment.getId());
         res.setAppointmentCode(appointment.getAppointmentCode());
@@ -37,8 +45,11 @@ public final class AppointmentMapper {
         MedicalRecord medicalRecord = appointment.getMedicalRecord();
         if (medicalRecord != null) {
             res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
-            if (medicalRecord.getPrescription() != null) {
-                res.setPrescription(PrescriptionMapper.toResponse(medicalRecord.getPrescription(), null));
+            if (includePrescription && medicalRecord.getPrescription() != null) {
+                res.setPrescription(PrescriptionMapper.toResponse(
+                        medicalRecord.getPrescription(),
+                        (java.util.function.Function<Long, Long>) null
+                ));
             }
         }
 

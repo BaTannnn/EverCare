@@ -85,7 +85,9 @@ public final class MedicalRecordMapper {
                 ? Collections.emptyList()
                 : testResults.stream().map(TestResultMapper::toResponse).toList();
         res.setTestResults(testResultResponses);
-        res.setPrescription(prescription != null ? PrescriptionMapper.toResponse(prescription, null) : null);
+        res.setPrescription(prescription != null
+                ? PrescriptionMapper.toResponse(prescription, (java.util.function.Function<Long, Long>) null)
+                : null);
 
         return res;
     }

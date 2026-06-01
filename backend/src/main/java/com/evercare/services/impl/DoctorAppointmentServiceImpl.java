@@ -46,7 +46,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
         return this.appointmentRepo
                 .getAppointmentsByDoctorAndDate(doctor.getId(), Date.valueOf(date))
                 .stream()
-                .map(AppointmentMapper::toDoctorResponse)
+                .map(AppointmentMapper::toDoctorSummaryResponse)
                 .toList();
     }
 
