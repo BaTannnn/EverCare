@@ -166,23 +166,6 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     @Override
-    public Invoice getInvoiceByAppointmentId(Long appointmentId) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND mr.appointmentId.id = :appointmentId
-                """, Invoice.class)
-                .setParameter("appointmentId", appointmentId)
-                .uniqueResult();
-    }
-
-    @Override
     public void addInvoice(Invoice invoice) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(invoice);

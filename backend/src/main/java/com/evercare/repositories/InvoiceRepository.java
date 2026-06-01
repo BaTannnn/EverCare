@@ -12,7 +12,6 @@ public interface InvoiceRepository {
     List<Invoice> getInvoicesByPatientId(Long patientId, String paymentStatus, LocalDate from, LocalDate to);
     Invoice getInvoiceByPatientIdAndId(Long patientId, Long invoiceId);
     Invoice getInvoiceById(Long invoiceId);
-    Invoice getInvoiceByAppointmentId(Long appointmentId);
 
     void addInvoice(Invoice invoice);
     void updateInvoice(Invoice invoice);

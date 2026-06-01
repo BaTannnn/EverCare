@@ -11,7 +11,6 @@ import com.evercare.pojo.Role;
  * @author cadic
  */
 public interface RoleRepository {
-    Role getRoleByRoleName(String roleName);
     Role findByCode(String code);
     Role save(Role role);
 }

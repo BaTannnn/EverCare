@@ -63,24 +63,6 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
     }
 
     @Override
-    public MedicalRecord getMedicalRecordByAppointmentId(Long appointmentId) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        return session.createQuery("""
-                SELECT DISTINCT mr
-                FROM MedicalRecord mr
-                JOIN FETCH mr.doctorId d
-                JOIN FETCH mr.patientId p
-                JOIN FETCH mr.appointmentId a
-                LEFT JOIN FETCH mr.invoice i
-                WHERE a.id = :appointmentId
-                    AND mr.active = true
-                """, MedicalRecord.class)
-                .setParameter("appointmentId", appointmentId)
-                .uniqueResult();
-    }
-
-    @Override
     public List<MedicalRecord> getMedicalRecordsByPatientId(Long patientId, LocalDate from, LocalDate to, Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();

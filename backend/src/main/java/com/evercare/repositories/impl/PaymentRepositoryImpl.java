@@ -69,23 +69,6 @@ public class PaymentRepositoryImpl implements PaymentRepository {
                 .getResultList();
     }
 
-    @Override
-    public List<Payment> getSuccessPaymentsByInvoiceId(Long invoiceId) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        return session.createQuery("""
-                SELECT p
-                FROM Payment p
-                JOIN FETCH p.invoiceId i
-                WHERE p.active = true
-                    AND i.id = :invoiceId
-                    AND UPPER(p.paymentStatus) = :status
-                ORDER BY p.createdAt ASC, p.id ASC
-                """, Payment.class)
-                .setParameter("invoiceId", invoiceId)
-                .setParameter("status", PaymentStatus.SUCCESS.getCode())
-                .getResultList();
-    }
 
     @Override
     public BigDecimal sumSuccessAmountByInvoiceId(Long invoiceId) {

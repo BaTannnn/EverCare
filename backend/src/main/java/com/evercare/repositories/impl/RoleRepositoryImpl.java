@@ -22,11 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoleRepositoryImpl implements RoleRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-    
-    @Override
-    public Role getRoleByRoleName(String roleName) {
-        return findByCode(roleName);
-    }
 
     @Override
     public Role findByCode(String code) {
