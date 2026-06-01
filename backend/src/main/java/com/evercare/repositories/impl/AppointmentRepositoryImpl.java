@@ -32,7 +32,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-@PropertySource("classpath:configs.properties")
 @Transactional
 public class AppointmentRepositoryImpl implements AppointmentRepository {
     @Autowired

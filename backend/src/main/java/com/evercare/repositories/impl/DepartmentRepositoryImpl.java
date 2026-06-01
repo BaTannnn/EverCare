@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author cadic
  */
 @Repository
-@PropertySource("classpath:configs.properties")
 @Transactional
 public class DepartmentRepositoryImpl implements DepartmentRepository {
     @Autowired

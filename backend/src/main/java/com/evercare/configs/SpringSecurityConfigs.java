@@ -38,6 +38,8 @@ import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
             "com.evercare.services",}
 )
 @PropertySource("classpath:database.properties")
+@PropertySource("classpath:configs.properties")
+
 public class SpringSecurityConfigs {
     @Autowired
     private Environment env;
