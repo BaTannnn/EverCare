@@ -2,6 +2,7 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.MedicineBatch;
 import com.evercare.repositories.MedicineBatchRepository;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -154,6 +155,28 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
                 """, MedicineBatch.class)
                 .setParameter("medicineId", medicineId)
                 .setParameter("today", today)
+                .getResultList();
+    }
+
+    @Override
+    public List<MedicineBatch> getDispensableBatchesByMedicineIdForUpdate(Long medicineId, Date today) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        root.fetch("medicineId");
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicineId").get("id"), medicineId),
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0),
+                cb.greaterThanOrEqualTo(root.<Date>get("expiryDate"), today)
+        );
+        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
     }
 

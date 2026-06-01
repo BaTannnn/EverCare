@@ -3,6 +3,7 @@ package com.evercare.repositories.impl;
 import com.evercare.pojo.Prescription;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.utils.PaginationUtils;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -152,6 +153,18 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
                 """, Prescription.class)
                 .setParameter("id", id)
                 .uniqueResult();
+    }
+
+    @Override
+    public Prescription getPrescriptionByIdForUpdate(Long id) {
+        Session session = this.factory.getObject().getCurrentSession();
+        Prescription locked = session.find(Prescription.class, id, LockModeType.PESSIMISTIC_WRITE);
+
+        if (locked == null || !Boolean.TRUE.equals(locked.getActive())) {
+            return null;
+        }
+
+        return getPrescriptionById(id);
     }
 
     @Override

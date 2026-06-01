@@ -11,6 +11,7 @@ public interface PrescriptionRepository {
     List<Prescription> getPrescriptionsByPatientId(Long patientId, String status, LocalDate from, LocalDate to, Map<String, String> params);
 
     Prescription getPrescriptionById(Long id);
+    Prescription getPrescriptionByIdForUpdate(Long id);
     Prescription getPrescriptionByPatientIdAndId(Long patientId, Long id);
     Prescription getPrescriptionByMedicalRecordId(Long medicalRecordId);
 
