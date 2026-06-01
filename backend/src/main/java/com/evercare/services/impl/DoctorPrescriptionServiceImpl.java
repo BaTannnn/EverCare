@@ -4,6 +4,7 @@ import com.evercare.dtos.request.PrescriptionItemRequest;
 import com.evercare.dtos.request.PrescriptionRequest;
 import com.evercare.dtos.response.PrescriptionResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.PrescriptionStatus;
 import com.evercare.mappers.PrescriptionMapper;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
@@ -100,7 +101,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         prescription.setDoctorId(doctor);
         prescription.setPatientId(medicalRecord.getPatientId());
         prescription.setPrescribedAt(now);
-        prescription.setStatus("PRESCRIBED");
+        prescription.setStatus(PrescriptionStatus.PRESCRIBED.getCode());
         prescription.setNote(clean(request != null ? request.getNote() : null));
         prescription.setCreatedAt(now);
         prescription.setUpdatedAt(now);
@@ -126,7 +127,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         validateOwnedMedicalRecord(doctor, medicalRecord);
         validateAppointmentEditable(medicalRecord);
 
-        if (!"PRESCRIBED".equalsIgnoreCase(prescription.getStatus())) {
+        if (!PrescriptionStatus.PRESCRIBED.getCode().equalsIgnoreCase(prescription.getStatus())) {
             throw new IllegalStateException("Chỉ có thể cập nhật đơn thuốc trạng thái PRESCRIBED");
         }
 

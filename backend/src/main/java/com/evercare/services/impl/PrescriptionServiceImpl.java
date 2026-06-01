@@ -1,6 +1,8 @@
 package com.evercare.services.impl;
 
 import com.evercare.dtos.response.PrescriptionResponse;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.enums.PrescriptionStatus;
 import com.evercare.mappers.PrescriptionMapper;
 import com.evercare.pojo.InventoryTransaction;
 import com.evercare.pojo.Medicine;
@@ -75,7 +77,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
         }
 
-        if (!"PRESCRIBED".equalsIgnoreCase(prescription.getStatus())) {
+        if (!PrescriptionStatus.PRESCRIBED.getCode().equalsIgnoreCase(prescription.getStatus())) {
             throw new IllegalStateException("Chỉ có thể cấp phát đơn thuốc trạng thái PRESCRIBED");
         }
 
@@ -84,7 +86,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         }
 
         if (prescription.getMedicalRecordId() == null
-                || !"PAID".equalsIgnoreCase(prescription.getMedicalRecordId().getPaymentStatus())) {
+                || !InvoiceStatus.PAID.getCode().equalsIgnoreCase(prescription.getMedicalRecordId().getPaymentStatus())) {
             throw new IllegalStateException("Bệnh nhân chưa thanh toán, chưa thể cấp phát thuốc");
         }
 
@@ -101,7 +103,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             dispenseItem(item, user, now, lockedBatchesByMedicineId);
         }
 
-        prescription.setStatus("DISPENSED");
+        prescription.setStatus(PrescriptionStatus.DISPENSED.getCode());
         prescription.setUpdatedAt(now);
         this.prescriptionRepo.updatePrescription(prescription);
 

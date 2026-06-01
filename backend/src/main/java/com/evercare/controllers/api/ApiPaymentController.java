@@ -1,6 +1,8 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.PaymentResponse;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.enums.PaymentStatus;
 import com.evercare.services.PaymentService;
 import com.evercare.utils.PaymentGatewaySupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -119,21 +121,12 @@ public class ApiPaymentController {
             frontendReturnUrl = resolveFrontendReturnUrl(provider);
         }
 
-        try {
-            PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
-            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
-                return redirectToFrontend(frontendReturnUrl, response, null);
-            }
-
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException ex) {
-            logger.warn("{} result endpoint failed: {}", provider, ex.getMessage());
-            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
-                return redirectToFrontend(frontendReturnUrl, null, ex.getMessage());
-            }
-
-            throw ex;
+        PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
+        if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
+            return redirectToFrontend(frontendReturnUrl, response, null);
         }
+
+        return ResponseEntity.ok(response);
     }
 
     private String resolveFrontendReturnUrl(String provider) {
@@ -169,7 +162,9 @@ public class ApiPaymentController {
         }
 
         String paymentStatus = response != null ? response.getPaymentStatus() : null;
-        if (paymentStatus != null && ("SUCCESS".equalsIgnoreCase(paymentStatus) || "PAID".equalsIgnoreCase(paymentStatus))) {
+        if (paymentStatus != null
+                && (PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(paymentStatus)
+                || InvoiceStatus.PAID.getCode().equalsIgnoreCase(paymentStatus))) {
             return "success";
         }
 

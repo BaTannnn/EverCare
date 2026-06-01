@@ -4,6 +4,7 @@ import com.evercare.dtos.request.StartExaminationRequest;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.InvoiceStatus;
 import com.evercare.mappers.AppointmentMapper;
 import com.evercare.mappers.MedicalRecordMapper;
 import com.evercare.pojo.Appointment;
@@ -91,7 +92,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
             medicalRecord.setDoctorId(doctor);
             medicalRecord.setPatientId(appointment.getPatientId());
             medicalRecord.setVisitDate(now);
-            medicalRecord.setPaymentStatus("UNPAID");
+            medicalRecord.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
             medicalRecord.setCreatedAt(now);
             medicalRecord.setActive(true);
             appointment.setMedicalRecord(medicalRecord);
