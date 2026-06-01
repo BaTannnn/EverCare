@@ -1,11 +1,15 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.ApiErrorResponse;
+import com.evercare.exceptions.CloudinaryUploadException;
+import com.evercare.exceptions.FileProxyException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
+
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartException;
@@ -39,6 +43,22 @@ public class ApiExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(CloudinaryUploadException.class)
+    public ResponseEntity<ApiErrorResponse> handleCloudinaryUpload(
+            CloudinaryUploadException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(FileProxyException.class)
+    public ResponseEntity<ApiErrorResponse> handleFileProxy(
+            FileProxyException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(
             NoSuchElementException ex,
@@ -55,7 +75,7 @@ public class ApiExceptionHandler {
         ex.printStackTrace();
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
-                "Dữ liệu multipart không hợp lệ hoặc file vượt quá giới hạn 5MB",
+                "Dữ liệu multipart không hợp lệ hoặc file vượt quá giới hạn 10MB",
                 request.getRequestURI()
         );
     }
@@ -66,6 +86,14 @@ public class ApiExceptionHandler {
             HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

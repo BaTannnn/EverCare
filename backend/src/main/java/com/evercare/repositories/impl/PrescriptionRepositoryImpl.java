@@ -3,6 +3,7 @@ package com.evercare.repositories.impl;
 import com.evercare.pojo.Prescription;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.utils.PaginationUtils;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -59,17 +60,24 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
             status = "PRESCRIBED";
         }
 
-        return session.createQuery("""
-                SELECT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                WHERE p.active = true
-                    AND p.status = :status
-                ORDER BY p.prescribedAt ASC, p.id ASC
-                """, Prescription.class)
-                .setParameter("status", status.trim().toUpperCase())
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        root.fetch("doctorId");
+        root.fetch("patientId");
+        root.fetch("medicalRecordId");
+        root.fetch("prescriptionItemSet", jakarta.persistence.criteria.JoinType.LEFT)
+                .fetch("medicineId", jakarta.persistence.criteria.JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.isTrue(root.get("active")),
+                cb.equal(root.get("status"), status.trim().toUpperCase())
+        );
+        cq.orderBy(cb.asc(root.get("prescribedAt")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
@@ -145,6 +153,18 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
                 """, Prescription.class)
                 .setParameter("id", id)
                 .uniqueResult();
+    }
+
+    @Override
+    public Prescription getPrescriptionByIdForUpdate(Long id) {
+        Session session = this.factory.getObject().getCurrentSession();
+        Prescription locked = session.find(Prescription.class, id, LockModeType.PESSIMISTIC_WRITE);
+
+        if (locked == null || !Boolean.TRUE.equals(locked.getActive())) {
+            return null;
+        }
+
+        return getPrescriptionById(id);
     }
 
     @Override

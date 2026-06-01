@@ -22,10 +22,13 @@ const iconMap = {
   SYSTEM: BsInfoCircle,
 };
 
+const NOTIFICATION_PAGE_SIZE = 6;
+
 function PatientNotifications() {
   const { setNotifications: setShellNotifications } = useOutletContext() || {};
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
+  const [visibleCount, setVisibleCount] = useState(NOTIFICATION_PAGE_SIZE);
   const [updatingIds, setUpdatingIds] = useState([]);
   const [error, setError] = useState("");
 
@@ -58,6 +61,22 @@ function PatientNotifications() {
     if (activeTab === "UNREAD") return notifications.filter((notification) => !notification.read);
     return filterByCategory(notifications, activeTab);
   }, [activeTab, notifications]);
+
+  const visibleNotifications = useMemo(() => filteredNotifications.slice(0, visibleCount), [filteredNotifications, visibleCount]);
+  const hasMoreNotifications = visibleCount < filteredNotifications.length;
+
+  const summary = useMemo(() => {
+    const unread = notifications.filter((notification) => !notification.read).length;
+    const appointment = notifications.filter((notification) => notification.type === "APPOINTMENT").length;
+    const payment = notifications.filter((notification) => notification.type === "PAYMENT").length;
+
+    return {
+      total: notifications.length,
+      unread,
+      appointment,
+      payment,
+    };
+  }, [notifications]);
 
   const syncNotification = (updatedNotification) => {
     setNotifications((current) =>
@@ -143,8 +162,63 @@ function PatientNotifications() {
         </div>
       )}
 
+      <div className="patient-summary-grid notifications">
+        <Card className="patient-summary-card light-blue">
+          <Card.Body>
+            <div className="patient-summary-icon">
+              <BsBell />
+            </div>
+            <div className="patient-summary-copy">
+              <span>Tổng thông báo</span>
+              <strong>{summary.total}</strong>
+            </div>
+          </Card.Body>
+        </Card>
+        <Card className="patient-summary-card light-red">
+          <Card.Body>
+            <div className="patient-summary-icon">
+              <BsInfoCircle />
+            </div>
+            <div className="patient-summary-copy">
+              <span>Chưa đọc</span>
+              <strong>{summary.unread}</strong>
+            </div>
+          </Card.Body>
+        </Card>
+        <Card className="patient-summary-card light-green">
+          <Card.Body>
+            <div className="patient-summary-icon">
+              <BsCalendar2Check />
+            </div>
+            <div className="patient-summary-copy">
+              <span>Lịch hẹn</span>
+              <strong>{summary.appointment}</strong>
+            </div>
+          </Card.Body>
+        </Card>
+        <Card className="patient-summary-card light-teal">
+          <Card.Body>
+            <div className="patient-summary-icon">
+              <BsCreditCard2Front />
+            </div>
+            <div className="patient-summary-copy">
+              <span>Thanh toán</span>
+              <strong>{summary.payment}</strong>
+            </div>
+          </Card.Body>
+        </Card>
+      </div>
+
       <div className="patient-tab-header notifications">
-        <Nav variant="tabs" activeKey={activeTab} onSelect={(eventKey) => setActiveTab(eventKey || "ALL")} className="patient-tabs">
+        <Nav
+          variant="tabs"
+          activeKey={activeTab}
+          onSelect={(eventKey) => {
+            setActiveTab(eventKey || "ALL");
+            setVisibleCount(NOTIFICATION_PAGE_SIZE);
+          }}
+          className="patient-tabs"
+        >
           {tabs.map((tab) => (
             <Nav.Item key={tab.key}>
               <Nav.Link eventKey={tab.key}>{tab.label}</Nav.Link>
@@ -154,7 +228,7 @@ function PatientNotifications() {
       </div>
 
       <section className="patient-notification-list">
-        {filteredNotifications.length > 0 ? filteredNotifications.map((notification) => {
+        {visibleNotifications.length > 0 ? visibleNotifications.map((notification) => {
           const meta = getPatientStatusMeta(notification.read ? "READ" : "UNREAD");
           const Icon = iconMap[notification.type] || BsBell;
 
@@ -171,7 +245,10 @@ function PatientNotifications() {
                       {!notification.read && <span className="patient-notification-dot-small" />}
                     </div>
                     <p>{notification.content}</p>
-                    <span>{notification.time}</span>
+                    <div className="patient-notification-meta">
+                      <span>{notification.typeLabel || notification.type}</span>
+                      <span>{notification.time}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="patient-notification-actions">
@@ -201,11 +278,22 @@ function PatientNotifications() {
         )}
       </section>
 
-      <div className="patient-notification-footer">
-        <Button type="button" variant="light" className="patient-outline-button">
-          Xem thông báo cũ hơn
-        </Button>
-      </div>
+      {filteredNotifications.length > 0 && (
+        <div className="patient-notification-footer">
+          {hasMoreNotifications ? (
+            <Button
+              type="button"
+              variant="light"
+              className="patient-outline-button"
+              onClick={() => setVisibleCount((current) => current + NOTIFICATION_PAGE_SIZE)}
+            >
+              Xem thông báo cũ hơn
+            </Button>
+          ) : (
+            <div className="patient-notification-end">Đã hiển thị tất cả thông báo trong bộ lọc này.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

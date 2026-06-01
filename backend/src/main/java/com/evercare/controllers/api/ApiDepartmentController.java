@@ -5,10 +5,13 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.request.DepartmentRequest;
+import com.evercare.dtos.response.MedicalServiceResponse;
 import com.evercare.dtos.response.DepartmentResponse;
 import com.evercare.mappers.DepartmentMapper;
+import com.evercare.mappers.MedicalServiceMapper;
 import com.evercare.pojo.Department;
 import com.evercare.services.DepartmentService;
+import com.evercare.services.MedicalServiceService;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +28,9 @@ import org.springframework.web.bind.annotation.*;
 public class ApiDepartmentController {
     @Autowired
     private DepartmentService departmentService;
+
+    @Autowired
+    private MedicalServiceService medicalServiceService;
     
     @GetMapping
     public ResponseEntity<List<DepartmentResponse>> list(@RequestParam Map<String, String> params) {
@@ -41,6 +47,17 @@ public class ApiDepartmentController {
             return ResponseEntity.notFound().build();
         }
         return new ResponseEntity<>(DepartmentMapper.toResponse(department), HttpStatus.OK);
+    }
+
+    @GetMapping("/{departmentId}/medical-services")
+    public ResponseEntity<List<MedicalServiceResponse>> listMedicalServices(@PathVariable("departmentId") int departmentId) {
+        List<MedicalServiceResponse> result = this.medicalServiceService
+                .getActiveExaminationServicesByDepartmentId((long) departmentId)
+                .stream()
+                .map(MedicalServiceMapper::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(result);
     }
 
 //    @PostMapping

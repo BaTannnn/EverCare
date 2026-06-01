@@ -1,9 +1,11 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.MedicalServiceResponse;
+import com.evercare.enums.MedicalServiceType;
 import com.evercare.mappers.MedicalServiceMapper;
 import com.evercare.services.MedicalServiceService;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +26,15 @@ public class ApiMedicalServiceController {
 
     @GetMapping
     public ResponseEntity<?> list(@RequestParam Map<String, String> params) {
+        Map<String, String> effectiveParams = new HashMap<>();
+        if (params != null) {
+            effectiveParams.putAll(params);
+        }
+        effectiveParams.remove("serviceTypes");
+        effectiveParams.put("serviceType", MedicalServiceType.EXAMINATION.getCode());
+
         List<MedicalServiceResponse> result = new ArrayList<>();
-        for (var service : this.medicalServiceService.getServices(params)) {
+        for (var service : this.medicalServiceService.getServices(effectiveParams)) {
             result.add(MedicalServiceMapper.toResponse(service));
         }
 

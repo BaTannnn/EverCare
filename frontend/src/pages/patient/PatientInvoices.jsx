@@ -1,17 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Form, Modal } from "react-bootstrap";
-import { BsCheckCircle, BsCreditCard2Front, BsFileEarmarkText, BsWallet2 } from "react-icons/bs";
+import {
+  BsCalendar3,
+  BsCapsule,
+  BsCashCoin,
+  BsCheckCircle,
+  BsCreditCard2Front,
+  BsFileEarmarkText,
+  BsFlask,
+  BsReceipt,
+  BsWallet2,
+} from "react-icons/bs";
+import { useLocation } from "react-router-dom";
 import { getPatientInvoices, payPatientInvoice } from "../../services/patient/patientInvoiceApi";
 import { countByStatus, formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
 
 function PatientInvoices() {
+  const location = useLocation();
   const [invoices, setInvoices] = useState([]);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("VNPAY");
   const [paymentChannel, setPaymentChannel] = useState("QR");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showInvoiceDetailModal, setShowInvoiceDetailModal] = useState(false);
   const [error, setError] = useState("");
   const [paymentNotice, setPaymentNotice] = useState("");
+
+  const invoiceFocus = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+
+    return {
+      invoiceId: location.state?.invoiceId || params.get("invoiceId"),
+      action: location.state?.action || params.get("action") || "detail",
+    };
+  }, [location.search, location.state]);
 
   useEffect(() => {
     let mounted = true;
@@ -19,9 +41,19 @@ function PatientInvoices() {
     const loadInvoices = async () => {
       try {
         const response = await getPatientInvoices();
+        const nextInvoices = response.data || [];
+        const focusedInvoice = invoiceFocus.invoiceId
+          ? nextInvoices.find((invoice) => String(invoice.id) === String(invoiceFocus.invoiceId))
+          : null;
+
         if (mounted) {
-          setInvoices(response.data || []);
+          setInvoices(nextInvoices);
           setError("");
+          if (focusedInvoice) {
+            setSelectedInvoice(focusedInvoice);
+            setShowPaymentModal(invoiceFocus.action === "pay" && focusedInvoice.status === "UNPAID");
+            setShowInvoiceDetailModal(invoiceFocus.action !== "pay");
+          }
         }
       } catch (error) {
         console.error(error);
@@ -37,7 +69,7 @@ function PatientInvoices() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [invoiceFocus.action, invoiceFocus.invoiceId]);
 
   const summary = useMemo(() => {
     const total = invoices.reduce((sum, invoice) => sum + Number(invoice.totalAmount || 0), 0);
@@ -48,10 +80,27 @@ function PatientInvoices() {
   }, [invoices]);
 
   const paymentOptions = [
-    { value: "VNPAY", label: "VNPay", channel: "QR" },
-    { value: "MOMO", label: "MoMo", channel: "WALLET" },
-    { value: "ZALOPAY", label: "ZaloPay", channel: "WALLET" },
+    { value: "VNPAY", label: "VNPay - Ví kiểm thử", channel: "WALLET" },
+    { value: "MOMO", label: "MoMo - Ví điện tử", channel: "WALLET" },
+    { value: "ZALOPAY", label: "ZaloPay QR", channel: "QR" },
   ];
+
+  const buildPaymentResultUrl = (method) => {
+    const provider = String(method || "vnpay").trim().toLowerCase();
+    return `${window.location.origin}/payment/${provider}/result`;
+  };
+
+  const openInvoiceDetail = (invoice) => {
+    setSelectedInvoice(invoice);
+    setShowPaymentModal(false);
+    setShowInvoiceDetailModal(true);
+  };
+
+  const openPaymentModal = (invoice) => {
+    setSelectedInvoice(invoice);
+    setShowInvoiceDetailModal(false);
+    setShowPaymentModal(true);
+  };
 
   const handlePay = async () => {
     if (!selectedInvoice) return;
@@ -61,8 +110,8 @@ function PatientInvoices() {
       const response = await payPatientInvoice(selectedInvoice.id, {
         paymentMethod,
         paymentChannel,
-        returnUrl: `${window.location.origin}/patient/invoices`,
-        cancelUrl: `${window.location.origin}/patient/invoices`,
+        returnUrl: buildPaymentResultUrl(paymentMethod),
+        cancelUrl: buildPaymentResultUrl(paymentMethod),
       });
 
       const payment = response.data || {};
@@ -144,20 +193,45 @@ function PatientInvoices() {
               <Card key={invoice.id} className={`patient-invoice-card ${invoice.status === "UNPAID" ? "unpaid" : ""}`}>
                 <Card.Body>
                   <div className="patient-invoice-top">
-                    <div>
-                      <h3>{invoice.invoiceCode}</h3>
-                      <p>
-                        HĐ: {invoice.invoiceCode} • {invoice.createdAt}
-                      </p>
+                    <div className="patient-invoice-title">
+                      <div className="patient-invoice-icon">
+                        <BsReceipt />
+                      </div>
+                      <div>
+                        <h3>{invoice.invoiceCode}</h3>
+                        <p>
+                          <BsCalendar3 /> {invoice.createdAt || "Chưa có ngày tạo"}
+                        </p>
+                      </div>
                     </div>
                     <div className="patient-invoice-total">{formatCurrency(invoice.totalAmount)}</div>
                   </div>
 
-                  <div className="patient-invoice-meta">
-                    <span>Tiền khám/dịch vụ khác: {formatCurrency(invoice.serviceAmount)}</span>
-                    <span>Tiền thuốc: {formatCurrency(invoice.medicineAmount)}</span>
-                    <span>Tiền xét nghiệm: {formatCurrency(invoice.testAmount)}</span>
-                    <span>Tổng tiền: {formatCurrency(invoice.totalAmount)}</span>
+                  <div className="patient-invoice-breakdown">
+                    <div>
+                      <span>
+                        <BsCreditCard2Front /> Khám/dịch vụ
+                      </span>
+                      <strong>{formatCurrency(invoice.serviceAmount)}</strong>
+                    </div>
+                    <div>
+                      <span>
+                        <BsCapsule /> Tiền thuốc
+                      </span>
+                      <strong>{formatCurrency(invoice.medicineAmount)}</strong>
+                    </div>
+                    <div>
+                      <span>
+                        <BsFlask /> Xét nghiệm
+                      </span>
+                      <strong>{formatCurrency(invoice.testAmount)}</strong>
+                    </div>
+                    <div className="total">
+                      <span>
+                        <BsCashCoin /> Tổng thanh toán
+                      </span>
+                      <strong>{formatCurrency(invoice.totalAmount)}</strong>
+                    </div>
                   </div>
 
                   <div className="patient-invoice-actions">
@@ -165,18 +239,11 @@ function PatientInvoices() {
                       {meta.label}
                     </Badge>
                     <div className="patient-invoice-buttons">
-                      <Button type="button" variant="light" className="patient-outline-button" onClick={() => setSelectedInvoice(invoice)}>
+                      <Button type="button" variant="light" className="patient-outline-button" onClick={() => openInvoiceDetail(invoice)}>
                         <BsFileEarmarkText /> Chi tiết
                       </Button>
                       {invoice.status === "UNPAID" && (
-                        <Button
-                          type="button"
-                          className="patient-primary-soft"
-                          onClick={() => {
-                            setSelectedInvoice(invoice);
-                            setShowPaymentModal(true);
-                          }}
-                        >
+                        <Button type="button" className="patient-primary-soft" onClick={() => openPaymentModal(invoice)}>
                           Thanh toán
                         </Button>
                       )}
@@ -199,14 +266,17 @@ function PatientInvoices() {
               <h3>Phương thức thanh toán</h3>
               <div className="patient-payment-panel">
                 <div className="patient-payment-method">
-                  <span>VNPay</span>
+                  <span>ZaloPay</span>
                   <strong>Thanh toán QR</strong>
                 </div>
                 <div className="patient-payment-method light">
+                  <span>VNPay</span>
+                  <strong>Ví kiểm thử</strong>
+                </div>
+                <div className="patient-payment-method outline">
                   <span>MoMo</span>
                   <strong>Ví điện tử</strong>
                 </div>
-                <div className="patient-payment-method outline">+ Thêm mới</div>
               </div>
             </Card.Body>
           </Card>
@@ -225,15 +295,110 @@ function PatientInvoices() {
         </aside>
       </section>
 
+      <Modal
+        show={Boolean(selectedInvoice) && showInvoiceDetailModal}
+        onHide={() => setShowInvoiceDetailModal(false)}
+        centered
+        size="lg"
+        animation={false}
+        dialogClassName="patient-invoice-detail-dialog"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Chi tiết hóa đơn</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="patient-payment-modal-body">
+          {selectedInvoice && (
+            <div className="patient-invoice-detail-modal">
+              <div className="patient-payment-modal-head">
+                <div className="patient-invoice-icon">
+                  <BsReceipt />
+                </div>
+                <div>
+                  <h4>{selectedInvoice.invoiceCode}</h4>
+                  <p>
+                    <BsCalendar3 /> {selectedInvoice.createdAt || "Chưa có ngày tạo"}
+                  </p>
+                </div>
+                <Badge bg={getPatientStatusMeta(selectedInvoice.status).variant} className="patient-status-badge">
+                  {getPatientStatusMeta(selectedInvoice.status).label}
+                </Badge>
+              </div>
+
+              <div className="patient-invoice-breakdown detail">
+                <div>
+                  <span>
+                    <BsCreditCard2Front /> Khám/dịch vụ
+                  </span>
+                  <strong>{formatCurrency(selectedInvoice.serviceAmount)}</strong>
+                </div>
+                <div>
+                  <span>
+                    <BsCapsule /> Tiền thuốc
+                  </span>
+                  <strong>{formatCurrency(selectedInvoice.medicineAmount)}</strong>
+                </div>
+                <div>
+                  <span>
+                    <BsFlask /> Xét nghiệm
+                  </span>
+                  <strong>{formatCurrency(selectedInvoice.testAmount)}</strong>
+                </div>
+                <div>
+                  <span>Giảm trừ</span>
+                  <strong>{formatCurrency(selectedInvoice.discountAmount)}</strong>
+                </div>
+              </div>
+
+              <div className="patient-payment-summary">
+                <span>Tổng thanh toán</span>
+                <strong>{formatCurrency(selectedInvoice.totalAmount)}</strong>
+              </div>
+
+              <div className="patient-invoice-detail-grid">
+                <div>
+                  <span>Mã bệnh án</span>
+                  <strong>{selectedInvoice.medicalRecordId || "Chưa cập nhật"}</strong>
+                </div>
+                <div>
+                  <span>Phương thức</span>
+                  <strong>{selectedInvoice.paymentMethod || "Chưa thanh toán"}</strong>
+                </div>
+                <div>
+                  <span>Ngày thanh toán</span>
+                  <strong>{selectedInvoice.paidAt || "Chưa thanh toán"}</strong>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button type="button" variant="outline-secondary" onClick={() => setShowInvoiceDetailModal(false)}>
+            Đóng
+          </Button>
+          {selectedInvoice?.status === "UNPAID" && (
+            <Button type="button" className="patient-primary-soft" onClick={() => openPaymentModal(selectedInvoice)}>
+              Thanh toán ngay
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
+
       <Modal show={Boolean(selectedInvoice) && showPaymentModal} onHide={() => setShowPaymentModal(false)} centered animation={false}>
         <Modal.Header closeButton>
           <Modal.Title>Thanh toán hóa đơn</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="patient-payment-modal-body">
           {selectedInvoice && (
             <div className="patient-payment-modal">
-              <h4>{selectedInvoice.invoiceCode}</h4>
-              <p>Hóa đơn này sẽ tạo giao dịch qua backend và mở cổng thanh toán nếu có URL trả về.</p>
+              <div className="patient-payment-modal-head">
+                <div className="patient-invoice-icon">
+                  <BsReceipt />
+                </div>
+                <div>
+                  <h4>{selectedInvoice.invoiceCode}</h4>
+                  <p>Hệ thống sẽ tạo giao dịch qua backend và mở cổng thanh toán nếu có URL trả về.</p>
+                </div>
+              </div>
               <Form.Group className="patient-form-group">
                 <Form.Label>Phương thức thanh toán</Form.Label>
                 <Form.Select

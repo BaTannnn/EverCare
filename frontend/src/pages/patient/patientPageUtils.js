@@ -17,6 +17,9 @@ export const formatShortDate = (value) => {
 };
 
 export const patientStatusMeta = {
+  BOOKED: { label: "Chờ xác nhận", variant: "warning" },
+  WAITING: { label: "Đang chờ khám", variant: "info" },
+  NO_SHOW: { label: "Không đến", variant: "secondary" },
   CONFIRMED: { label: "Đã xác nhận", variant: "primary" },
   PENDING: { label: "Chờ xác nhận", variant: "warning" },
   COMPLETED: { label: "Hoàn thành", variant: "success" },

@@ -2,14 +2,17 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.MedicineBatch;
 import com.evercare.repositories.MedicineBatchRepository;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
@@ -85,21 +88,56 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
 
     @Override
     public Long getAvailableNonExpiredQuantityByMedicineId(Long medicineId, Date today) {
+        if (medicineId == null) {
+            return 0L;
+        }
+
+        return getAvailableNonExpiredQuantitiesByMedicineIds(List.of(medicineId), today)
+                .getOrDefault(medicineId, 0L);
+    }
+
+    @Override
+    public Map<Long, Long> getAvailableNonExpiredQuantitiesByMedicineIds(List<Long> medicineIds, Date today) {
+        List<Long> ids = medicineIds == null
+                ? List.of()
+                : medicineIds.stream()
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        Map<Long, Long> quantities = new HashMap<>();
+        for (Long id : ids) {
+            quantities.put(id, 0L);
+        }
+
+        if (ids.isEmpty()) {
+            return quantities;
+        }
+
         Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Object[]> cq = cb.createQuery(Object[].class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
 
-        Long total = session.createQuery("""
-                SELECT COALESCE(SUM(b.remainingQuantity), 0)
-                FROM MedicineBatch b
-                WHERE b.medicineId.id = :medicineId
-                    AND b.active = true
-                    AND b.remainingQuantity > 0
-                    AND b.expiryDate >= :today
-                """, Long.class)
-                .setParameter("medicineId", medicineId)
-                .setParameter("today", today)
-                .getSingleResult();
+        cq.multiselect(
+                root.get("medicineId").get("id"),
+                cb.sumAsLong(root.<Integer>get("remainingQuantity"))
+        );
+        cq.where(
+                root.get("medicineId").get("id").in(ids),
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0),
+                cb.greaterThanOrEqualTo(root.<Date>get("expiryDate"), today)
+        );
+        cq.groupBy(root.get("medicineId").get("id"));
 
-        return total != null ? total : 0L;
+        for (Object[] row : session.createQuery(cq).getResultList()) {
+            Long medicineId = (Long) row[0];
+            Number total = (Number) row[1];
+            quantities.put(medicineId, total != null ? total.longValue() : 0L);
+        }
+
+        return quantities;
     }
 
     @Override
@@ -117,6 +155,28 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
                 """, MedicineBatch.class)
                 .setParameter("medicineId", medicineId)
                 .setParameter("today", today)
+                .getResultList();
+    }
+
+    @Override
+    public List<MedicineBatch> getDispensableBatchesByMedicineIdForUpdate(Long medicineId, Date today) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        root.fetch("medicineId");
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicineId").get("id"), medicineId),
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0),
+                cb.greaterThanOrEqualTo(root.<Date>get("expiryDate"), today)
+        );
+        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
     }
 

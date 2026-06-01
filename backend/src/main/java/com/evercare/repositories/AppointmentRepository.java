@@ -7,9 +7,12 @@ import java.util.Map;
 import java.sql.Time;
 
 public interface AppointmentRepository {
+    List<Appointment> getAppointmentsForReceptionist(Map<String, String> params);
+    long countAppointmentsForReceptionist(Map<String, String> params);
     List<Appointment> getAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate);
     Map<String, Long> countAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate);
     long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime);
+    long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime, Long excludeId);
     List<Appointment> getAppointmentsByPatientId(Long patientId, Map<String, String> params);
     Appointment getAppointmentByPatientIdAndId(Long patientId, Long appointmentId);
     boolean existsAppointmentByDoctorAndTime(Long doctorId, Date appointmentDate, Time startTime, Long excludeId);

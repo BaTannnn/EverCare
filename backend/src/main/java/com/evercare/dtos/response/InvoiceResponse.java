@@ -5,6 +5,9 @@ import java.math.BigDecimal;
 public class InvoiceResponse {
     private Long id;
     private String invoiceCode;
+    private String patientCode;
+    private String patientName;
+    private String patientPhone;
     private BigDecimal totalServiceAmount;
     private BigDecimal totalExamServiceAmount;
     private BigDecimal totalTestAmount;
@@ -19,6 +22,7 @@ public class InvoiceResponse {
     private String updatedAt;
     private Boolean active;
     private Long medicalRecordId;
+    private String medicalRecordCode;
     private Long patientId;
 
     public Long getId() {
@@ -35,6 +39,30 @@ public class InvoiceResponse {
 
     public void setInvoiceCode(String invoiceCode) {
         this.invoiceCode = invoiceCode;
+    }
+
+    public String getPatientCode() {
+        return patientCode;
+    }
+
+    public void setPatientCode(String patientCode) {
+        this.patientCode = patientCode;
+    }
+
+    public String getPatientName() {
+        return patientName;
+    }
+
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
+    }
+
+    public String getPatientPhone() {
+        return patientPhone;
+    }
+
+    public void setPatientPhone(String patientPhone) {
+        this.patientPhone = patientPhone;
     }
 
     public BigDecimal getTotalServiceAmount() {
@@ -147,6 +175,14 @@ public class InvoiceResponse {
 
     public void setMedicalRecordId(Long medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
+    }
+
+    public String getMedicalRecordCode() {
+        return medicalRecordCode;
+    }
+
+    public void setMedicalRecordCode(String medicalRecordCode) {
+        this.medicalRecordCode = medicalRecordCode;
     }
 
     public Long getPatientId() {

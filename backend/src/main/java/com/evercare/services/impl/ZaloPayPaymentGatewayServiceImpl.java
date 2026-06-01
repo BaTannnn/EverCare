@@ -3,7 +3,7 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
-import com.evercare.services.PaymentGatewayResult;
+import com.evercare.dtos.response.PaymentGatewayResultResponse;
 import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,7 +22,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
-@PropertySource("classpath:payments.properties")
 public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     private static final String METHOD = "ZALOPAY";
     private static final Logger logger = LoggerFactory.getLogger(ZaloPayPaymentGatewayServiceImpl.class);
@@ -104,8 +103,8 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult parseCallback(Map<String, String> params) {
-        PaymentGatewayResult result = new PaymentGatewayResult();
+    public PaymentGatewayResultResponse parseCallback(Map<String, String> params) {
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         String data = PaymentGatewaySupport.value(params, "data");
         if (data != null && data.startsWith("{")) {
             JsonNode json = PaymentGatewaySupport.readJson(data);
@@ -127,7 +126,7 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     }
 
     @Override
-    public PaymentGatewayResult refund(Payment payment, BigDecimal amount, String reason) {
+    public PaymentGatewayResultResponse refund(Payment payment, BigDecimal amount, String reason) {
         String endpoint = PaymentGatewaySupport.optionalProperty(this.env, "payment.zalopay.refundEndpoint");
         String appId = PaymentGatewaySupport.optionalProperty(this.env, "payment.zalopay.appId");
         String key1 = PaymentGatewaySupport.optionalProperty(this.env, "payment.zalopay.key1");
@@ -152,7 +151,7 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
 
         String response = PaymentGatewaySupport.postJson(endpoint, PaymentGatewaySupport.toJson(body));
         JsonNode json = PaymentGatewaySupport.readJson(response);
-        PaymentGatewayResult result = new PaymentGatewayResult();
+        PaymentGatewayResultResponse result = new PaymentGatewayResultResponse();
         result.setTransactionCode(refundId);
         result.setAmount(amount);
         result.setGatewayTransactionId(payment.getTransactionCode());

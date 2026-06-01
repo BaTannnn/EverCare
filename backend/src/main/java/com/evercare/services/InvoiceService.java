@@ -8,4 +8,6 @@ import java.util.Map;
 public interface InvoiceService {
     List<InvoiceResponse> getInvoicesByCurrentPatient(Map<String, String> params);
     InvoiceDetailResponse getInvoiceByCurrentPatient(Long invoiceId);
+    List<InvoiceResponse> getInvoicesForReceptionist(Map<String, String> params);
+    InvoiceDetailResponse getInvoiceForReceptionist(Long invoiceId);
 }

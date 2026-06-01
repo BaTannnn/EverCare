@@ -1,8 +1,8 @@
-package com.evercare.services;
+package com.evercare.dtos.response;
 
 import java.math.BigDecimal;
 
-public class PaymentGatewayResult {
+public class PaymentGatewayResultResponse {
     private boolean success;
     private String transactionCode;
     private String gatewayTransactionId;

@@ -2,6 +2,8 @@ package com.evercare.mappers;
 
 import com.evercare.dtos.response.InvoiceDetailResponse;
 import com.evercare.dtos.response.InvoiceResponse;
+import com.evercare.dtos.response.MedicalRecordResponse;
+import com.evercare.dtos.response.PatientResponse;
 import com.evercare.dtos.response.PaymentResponse;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.MedicalRecordService;
@@ -34,6 +36,8 @@ public final class InvoiceMapper {
 
         InvoiceDetailResponse res = new InvoiceDetailResponse();
         fillBase(invoice, res);
+        res.setPatient(invoice.getPatientId() != null ? PatientMapper.toResponse(invoice.getPatientId()) : null);
+        res.setMedicalRecord(invoice.getMedicalRecordId() != null ? MedicalRecordMapper.toResponse(invoice.getMedicalRecordId()) : null);
         List<PaymentResponse> paymentResponses = payments == null
                 ? Collections.emptyList()
                 : payments.stream().map(PaymentMapper::toResponse).toList();
@@ -58,7 +62,13 @@ public final class InvoiceMapper {
         res.setCreatedAt(format(invoice.getCreatedAt()));
         res.setUpdatedAt(format(invoice.getUpdatedAt()));
         res.setActive(invoice.getActive());
+        if (invoice.getPatientId() != null) {
+            res.setPatientCode(invoice.getPatientId().getPatientCode());
+            res.setPatientName(invoice.getPatientId().getFullName());
+            res.setPatientPhone(invoice.getPatientId().getPhone());
+        }
         res.setMedicalRecordId(invoice.getMedicalRecordId() != null ? invoice.getMedicalRecordId().getId() : null);
+        res.setMedicalRecordCode(invoice.getMedicalRecordId() != null ? invoice.getMedicalRecordId().getRecordCode() : null);
         res.setPatientId(invoice.getPatientId() != null ? invoice.getPatientId().getId() : null);
     }
 

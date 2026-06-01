@@ -12,6 +12,8 @@ public interface MedicalServiceService {
 
     MedicalService getServiceById(int id);
 
+    List<MedicalService> getActiveExaminationServicesByDepartmentId(Long departmentId);
+
     MedicalService createService(MedicalServiceRequest req);
 
     MedicalService updateService(int id, MedicalServiceRequest req);

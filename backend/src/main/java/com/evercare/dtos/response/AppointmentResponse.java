@@ -16,6 +16,9 @@ public class AppointmentResponse {
     private String departmentName;
     private Long serviceId;
     private String serviceName;
+    private PatientResponse patient;
+    private DoctorResponse doctor;
+    private MedicalServiceResponse service;
 
     public Long getId() {
         return id;
@@ -135,5 +138,29 @@ public class AppointmentResponse {
 
     public void setServiceName(String serviceName) {
         this.serviceName = serviceName;
+    }
+
+    public PatientResponse getPatient() {
+        return patient;
+    }
+
+    public void setPatient(PatientResponse patient) {
+        this.patient = patient;
+    }
+
+    public DoctorResponse getDoctor() {
+        return doctor;
+    }
+
+    public void setDoctor(DoctorResponse doctor) {
+        this.doctor = doctor;
+    }
+
+    public MedicalServiceResponse getService() {
+        return service;
+    }
+
+    public void setService(MedicalServiceResponse service) {
+        this.service = service;
     }
 }

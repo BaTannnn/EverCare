@@ -7,10 +7,11 @@ import { countByStatus, getPatientStatusMeta } from "./patientPageUtils";
 
 const tabs = [
   { key: "ALL", label: "Tất cả" },
-  { key: "PENDING", label: "Chờ xác nhận" },
-  { key: "CONFIRMED", label: "Đã xác nhận" },
+  { key: "BOOKED", label: "Chờ xác nhận" },
+  { key: "WAITING", label: "Đang chờ khám" },
   { key: "COMPLETED", label: "Đã khám xong" },
   { key: "CANCELLED", label: "Đã hủy" },
+  { key: "NO_SHOW", label: "Không đến" },
 ];
 
 function PatientAppointments() {
@@ -46,8 +47,8 @@ function PatientAppointments() {
   const summary = useMemo(
     () => ({
       total: appointments.length,
-      pending: countByStatus(appointments, "PENDING"),
-      confirmed: countByStatus(appointments, "CONFIRMED"),
+      booked: countByStatus(appointments, "BOOKED"),
+      waiting: countByStatus(appointments, "WAITING"),
       completed: countByStatus(appointments, "COMPLETED"),
     }),
     [appointments],
@@ -90,7 +91,7 @@ function PatientAppointments() {
             </div>
             <div className="patient-summary-copy">
               <span>Chờ xác nhận</span>
-              <strong>{summary.pending}</strong>
+              <strong>{summary.booked}</strong>
             </div>
           </Card.Body>
         </Card>
@@ -100,8 +101,8 @@ function PatientAppointments() {
               <BsPerson />
             </div>
             <div className="patient-summary-copy">
-              <span>Đã xác nhận</span>
-              <strong>{summary.confirmed}</strong>
+              <span>Đang chờ khám</span>
+              <strong>{summary.waiting}</strong>
             </div>
           </Card.Body>
         </Card>
@@ -163,12 +164,12 @@ function PatientAppointments() {
                   <Button type="button" variant="light" className="patient-outline-button" onClick={() => setSelectedAppointment(appointment)}>
                     <BsEye /> Xem chi tiết
                   </Button>
-                  {appointment.status !== "COMPLETED" && appointment.status !== "CANCELLED" && (
+                  {appointment.status !== "COMPLETED" && appointment.status !== "CANCELLED" && appointment.status !== "NO_SHOW" && (
                     <Button type="button" variant="outline-danger" className="patient-danger-outline" onClick={() => handleCancel(appointment)}>
                       <BsXLg /> Hủy lịch
                     </Button>
                   )}
-                  {(appointment.status === "COMPLETED" || appointment.status === "CANCELLED") && (
+                  {(appointment.status === "COMPLETED" || appointment.status === "CANCELLED" || appointment.status === "NO_SHOW") && (
                     <Button type="button" className="patient-primary-soft" onClick={() => navigate("/patient/book-appointment")}>
                       <BsArrowRepeat /> Đặt lại
                     </Button>

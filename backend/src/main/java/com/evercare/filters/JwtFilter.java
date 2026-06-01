@@ -43,12 +43,14 @@ public class JwtFilter implements Filter {
         String secureApiPrefix = contextPath + "/api/secure";
         String doctorApiPrefix = contextPath + "/api/doctor";
         String staffApiPrefix = contextPath + "/api/staff";
+        String patientApiPrefix = contextPath + "/api/patient";
         String pharmacistApiPrefix = contextPath + "/api/pharmacist";
 
         boolean protectedApi =
                 uri.startsWith(secureApiPrefix)
-                        || uri.startsWith(doctorApiPrefix)
+                        || uri.equals(doctorApiPrefix) || uri.startsWith(doctorApiPrefix + '/')
                         || uri.startsWith(staffApiPrefix)
+                        || uri.startsWith(patientApiPrefix)
                         || uri.startsWith(pharmacistApiPrefix);
 
         if (!protectedApi) {

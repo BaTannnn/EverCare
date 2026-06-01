@@ -3,6 +3,9 @@ package com.evercare.mappers;
 import com.evercare.dtos.response.AppointmentPatientResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
+import com.evercare.dtos.response.DoctorResponse;
+import com.evercare.dtos.response.MedicalServiceResponse;
+import com.evercare.dtos.response.PatientResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.MedicalRecord;
@@ -18,6 +21,14 @@ public final class AppointmentMapper {
     }
 
     public static DoctorAppointmentResponse toDoctorResponse(Appointment appointment) {
+        return toDoctorResponse(appointment, true);
+    }
+
+    public static DoctorAppointmentResponse toDoctorSummaryResponse(Appointment appointment) {
+        return toDoctorResponse(appointment, false);
+    }
+
+    private static DoctorAppointmentResponse toDoctorResponse(Appointment appointment, boolean includePrescription) {
         DoctorAppointmentResponse res = new DoctorAppointmentResponse();
         res.setId(appointment.getId());
         res.setAppointmentCode(appointment.getAppointmentCode());
@@ -34,8 +45,11 @@ public final class AppointmentMapper {
         MedicalRecord medicalRecord = appointment.getMedicalRecord();
         if (medicalRecord != null) {
             res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
-            if (medicalRecord.getPrescription() != null) {
-                res.setPrescription(PrescriptionMapper.toResponse(medicalRecord.getPrescription(), null));
+            if (includePrescription && medicalRecord.getPrescription() != null) {
+                res.setPrescription(PrescriptionMapper.toResponse(
+                        medicalRecord.getPrescription(),
+                        (java.util.function.Function<Long, Long>) null
+                ));
             }
         }
 
@@ -70,6 +84,18 @@ public final class AppointmentMapper {
         if (appointment.getServiceId() != null) {
             res.setServiceId(appointment.getServiceId().getId());
             res.setServiceName(appointment.getServiceId().getName());
+        }
+
+        if (appointment.getPatientId() != null) {
+            res.setPatient(PatientMapper.toResponse(appointment.getPatientId()));
+        }
+
+        if (appointment.getDoctorId() != null) {
+            res.setDoctor(DoctorMapper.toResponse(appointment.getDoctorId()));
+        }
+
+        if (appointment.getServiceId() != null) {
+            res.setService(MedicalServiceMapper.toResponse(appointment.getServiceId()));
         }
 
         return res;

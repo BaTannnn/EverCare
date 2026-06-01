@@ -12,6 +12,15 @@ import DoctorPatientAppointmentsPage from "./pages/doctor/DoctorPatientAppointme
 import DoctorPrescriptionsPage from "./pages/doctor/DoctorPrescriptionsPage";
 import ExaminationWorkspacePage from "./pages/doctor/ExaminationWorkspacePage";
 import LoginPage from "./pages/LoginPage";
+import ReceptionistAppointmentCreatePage from "./pages/receptionist/ReceptionistAppointmentCreatePage";
+import ReceptionistAppointmentDetailPage from "./pages/receptionist/ReceptionistAppointmentDetailPage";
+import ReceptionistAppointmentEditPage from "./pages/receptionist/ReceptionistAppointmentEditPage";
+import ReceptionistAppointmentsPage from "./pages/receptionist/ReceptionistAppointmentsPage";
+import ReceptionistDashboardPage from "./pages/receptionist/ReceptionistDashboardPage";
+import ReceptionistInvoiceDetailPage from "./pages/receptionist/ReceptionistInvoiceDetailPage";
+import ReceptionistInvoicesPage from "./pages/receptionist/ReceptionistInvoicesPage";
+import ReceptionistLayout from "./components/receptionist/layout/ReceptionistLayout";
+import ReceptionistSupportMessagesPage from "./pages/receptionist/ReceptionistSupportMessagesPage";
 import RegisterPage from "./pages/RegisterPage";
 import StaffDashboardPage from "./pages/staff/StaffDashboardPage";
 import StaffTestRequestDetailPage from "./pages/staff/StaffTestRequestDetailPage";
@@ -26,6 +35,7 @@ import PatientAppointments from "./pages/patient/PatientAppointments";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientProfile from "./pages/patient/PatientProfile";
 import PatientPrescriptions from "./pages/patient/PatientPrescriptions";
+import PatientSupportChat from "./pages/patient/PatientSupportChat";
 import PatientTestResults from "./pages/patient/PatientTestResults";
 import PaymentResultPage from "./pages/payment/PaymentResultPage";
 import PharmacistBatchesPage from "./pages/pharmacist/PharmacistBatchesPage";
@@ -46,6 +56,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
+      <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>
@@ -63,8 +75,8 @@ function App() {
           <Route path="prescriptions" element={<PatientPrescriptions />} />
           <Route path="invoices" element={<PatientInvoices />} />
           <Route path="notifications" element={<PatientNotifications />} />
+          <Route path="support" element={<PatientSupportChat />} />
         </Route>
-        <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
       </Route>
 
       <Route element={<ProtectedRoute roles={["DOCTOR", "ROLE_DOCTOR"]} />}>
@@ -92,7 +104,21 @@ function App() {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "MANAGER", "ROLE_MANAGER"]} />}>
+      <Route element={<ProtectedRoute roles={["RECEPTIONIST", "ROLE_RECEPTIONIST", "CASHIER", "ROLE_CASHIER", "ADMIN", "ROLE_ADMIN"]} />}>
+        <Route path="/receptionist" element={<ReceptionistLayout />}>
+          <Route index element={<Navigate to="/receptionist/dashboard" replace />} />
+          <Route path="dashboard" element={<ReceptionistDashboardPage />} />
+          <Route path="appointments" element={<ReceptionistAppointmentsPage />} />
+          <Route path="appointments/new" element={<ReceptionistAppointmentCreatePage />} />
+          <Route path="appointments/:appointmentId" element={<ReceptionistAppointmentDetailPage />} />
+          <Route path="appointments/:appointmentId/edit" element={<ReceptionistAppointmentEditPage />} />
+          <Route path="invoices" element={<ReceptionistInvoicesPage />} />
+          <Route path="invoices/:invoiceId" element={<ReceptionistInvoiceDetailPage />} />
+          <Route path="support" element={<ReceptionistSupportMessagesPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute roles={["LAB_TECH", "ROLE_LAB_TECH", "MANAGER", "ROLE_MANAGER"]} />}>
         <Route path="/staff" element={<StaffLayout />}>
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboardPage />} />
