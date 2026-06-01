@@ -2,6 +2,7 @@ package com.evercare.mappers;
 
 import com.evercare.dtos.response.MedicalRecordServiceResponse;
 import com.evercare.dtos.response.TestResultResponse;
+import com.evercare.enums.MedicalRecordServiceStatus;
 import com.evercare.pojo.MedicalRecordService;
 import com.evercare.pojo.MedicalService;
 import com.evercare.pojo.TestResult;
@@ -25,6 +26,9 @@ public final class MedicalRecordServiceMapper {
         res.setServiceCode(service != null ? service.getCode() : null);
         res.setServiceName(service != null ? service.getName() : null);
         res.setServiceType(service != null ? service.getServiceType() : null);
+        MedicalRecordServiceStatus status = MedicalRecordServiceStatus.fromHasActiveResult(hasActiveResult(testResults));
+        res.setStatus(status.getCode());
+        res.setStatusLabel(status.getLabel());
         res.setQuantity(recordService.getQuantity());
         res.setUnitPrice(recordService.getUnitPrice());
         res.setResultSummary(recordService.getResultSummary());
@@ -35,5 +39,10 @@ public final class MedicalRecordServiceMapper {
         res.setTestResults(resultResponses);
 
         return res;
+    }
+
+    private static boolean hasActiveResult(List<TestResult> testResults) {
+        return testResults != null
+                && testResults.stream().anyMatch(result -> result != null && !Boolean.FALSE.equals(result.getActive()));
     }
 }

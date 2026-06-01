@@ -1,5 +1,6 @@
 package com.evercare.repositories.impl;
 
+import com.evercare.enums.PrescriptionStatus;
 import com.evercare.pojo.Prescription;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.utils.PaginationUtils;
@@ -37,7 +38,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         predicates.add(cb.equal(root.get("patientId").get("id"), patientId));
 
         if (status != null && !status.isBlank()) {
-            predicates.add(cb.equal(root.get("status"), status.trim().toUpperCase()));
+            predicates.add(cb.equal(root.get("status"), PrescriptionStatus.normalize(status)));
         }
 
         if (from != null) {
@@ -56,9 +57,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         Session session = this.factory.getObject().getCurrentSession();
         String status = params != null ? params.get("status") : null;
 
-        if (status == null || status.isBlank()) {
-            status = "PRESCRIBED";
-        }
+        status = PrescriptionStatus.normalize(status);
 
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
@@ -73,7 +72,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         cq.select(root).distinct(true);
         cq.where(
                 cb.isTrue(root.get("active")),
-                cb.equal(root.get("status"), status.trim().toUpperCase())
+                cb.equal(root.get("status"), status)
         );
         cq.orderBy(cb.asc(root.get("prescribedAt")), cb.asc(root.get("id")));
 
@@ -97,6 +96,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
         String status = params != null ? params.get("status") : null;
         if (status != null && !status.isBlank()) {
+            status = PrescriptionStatus.normalize(status);
             hql.append(" AND p.status = :status");
         }
 
@@ -106,7 +106,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
                 .setParameter("doctorId", doctorId);
 
         if (status != null && !status.isBlank()) {
-            query.setParameter("status", status.trim().toUpperCase());
+            query.setParameter("status", status);
         }
 
         return query.getResultList();

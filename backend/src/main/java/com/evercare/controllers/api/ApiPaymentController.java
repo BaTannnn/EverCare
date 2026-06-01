@@ -1,6 +1,8 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.PaymentResponse;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.enums.PaymentStatus;
 import com.evercare.services.PaymentService;
 import com.evercare.utils.PaymentGatewaySupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -169,7 +171,9 @@ public class ApiPaymentController {
         }
 
         String paymentStatus = response != null ? response.getPaymentStatus() : null;
-        if (paymentStatus != null && ("SUCCESS".equalsIgnoreCase(paymentStatus) || "PAID".equalsIgnoreCase(paymentStatus))) {
+        if (paymentStatus != null
+                && (PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(paymentStatus)
+                || InvoiceStatus.PAID.getCode().equalsIgnoreCase(paymentStatus))) {
             return "success";
         }
 

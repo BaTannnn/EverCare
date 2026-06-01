@@ -5,6 +5,7 @@ import com.evercare.dtos.request.UpdateMedicalRecordRequest;
 import com.evercare.dtos.response.MedicalRecordServiceResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.InvoiceStatus;
 import com.evercare.enums.MedicalServiceType;
 import com.evercare.mappers.MedicalRecordServiceMapper;
 import com.evercare.mappers.MedicalRecordMapper;
@@ -43,8 +44,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordService {
-    private static final String PAYMENT_STATUS_UNPAID = "UNPAID";
-
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
 
@@ -123,7 +122,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         Date now = new Date();
         appointment.setStatus(AppointmentStatus.COMPLETED.getCode());
         appointment.setUpdatedAt(now);
-        medicalRecord.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+        medicalRecord.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
         medicalRecord.setUpdatedAt(now);
         createOrUpdateUnpaidInvoice(medicalRecord, now);
 
@@ -252,7 +251,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
 
     private boolean createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {
         Invoice invoice = this.invoiceRepo.getInvoiceByMedicalRecordId(medicalRecord.getId());
-        if (invoice != null && "PAID".equalsIgnoreCase(invoice.getPaymentStatus())) {
+        if (invoice != null && InvoiceStatus.PAID.getCode().equalsIgnoreCase(invoice.getPaymentStatus())) {
             medicalRecord.setInvoice(invoice);
             return false;
         }
@@ -270,11 +269,11 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
             invoice.setMedicalRecordId(medicalRecord);
             invoice.setPatientId(medicalRecord.getPatientId());
             invoice.setDiscountAmount(discountAmount);
-            invoice.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+            invoice.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
             invoice.setCreatedAt(now);
             invoice.setActive(true);
         } else {
-            invoice.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+            invoice.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
         }
 
         invoice.setTotalServiceAmount(serviceAmount);
@@ -282,7 +281,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         invoice.setTotalAmount(totalAmount.max(BigDecimal.ZERO));
         invoice.setUpdatedAt(now);
         medicalRecord.setInvoice(invoice);
-        medicalRecord.setPaymentStatus(PAYMENT_STATUS_UNPAID);
+        medicalRecord.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
 
         if (invoice.getId() == null) {
             this.invoiceRepo.addInvoice(invoice);

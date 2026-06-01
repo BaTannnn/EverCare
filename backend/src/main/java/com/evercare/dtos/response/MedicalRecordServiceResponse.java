@@ -10,6 +10,8 @@ public class MedicalRecordServiceResponse {
     private String serviceCode;
     private String serviceName;
     private String serviceType;
+    private String status;
+    private String statusLabel;
     private Integer quantity;
     private BigDecimal unitPrice;
     private String resultSummary;
@@ -61,6 +63,22 @@ public class MedicalRecordServiceResponse {
 
     public void setServiceType(String serviceType) {
         this.serviceType = serviceType;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getStatusLabel() {
+        return statusLabel;
+    }
+
+    public void setStatusLabel(String statusLabel) {
+        this.statusLabel = statusLabel;
     }
 
     public Integer getQuantity() {

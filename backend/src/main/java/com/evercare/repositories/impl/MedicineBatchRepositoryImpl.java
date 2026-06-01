@@ -141,24 +141,6 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     }
 
     @Override
-    public List<MedicineBatch> getDispensableBatchesByMedicineId(Long medicineId, Date today) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        return session.createQuery("""
-                SELECT b FROM MedicineBatch b
-                JOIN FETCH b.medicineId m
-                WHERE m.id = :medicineId
-                    AND b.active = true
-                    AND b.remainingQuantity > 0
-                    AND b.expiryDate >= :today
-                ORDER BY b.expiryDate ASC, b.id ASC
-                """, MedicineBatch.class)
-                .setParameter("medicineId", medicineId)
-                .setParameter("today", today)
-                .getResultList();
-    }
-
-    @Override
     public List<MedicineBatch> getDispensableBatchesByMedicineIdForUpdate(Long medicineId, Date today) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();

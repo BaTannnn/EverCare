@@ -1,5 +1,6 @@
 package com.evercare.repositories.impl;
 
+import com.evercare.enums.InvoiceStatus;
 import com.evercare.pojo.Invoice;
 import com.evercare.repositories.InvoiceRepository;
 import com.evercare.utils.PaginationUtils;
@@ -106,7 +107,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         predicates.add(cb.equal(root.get("patientId").get("id"), patientId));
 
         if (paymentStatus != null && !paymentStatus.isBlank()) {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), paymentStatus.trim().toUpperCase()));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.normalize(paymentStatus)));
         }
 
         if (from != null) {
@@ -208,9 +209,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
 
         String paymentStatus = params != null ? params.get("paymentStatus") : null;
         if (paymentStatus == null || paymentStatus.isBlank()) {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), "UNPAID"));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.UNPAID.getCode()));
         } else {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), paymentStatus.trim().toUpperCase()));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.normalize(paymentStatus)));
         }
 
         if (params != null) {

@@ -3,6 +3,8 @@ package com.evercare.services.impl;
 import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.dtos.response.PaymentResultResponse;
 import com.evercare.dtos.response.PaymentResponse;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.enums.PaymentStatus;
 import com.evercare.mappers.PaymentMapper;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.MedicalRecord;
@@ -49,12 +51,6 @@ public class PaymentServiceImpl implements PaymentService {
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Logger logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
     private static final String PAYMENT_TYPE = "PAYMENT";
-    private static final String STATUS_PENDING = "PENDING";
-    private static final String STATUS_SUCCESS = "SUCCESS";
-    private static final String STATUS_FAILED = "FAILED";
-    private static final String STATUS_REFUNDED = "REFUNDED";
-    private static final String STATUS_PAID = "PAID";
-    private static final String STATUS_PARTIALLY_PAID = "PARTIALLY_PAID";
 
     @Autowired
     private InvoiceRepository invoiceRepo;
@@ -128,20 +124,20 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalArgumentException("Số tiền callback không khớp");
         }
 
-        if (STATUS_SUCCESS.equalsIgnoreCase(payment.getPaymentStatus())
+        if (PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(payment.getPaymentStatus())
                 && gatewayResult.isSuccess()) {
             return PaymentMapper.toResponse(payment);
         }
 
         if (gatewayResult.isSuccess()) {
             markPaymentSuccess(payment);
-            updateInvoiceAndMedicalRecordAfterPayment(payment, STATUS_PAID.equalsIgnoreCase(payment.getInvoiceId().getPaymentStatus()));
+            updateInvoiceAndMedicalRecordAfterPayment(payment, InvoiceStatus.PAID.getCode().equalsIgnoreCase(payment.getInvoiceId().getPaymentStatus()));
             return PaymentMapper.toResponse(payment);
         }
 
-        if (!STATUS_SUCCESS.equalsIgnoreCase(payment.getPaymentStatus())
-                && !STATUS_REFUNDED.equalsIgnoreCase(payment.getPaymentStatus())) {
-            payment.setPaymentStatus(STATUS_FAILED);
+        if (!PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(payment.getPaymentStatus())
+                && !PaymentStatus.REFUNDED.getCode().equalsIgnoreCase(payment.getPaymentStatus())) {
+            payment.setPaymentStatus(PaymentStatus.FAILED.getCode());
             payment.setUpdatedAt(new Date());
             this.paymentRepo.updatePayment(payment);
         }
@@ -182,13 +178,13 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         if (gatewayResult.isSuccess()) {
-            if (!STATUS_SUCCESS.equalsIgnoreCase(payment.getPaymentStatus())) {
+            if (!PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(payment.getPaymentStatus())) {
                 markPaymentSuccess(payment);
-                updateInvoiceAndMedicalRecordAfterPayment(payment, STATUS_PAID.equalsIgnoreCase(payment.getInvoiceId().getPaymentStatus()));
+                updateInvoiceAndMedicalRecordAfterPayment(payment, InvoiceStatus.PAID.getCode().equalsIgnoreCase(payment.getInvoiceId().getPaymentStatus()));
             }
-        } else if (!STATUS_SUCCESS.equalsIgnoreCase(payment.getPaymentStatus())
-                && !STATUS_REFUNDED.equalsIgnoreCase(payment.getPaymentStatus())) {
-            payment.setPaymentStatus(STATUS_FAILED);
+        } else if (!PaymentStatus.SUCCESS.getCode().equalsIgnoreCase(payment.getPaymentStatus())
+                && !PaymentStatus.REFUNDED.getCode().equalsIgnoreCase(payment.getPaymentStatus())) {
+            payment.setPaymentStatus(PaymentStatus.FAILED.getCode());
             payment.setUpdatedAt(new Date());
             this.paymentRepo.updatePayment(payment);
         }
@@ -197,7 +193,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void markPaymentSuccess(Payment payment) {
-        payment.setPaymentStatus(STATUS_SUCCESS);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS.getCode());
         payment.setPaidAt(new Date());
         payment.setUpdatedAt(new Date());
         this.paymentRepo.updatePayment(payment);
@@ -208,7 +204,7 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal paidAmount = this.paymentRepo.sumSuccessAmountByInvoiceId(invoice.getId());
         if (invoice.getTotalAmount() != null && paidAmount.compareTo(invoice.getTotalAmount()) >= 0) {
             if (!invoiceAlreadyPaid) {
-                invoice.setPaymentStatus(STATUS_PAID);
+                invoice.setPaymentStatus(InvoiceStatus.PAID.getCode());
                 invoice.setPaymentMethod(payment.getPaymentMethod());
                 invoice.setPaidAt(new Date());
                 invoice.setUpdatedAt(new Date());
@@ -216,7 +212,7 @@ public class PaymentServiceImpl implements PaymentService {
 
                 MedicalRecord medicalRecord = invoice.getMedicalRecordId();
                 if (medicalRecord != null) {
-                    medicalRecord.setPaymentStatus(STATUS_PAID);
+                    medicalRecord.setPaymentStatus(InvoiceStatus.PAID.getCode());
                     medicalRecord.setUpdatedAt(new Date());
                     this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
                 }
@@ -232,7 +228,7 @@ public class PaymentServiceImpl implements PaymentService {
                 this.invoiceRepo.updateInvoice(invoice);
             }
         } else if (invoice.getTotalAmount() != null && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
-            invoice.setPaymentStatus(STATUS_PARTIALLY_PAID);
+            invoice.setPaymentStatus(InvoiceStatus.PARTIALLY_PAID.getCode());
             invoice.setUpdatedAt(new Date());
             this.invoiceRepo.updateInvoice(invoice);
         }
@@ -464,7 +460,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaymentMethod(paymentMethod);
         payment.setPaymentProvider(paymentMethod);
         payment.setTransactionCode(generateTransactionCode(paymentMethod));
-        payment.setPaymentStatus(STATUS_SUCCESS);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS.getCode());
         payment.setPaidAt(now);
         payment.setCreatedAt(now);
         payment.setUpdatedAt(now);
@@ -487,7 +483,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setPaymentMethod(paymentMethod);
         payment.setPaymentProvider(gateway.getProvider());
         payment.setTransactionCode(transactionCode);
-        payment.setPaymentStatus(STATUS_PENDING);
+        payment.setPaymentStatus(PaymentStatus.PENDING.getCode());
         payment.setCreatedAt(now);
         payment.setUpdatedAt(now);
         payment.setActive(true);
@@ -497,7 +493,7 @@ public class PaymentServiceImpl implements PaymentService {
             String paymentUrl = gateway.createPaymentUrl(invoice, payment, request);
             return PaymentMapper.toResultResponse(payment, paymentUrl, invoice);
         } catch (Exception ex) {
-            payment.setPaymentStatus(STATUS_FAILED);
+            payment.setPaymentStatus(PaymentStatus.FAILED.getCode());
             payment.setUpdatedAt(new Date());
             this.paymentRepo.updatePayment(payment);
             throw new IllegalStateException(ex.getMessage() != null ? ex.getMessage() : "Không thể tạo payment URL", ex);
@@ -509,8 +505,8 @@ public class PaymentServiceImpl implements PaymentService {
             throw new NoSuchElementException("Không tìm thấy hóa đơn");
         }
 
-        if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())
-                || STATUS_REFUNDED.equalsIgnoreCase(invoice.getPaymentStatus())) {
+        if (InvoiceStatus.PAID.getCode().equalsIgnoreCase(invoice.getPaymentStatus())
+                || InvoiceStatus.REFUNDED.getCode().equalsIgnoreCase(invoice.getPaymentStatus())) {
             throw new IllegalStateException("Hóa đơn đã được thanh toán");
         }
 
