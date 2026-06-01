@@ -1,6 +1,7 @@
 package com.evercare.controllers.api;
 
 import com.evercare.dtos.response.ApiErrorResponse;
+import com.evercare.exceptions.AuthenticationRequiredException;
 import com.evercare.exceptions.CloudinaryUploadException;
 import com.evercare.exceptions.FileProxyException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,11 +11,14 @@ import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -30,6 +34,21 @@ public class ApiExceptionHandler {
     @ExceptionHandler({NumberFormatException.class, DateTimeParseException.class})
     public ResponseEntity<ApiErrorResponse> handleParseError(
             RuntimeException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex instanceof DateTimeParseException
+                ? "Ngày không hợp lệ, định dạng đúng là yyyy-MM-dd"
+                : ex.getMessage();
+        return buildResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+    }
+
+    @ExceptionHandler({
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class,
+        HttpMessageNotReadableException.class
+    })
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(
+            Exception ex,
             HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
@@ -72,7 +91,6 @@ public class ApiExceptionHandler {
             MultipartException ex,
             HttpServletRequest request
     ) {
-        ex.printStackTrace();
         return buildResponse(
                 HttpStatus.BAD_REQUEST,
                 "Dữ liệu multipart không hợp lệ hoặc file vượt quá giới hạn 10MB",
@@ -83,6 +101,14 @@ public class ApiExceptionHandler {
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ApiErrorResponse> handleSecurity(
             SecurityException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AuthenticationRequiredException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthenticationRequired(
+            AuthenticationRequiredException ex,
             HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI());
@@ -101,7 +127,6 @@ public class ApiExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
-        ex.printStackTrace();
         String message = ex.getClass().getSimpleName() + ": " + ex.getMessage();
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, message, request.getRequestURI());
     }

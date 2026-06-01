@@ -121,21 +121,12 @@ public class ApiPaymentController {
             frontendReturnUrl = resolveFrontendReturnUrl(provider);
         }
 
-        try {
-            PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
-            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
-                return redirectToFrontend(frontendReturnUrl, response, null);
-            }
-
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException ex) {
-            logger.warn("{} result endpoint failed: {}", provider, ex.getMessage());
-            if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
-                return redirectToFrontend(frontendReturnUrl, null, ex.getMessage());
-            }
-
-            throw ex;
+        PaymentResponse response = this.paymentService.handleGatewayResult(provider, callbackParams);
+        if (frontendReturnUrl != null && !frontendReturnUrl.isBlank()) {
+            return redirectToFrontend(frontendReturnUrl, response, null);
         }
+
+        return ResponseEntity.ok(response);
     }
 
     private String resolveFrontendReturnUrl(String provider) {

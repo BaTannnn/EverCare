@@ -4,10 +4,7 @@ import com.evercare.dtos.response.TestResultFileResponse;
 import com.evercare.services.TestResultFileService;
 import com.evercare.utils.PdfInlineResponseHelper;
 import java.security.Principal;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,17 +21,14 @@ public class ApiPatientTestResultFileController {
 
     @GetMapping("/{id}/file")
     public ResponseEntity<?> file(Principal principal, @PathVariable("id") Long id) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
+        TestResultFileResponse file = this.testResultFileService.getFileForPatient(requireUsername(principal), id);
+        return PdfInlineResponseHelper.inlinePdf(file);
+    }
 
-        try {
-            TestResultFileResponse file = this.testResultFileService.getFileForPatient(principal.getName(), id);
-            return PdfInlineResponseHelper.inlinePdf(file);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
+    private String requireUsername(Principal principal) {
+        if (principal == null) {
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
         }
+        return principal.getName();
     }
 }

@@ -14,7 +14,6 @@ import java.security.Principal;
 import java.util.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -43,25 +42,18 @@ public class ApiUserController {
     }
     
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-
-        if (this.userService.authenticate(request.getUsername(), request.getPassword())) {
-            try {
-                String token = JwtUtils.generateToken(request.getUsername());
-                return ResponseEntity.ok().body(Collections.singletonMap("token", token));
-            } catch (Exception e) {
-                return ResponseEntity.status(500).body("Lỗi khi tạo JWT");
-            }
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) throws Exception {
+        if (!this.userService.authenticate(request.getUsername(), request.getPassword())) {
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Sai thông tin đăng nhập");
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai thông tin đăng nhập");
+
+        String token = JwtUtils.generateToken(request.getUsername());
+        return ResponseEntity.ok().body(Collections.singletonMap("token", token));
     }
 
     @GetMapping("/secure/profile")
     public ResponseEntity<UserRegisterResponse> getProfile(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        return new ResponseEntity<>(this.userService.getUserProfile(principal.getName()), HttpStatus.OK);
+        return new ResponseEntity<>(this.userService.getUserProfile(requireUsername(principal)), HttpStatus.OK);
     }
 
     @PutMapping(path = "/secure/profile")
@@ -69,11 +61,14 @@ public class ApiUserController {
             Principal principal,
             @ModelAttribute UserProfileUpdateRequest request
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        UserRegisterResponse response = this.userService.updateUserProfile(principal.getName(), request);
+        UserRegisterResponse response = this.userService.updateUserProfile(requireUsername(principal), request);
         return ResponseEntity.ok(response);
+    }
+
+    private String requireUsername(Principal principal) {
+        if (principal == null) {
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
+        }
+        return principal.getName();
     }
 }

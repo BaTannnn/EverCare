@@ -6,7 +6,6 @@ import com.evercare.services.DoctorPrescriptionService;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,18 +30,9 @@ public class ApiDoctorPrescriptionController {
             Principal principal,
             @org.springframework.web.bind.annotation.RequestParam Map<String, String> params
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            List<PrescriptionResponse> result = this.doctorPrescriptionService
-                    .getPrescriptions(principal.getName(), params);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        }
+        List<PrescriptionResponse> result = this.doctorPrescriptionService
+                .getPrescriptions(requireUsername(principal), params);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/prescriptions/{prescriptionId}")
@@ -50,17 +40,7 @@ public class ApiDoctorPrescriptionController {
             Principal principal,
             @PathVariable("prescriptionId") Long prescriptionId
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            return ResponseEntity.ok(this.doctorPrescriptionService.getPrescription(principal.getName(), prescriptionId));
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        }
+        return ResponseEntity.ok(this.doctorPrescriptionService.getPrescription(requireUsername(principal), prescriptionId));
     }
 
     @PostMapping("/medical-records/{recordId}/prescriptions")
@@ -69,24 +49,9 @@ public class ApiDoctorPrescriptionController {
             @PathVariable("recordId") Long recordId,
             @RequestBody PrescriptionRequest request
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            PrescriptionResponse result = this.doctorPrescriptionService
-                    .createPrescription(principal.getName(), recordId, request);
-
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
-        }
+        PrescriptionResponse result = this.doctorPrescriptionService
+                .createPrescription(requireUsername(principal), recordId, request);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @PutMapping("/prescriptions/{prescriptionId}")
@@ -95,23 +60,15 @@ public class ApiDoctorPrescriptionController {
             @PathVariable("prescriptionId") Long prescriptionId,
             @RequestBody PrescriptionRequest request
     ) {
+        PrescriptionResponse result = this.doctorPrescriptionService
+                .updatePrescription(requireUsername(principal), prescriptionId, request);
+        return ResponseEntity.ok(result);
+    }
+
+    private String requireUsername(Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
         }
-
-        try {
-            PrescriptionResponse result = this.doctorPrescriptionService
-                    .updatePrescription(principal.getName(), prescriptionId, request);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
-        }
+        return principal.getName();
     }
 }
