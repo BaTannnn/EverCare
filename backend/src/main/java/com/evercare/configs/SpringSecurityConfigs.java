@@ -35,7 +35,9 @@ import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
         basePackages = {
             "com.evercare.controllers",
             "com.evercare.repositories",
-            "com.evercare.services",}
+            "com.evercare.services",
+            "com.evercare.utils",
+        }
 )
 @PropertySource("classpath:database.properties")
 @PropertySource("classpath:configs.properties")

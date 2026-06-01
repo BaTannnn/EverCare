@@ -9,7 +9,13 @@ export const getPatientDoctors = async () => {
 };
 
 export const getPatientMedicalServices = async () => {
-  const response = await authApis().get(endpoints["medical-services"]);
+  const response = await authApis().get(endpoints["medical-services"], 
+    {
+      params: {
+        serviceTypes: "EXAMINATION",
+      }
+    }
+  );
   return { ...response, data: unwrapPatientList(response).map(mapMedicalService) };
 };
 
