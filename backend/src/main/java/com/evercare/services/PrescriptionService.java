@@ -1,6 +1,7 @@
 package com.evercare.services;
 
 import com.evercare.dtos.response.PrescriptionResponse;
+import com.evercare.pojo.User;
 import java.util.List;
 import java.util.Map;
 
@@ -10,4 +11,5 @@ public interface PrescriptionService {
     PrescriptionResponse getPrescriptionById(Long id);
 
     PrescriptionResponse dispensePrescription(String username, Long id);
+    PrescriptionResponse dispensePrescription(User user, Long id);
 }

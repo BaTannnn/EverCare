@@ -70,6 +70,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     @Override
     public PrescriptionResponse dispensePrescription(String username, Long id) {
         User user = this.authSupport.getCurrentUser(username);
+        return dispensePrescription(user, id);
+    }
+
+    @Override
+    public PrescriptionResponse dispensePrescription(User user, Long id) {
         Prescription prescription = this.prescriptionRepo.getPrescriptionByIdForUpdate(id);
 
         if (prescription == null) {
@@ -108,17 +113,23 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
         return PrescriptionMapper.toResponse(
                 prescription,
-                getAvailableQuantities(List.of(prescription), today)
+                getAvailableQuantitiesFromLockedBatches(lockedBatchesByMedicineId)
         );
     }
 
     private Map<Long, List<MedicineBatch>> lockAndValidateDispensableBatches(Prescription prescription, Date today) {
         Map<Long, Long> requiredQuantityByMedicineId = getRequiredQuantitiesByMedicineId(prescription);
-        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = new HashMap<>();
+        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = this.batchRepo
+                .getDispensableBatchesByMedicineIdsForUpdate(
+                        requiredQuantityByMedicineId.keySet().stream().toList(),
+                        today
+                )
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(batch -> batch.getMedicineId().getId()));
 
         for (Map.Entry<Long, Long> entry : requiredQuantityByMedicineId.entrySet()) {
             Long medicineId = entry.getKey();
-            List<MedicineBatch> batches = this.batchRepo.getDispensableBatchesByMedicineIdForUpdate(medicineId, today);
+            List<MedicineBatch> batches = lockedBatchesByMedicineId.getOrDefault(medicineId, List.of());
             long availableQuantity = batches.stream()
                     .map(MedicineBatch::getRemainingQuantity)
                     .filter(Objects::nonNull)
@@ -128,8 +139,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             if (availableQuantity < entry.getValue()) {
                 throw new IllegalStateException("Không đủ tồn kho còn hạn cho thuốc " + getMedicineName(prescription, medicineId));
             }
-
-            lockedBatchesByMedicineId.put(medicineId, batches);
         }
 
         return lockedBatchesByMedicineId;
@@ -168,6 +177,22 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .toList();
 
         return this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(medicineIds, today);
+    }
+
+    private Map<Long, Long> getAvailableQuantitiesFromLockedBatches(Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId) {
+        Map<Long, Long> availableQuantityByMedicineId = new HashMap<>();
+
+        for (Map.Entry<Long, List<MedicineBatch>> entry : lockedBatchesByMedicineId.entrySet()) {
+            long total = entry.getValue()
+                    .stream()
+                    .map(MedicineBatch::getRemainingQuantity)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Integer::longValue)
+                    .sum();
+            availableQuantityByMedicineId.put(entry.getKey(), total);
+        }
+
+        return availableQuantityByMedicineId;
     }
 
     private void dispenseItem(

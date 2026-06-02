@@ -18,6 +18,5 @@ public class InventoryTransactionRepositoryImpl implements InventoryTransactionR
     public void addTransaction(InventoryTransaction transaction) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(transaction);
-        session.flush();
     }
 }

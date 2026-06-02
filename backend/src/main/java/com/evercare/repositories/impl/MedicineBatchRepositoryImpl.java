@@ -151,20 +151,39 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
 
     @Override
     public List<MedicineBatch> getDispensableBatchesByMedicineIdForUpdate(Long medicineId, Date today) {
+        return getDispensableBatchesByMedicineIdsForUpdate(List.of(medicineId), today);
+    }
+
+    @Override
+    public List<MedicineBatch> getDispensableBatchesByMedicineIdsForUpdate(List<Long> medicineIds, Date today) {
+        List<Long> ids = medicineIds == null
+                ? List.of()
+                : medicineIds.stream()
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
         Root<MedicineBatch> root = cq.from(MedicineBatch.class);
-        root.fetch("medicineId", JoinType.INNER);
 
         cq.select(root).distinct(true);
         cq.where(
-                cb.equal(root.get("medicineId").get("id"), medicineId),
+                root.get("medicineId").get("id").in(ids),
                 cb.isTrue(root.get("active")),
                 cb.gt(root.<Integer>get("remainingQuantity"), 0),
                 cb.greaterThanOrEqualTo(root.<Date>get("expiryDate"), today)
         );
-        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(root.get("id")));
+        cq.orderBy(
+                cb.asc(root.get("medicineId").get("id")),
+                cb.asc(root.get("expiryDate")),
+                cb.asc(root.get("id"))
+        );
 
         return session.createQuery(cq)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)

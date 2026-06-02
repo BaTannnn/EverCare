@@ -4,7 +4,6 @@ import com.evercare.dtos.response.PrescriptionResponse;
 import com.evercare.pojo.Employee;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
-import com.evercare.repositories.EmployeeRepository;
 import com.evercare.services.PrescriptionService;
 import com.evercare.services.UserService;
 import java.security.Principal;
@@ -31,9 +30,6 @@ public class ApiPharmacistPrescriptionController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private EmployeeRepository employeeRepo;
-
     @GetMapping
     public ResponseEntity<?> list(
             Principal principal,
@@ -59,22 +55,24 @@ public class ApiPharmacistPrescriptionController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
-        validatePharmacist(principal);
-        return ResponseEntity.ok(this.prescriptionService.dispensePrescription(principal.getName(), id));
+        User user = validatePharmacist(principal);
+        return ResponseEntity.ok(this.prescriptionService.dispensePrescription(user, id));
     }
 
-    private void validatePharmacist(Principal principal) {
+    private User validatePharmacist(Principal principal) {
         if (principal == null) {
             throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
         }
 
         User user = this.userService.getUserByUsername(principal.getName());
-        Employee employee = user != null ? this.employeeRepo.getEmployeeByUserId(user.getId()) : null;
+        Employee employee = user != null ? user.getEmployee() : null;
 
         if (!hasPharmacistRole(user)
                 || (employee != null && Boolean.FALSE.equals(employee.getActive()))) {
             throw new AccessDeniedException("Tài khoản hiện tại không phải dược sĩ");
         }
+
+        return user;
     }
 
     private boolean hasPharmacistRole(User user) {

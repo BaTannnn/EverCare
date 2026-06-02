@@ -9,6 +9,7 @@ function MedicalServicesPanel({
   savingService,
   selectedPendingCount,
   selectedServiceIds,
+  orderedServiceIds,
   serviceDropdownOpen,
   serviceForm,
   serviceKeyword,
@@ -47,14 +48,24 @@ function MedicalServicesPanel({
                 ) : serviceOptions.length === 0 ? (
                   <div className="service-autocomplete-empty">Không tìm thấy dịch vụ</div>
                 ) : (
-                  serviceOptions.map((service) => (
-                    <button type="button" key={service.id} onClick={() => onSelectMedicalService(service)}>
-                      <strong>{service.name}</strong>
-                      <span>
-                        {service.code || "DV"} · {service.serviceType || "--"} · {formatMoney(service.price)}
-                      </span>
-                    </button>
-                  ))
+                  serviceOptions.map((service) => {
+                    const alreadyOrdered = orderedServiceIds?.has(Number(service.id));
+
+                    return (
+                      <button
+                        type="button"
+                        key={service.id}
+                        onClick={() => onSelectMedicalService(service)}
+                        disabled={alreadyOrdered}
+                      >
+                        <strong>{service.name}</strong>
+                        <span>
+                          {service.code || "DV"} · {service.serviceType || "--"} · {formatMoney(service.price)}
+                          {alreadyOrdered ? " · Đã chọn" : ""}
+                        </span>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             )}

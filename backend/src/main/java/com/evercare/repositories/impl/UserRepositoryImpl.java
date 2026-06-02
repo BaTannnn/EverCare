@@ -40,6 +40,8 @@ public class UserRepositoryImpl implements UserRepository {
             FROM User u
             LEFT JOIN FETCH u.roleSet
             LEFT JOIN FETCH u.patient
+            LEFT JOIN FETCH u.employee
+            LEFT JOIN FETCH u.doctor
             WHERE u.username = :username
             """,
                 User.class
@@ -58,6 +60,8 @@ public class UserRepositoryImpl implements UserRepository {
                 FROM User u
                 LEFT JOIN FETCH u.roleSet
                 LEFT JOIN FETCH u.patient
+                LEFT JOIN FETCH u.employee
+                LEFT JOIN FETCH u.doctor
                 WHERE u.id = :id
                 """,
                 User.class
