@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Col, Row, Table } from "react-bootstrap";
+import { Alert, Button, Card, Table } from "react-bootstrap";
 import { BsArrowLeft, BsArrowRepeat } from "react-icons/bs";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
+import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { createReceptionistInvoicePayment, getReceptionistInvoiceDetail } from "../../services/receptionist/receptionistInvoiceApi";
 import PaymentResultPanel from "./PaymentResultPanel";
@@ -145,21 +146,21 @@ function ReceptionistInvoiceDetailPage() {
 
   return (
     <>
-      <div className="page-header receptionist-page-header">
-        <div>
-          <div className="page-eyebrow">Lễ tân / Chi tiết hóa đơn</div>
-          <h1>{invoice.invoiceCode}</h1>
-          <p>Ghi nhận thanh toán tại quầy hoặc tạo payment online mà không rời khỏi SPA.</p>
-        </div>
-        <div className="page-header-actions">
-          <Button as={Link} to="/receptionist/invoices" type="button" variant="outline-primary">
-            <BsArrowLeft /> Về danh sách
-          </Button>
-          <Button type="button" variant="outline-primary" onClick={loadInvoice}>
-            <BsArrowRepeat /> Làm mới
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Lễ tân / Chi tiết hóa đơn"
+        title={invoice.invoiceCode}
+        description="Ghi nhận thanh toán tại quầy hoặc tạo payment online mà không rời khỏi SPA."
+        actions={(
+          <>
+            <Button as={Link} to="/receptionist/invoices" type="button" variant="outline-primary">
+              <BsArrowLeft /> Về danh sách
+            </Button>
+            <Button type="button" variant="outline-primary" onClick={loadInvoice}>
+              <BsArrowRepeat /> Làm mới
+            </Button>
+          </>
+        )}
+      />
 
       {notice && <Alert variant="success">{notice}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
@@ -224,7 +225,7 @@ function ReceptionistInvoiceDetailPage() {
         />
       </section>
 
-      <Card className="doctor-card receptionist-payment-history-card mt-3">
+      <Card className="doctor-card receptionist-detail-card receptionist-payment-history-card mt-3">
         <Card.Header>
           <h2>Lịch sử thanh toán</h2>
         </Card.Header>
@@ -261,20 +262,6 @@ function ReceptionistInvoiceDetailPage() {
               <div className="state-box state-box-muted">Chưa có payment nào cho hóa đơn này.</div>
             )}
           </div>
-        </Card.Body>
-      </Card>
-
-      <Card className="doctor-card receptionist-payment-history-card mt-3">
-        <Card.Header>
-          <h2>Raw summary</h2>
-        </Card.Header>
-        <Card.Body>
-          <Row className="g-3">
-            <Col md={3}><InfoRow label="invoiceId" value={invoice.id} /></Col>
-            <Col md={3}><InfoRow label="invoiceCode" value={invoice.invoiceCode} /></Col>
-            <Col md={3}><InfoRow label="paymentStatus" value={invoice.paymentStatus} /></Col>
-            <Col md={3}><InfoRow label="paidAt" value={formatDateTime(invoice.paidAt)} /></Col>
-          </Row>
         </Card.Body>
       </Card>
     </>
