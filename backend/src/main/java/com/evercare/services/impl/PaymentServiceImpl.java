@@ -434,7 +434,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setActive(true);
         this.paymentRepo.createPayment(payment);
 
-        updateInvoiceAndMedicalRecordAfterPayment(payment, false);
+        completeInvoiceAfterCounterPayment(payment);
         return PaymentMapper.toResultResponse(payment, null, invoice);
     }
 
@@ -489,6 +489,33 @@ public class PaymentServiceImpl implements PaymentService {
             throw new IllegalStateException("Hóa đơn đã được thanh toán");
         }
         return remaining;
+    }
+
+    private void completeInvoiceAfterCounterPayment(Payment payment) {
+        Invoice invoice = payment.getInvoiceId();
+        if (invoice == null) {
+            return;
+        }
+
+        invoice.setPaymentStatus(InvoiceStatus.PAID.getCode());
+        invoice.setPaymentMethod(payment.getPaymentMethod());
+        invoice.setPaidAt(new Date());
+        invoice.setUpdatedAt(new Date());
+        this.invoiceRepo.updateInvoice(invoice);
+
+        MedicalRecord medicalRecord = invoice.getMedicalRecordId();
+        if (medicalRecord != null) {
+            medicalRecord.setPaymentStatus(InvoiceStatus.PAID.getCode());
+            medicalRecord.setUpdatedAt(new Date());
+            this.medicalRecordRepo.updateMedicalRecord(medicalRecord);
+        }
+
+        createNotification(
+                invoice,
+                "Thanh toán thành công",
+                "Bạn đã thanh toán hóa đơn " + invoice.getInvoiceCode() + " thành công.",
+                invoice.getId()
+        );
     }
 
     private boolean isCounterPaymentMethod(String paymentMethod) {

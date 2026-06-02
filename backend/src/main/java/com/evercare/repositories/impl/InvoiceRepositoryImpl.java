@@ -40,7 +40,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         Join<Invoice, com.evercare.pojo.MedicalRecord> recordJoin = root.join("medicalRecordId", JoinType.INNER);
 
         root.fetch("patientId", JoinType.INNER);
-        Fetch<Invoice, MedicalRecord> medicalRecordFetch =  root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
         medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, cb, root, patientJoin, recordJoin);
@@ -79,10 +79,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
@@ -191,10 +190,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
@@ -216,10 +214,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
