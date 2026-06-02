@@ -215,7 +215,7 @@ function PatientDashboard() {
             <Link to="/patient/appointments">Tất cả lịch hẹn <BsArrowRight /></Link>
           </div>
 
-          <Card className="patient-next-appointment">
+          <Card className={`patient-next-appointment ${dashboard.upcomingAppointment ? "has-appointment" : "is-empty"}`}>
             <Card.Body>
               <div className="patient-next-appointment-badge">{upcomingBadgeLabel}</div>
               {dashboard.upcomingAppointment ? (
