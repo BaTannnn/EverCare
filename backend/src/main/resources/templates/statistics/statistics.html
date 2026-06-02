@@ -1,0 +1,616 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thống kê &amp; Báo cáo</title>
+    <th:block th:replace="~{base :: css}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background:
+                    radial-gradient(circle at top left, rgba(13, 110, 253, 0.16), transparent 28%),
+                    radial-gradient(circle at top right, rgba(25, 135, 84, 0.10), transparent 26%),
+                    linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
+        }
+
+        .stat-hero {
+            position: relative;
+            overflow: hidden;
+            background:
+                    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.18), transparent 22%),
+                    linear-gradient(135deg, #0f172a 0%, #123a73 52%, #0d6efd 100%);
+            color: #fff;
+            border: 0;
+            border-radius: 1.5rem;
+            box-shadow: 0 1.25rem 2.75rem rgba(15, 23, 42, 0.20);
+        }
+
+        .stat-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                    linear-gradient(115deg, rgba(255, 255, 255, 0.10) 0%, transparent 42%),
+                    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.12), transparent 20%);
+            pointer-events: none;
+        }
+
+        .stat-hero .card-body {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .4rem .75rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            letter-spacing: .08em;
+            font-size: .78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 3vw, 3.3rem);
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: .75rem;
+        }
+
+        .hero-subtitle {
+            max-width: 42rem;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 1rem;
+        }
+
+        .stat-panel {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .stat-panel .form-control,
+        .stat-panel .form-select {
+            background-color: rgba(255, 255, 255, 0.92);
+            border-color: transparent;
+        }
+
+        .stat-panel .form-control:focus,
+        .stat-panel .form-select:focus {
+            box-shadow: 0 0 0 .25rem rgba(255, 255, 255, 0.18);
+        }
+
+        .hero-actions .btn {
+            min-height: 42px;
+        }
+
+        .chart-card {
+            border: 0;
+            box-shadow: 0 0.5rem 1.5rem rgba(15, 23, 42, 0.08);
+        }
+
+        .chart-wrap {
+            position: relative;
+            min-height: 320px;
+        }
+
+        .chart-wrap canvas {
+            width: 100% !important;
+            height: 320px !important;
+        }
+
+        .chart-wrap.tall canvas {
+            height: 360px !important;
+        }
+
+        .table-scroll {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .table-scroll.revenue-detail {
+            max-height: 420px;
+        }
+
+        .table-scroll.disease-top {
+            max-height: 340px;
+        }
+
+        .summary-card {
+            border: 0;
+            box-shadow: 0 0.5rem 1.25rem rgba(15, 23, 42, 0.08);
+        }
+
+        .summary-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+    </style>
+</head>
+<body th:attr="data-context-path=@{/}">
+<div th:replace="~{base :: header}"></div>
+
+<main class="container py-4">
+    <section class="card stat-hero mb-4 shadow-lg">
+        <div class="card-body p-4 p-md-5">
+            <div class="row g-4 align-items-end">
+                <div class="col-12 col-lg-5">
+                    <div class="hero-kicker mb-3">Admin analytics</div>
+                    <h1 class="hero-title">Thống kê &amp; Báo cáo</h1>
+                    <p class="hero-subtitle mb-0">Phân tích bệnh nhân, dịch vụ, bệnh phổ biến và doanh thu theo thời gian để ra quyết định nhanh hơn.</p>
+                </div>
+                <div class="col-12 col-lg-7">
+                    <div class="stat-panel p-3 p-lg-4">
+                        <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label text-white-50">From date</label>
+                            <input type="date" class="form-control" id="fromDate" th:value="${fromDate}">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label text-white-50">To date</label>
+                            <input type="date" class="form-control" id="toDate" th:value="${toDate}">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label text-white-50">Revenue group</label>
+                            <select class="form-select" id="groupBy">
+                                <option value="DAY" th:selected="${groupBy == 'DAY'}">DAY</option>
+                                <option value="MONTH" th:selected="${groupBy == 'MONTH'}">MONTH</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3 d-grid gap-2 hero-actions">
+                            <button type="button" class="btn btn-light fw-semibold" id="filterBtn">Lọc</button>
+                            <button type="button" class="btn btn-outline-light fw-semibold" id="resetBtn">Reset</button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="loadingBox" class="alert alert-primary d-none">Đang tải dữ liệu thống kê...</div>
+    <div id="errorBox" class="alert alert-danger d-none"></div>
+
+    <section class="row g-3 mb-4">
+        <div class="col-12 col-md-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="text-muted small">Tổng doanh thu</div>
+                    <div class="summary-value" id="summaryRevenue">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="text-muted small">Hóa đơn đã thanh toán</div>
+                    <div class="summary-value" id="summaryPaid">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="text-muted small">Hóa đơn chưa thanh toán</div>
+                    <div class="summary-value" id="summaryUnpaid">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="text-muted small">Hóa đơn hoàn tiền</div>
+                    <div class="summary-value" id="summaryRefunded">0</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Patient by age group</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="patientAgeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Patient by gender</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="patientGenderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Patient by department</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="patientDepartmentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Service usage</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="serviceUsageChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Common diseases</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive table-scroll disease-top">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">#</th>
+                                <th>Bệnh</th>
+                                <th class="text-end" style="width: 140px;">Số ca</th>
+                            </tr>
+                            </thead>
+                            <tbody id="diseaseTableBody">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-6">
+            <div class="card chart-card h-100">
+                <div class="card-header bg-white border-0 py-3">
+                    <h2 class="h5 mb-0">Revenue summary</h2>
+                </div>
+                <div class="card-body">
+                    <div class="chart-wrap">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card chart-card">
+        <div class="card-header bg-white border-0 py-3">
+            <h2 class="h5 mb-0">Revenue detail</h2>
+        </div>
+        <div class="card-body table-responsive table-scroll revenue-detail">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>Invoice</th>
+                    <th>Patient</th>
+                    <th>Medical record</th>
+                    <th class="text-end">Total amount</th>
+                    <th>Status</th>
+                    <th>Created at</th>
+                </tr>
+                </thead>
+                <tbody id="revenueDetailBody">
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">Chưa có dữ liệu</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<div th:replace="~{base :: footer}"></div>
+
+<script th:inline="javascript">
+    const defaultFromDate = /*[[${fromDate}]]*/ '';
+    const defaultToDate = /*[[${toDate}]]*/ '';
+    const defaultGroupBy = /*[[${groupBy}]]*/ 'DAY';
+    const appRoot = (document.body.dataset.contextPath || '').replace(/\/$/, '');
+
+    const loadingBox = document.getElementById('loadingBox');
+    const errorBox = document.getElementById('errorBox');
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+    const groupByInput = document.getElementById('groupBy');
+    const filterBtn = document.getElementById('filterBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const chartInstances = {};
+
+    function showLoading(show) {
+        loadingBox.classList.toggle('d-none', !show);
+    }
+
+    function showError(message) {
+        if (!message) {
+            errorBox.classList.add('d-none');
+            errorBox.textContent = '';
+            return;
+        }
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+    }
+
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('vi-VN', {style: 'currency', currency: 'VND'}).format(value || 0);
+    }
+
+    function destroyChart(name) {
+        if (chartInstances[name]) {
+            chartInstances[name].destroy();
+        }
+    }
+
+    function buildDataset(items, labelKey, valueKey) {
+        return {
+            labels: items.map(item => item[labelKey]),
+            values: items.map(item => Number(item[valueKey] || 0))
+        };
+    }
+
+    function renderChart(name, config) {
+        destroyChart(name);
+        chartInstances[name] = new Chart(document.getElementById(name), config);
+    }
+
+    function renderPatientCharts(data) {
+        const age = buildDataset(data.byAgeGroups || [], 'label', 'count');
+        renderChart('patientAgeChart', {
+            type: 'bar',
+            data: {
+                labels: age.labels,
+                datasets: [{
+                    label: 'Patients',
+                    data: age.values,
+                    backgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {legend: {display: false}},
+                scales: {y: {beginAtZero: true}}
+            }
+        });
+
+        const gender = buildDataset(data.byGender || [], 'label', 'count');
+        renderChart('patientGenderChart', {
+            type: 'doughnut',
+            data: {
+                labels: gender.labels,
+                datasets: [{
+                    data: gender.values,
+                    backgroundColor: ['#0d6efd', '#dc3545', '#198754', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        const departments = buildDataset(data.byDepartment || [], 'label', 'count');
+        renderChart('patientDepartmentChart', {
+            type: 'bar',
+            data: {
+                labels: departments.labels,
+                datasets: [{
+                    label: 'Patients',
+                    data: departments.values,
+                    backgroundColor: '#198754'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {legend: {display: false}},
+                scales: {x: {beginAtZero: true}}
+            }
+        });
+    }
+
+    function renderServiceChart(data) {
+        const items = data.items || [];
+        renderChart('serviceUsageChart', {
+            type: 'bar',
+            data: {
+                labels: items.map(item => item.serviceName || item.label || ''),
+                datasets: [{
+                    label: 'Used count',
+                    data: items.map(item => Number(item.count || 0)),
+                    backgroundColor: '#6f42c1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {legend: {display: false}},
+                scales: {y: {beginAtZero: true}}
+            }
+        });
+    }
+
+    function renderDiseaseChart(data) {
+        const items = data.items || [];
+        const tbody = document.getElementById('diseaseTableBody');
+
+        if (!items.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map((item, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(item.label || '')}</td>
+                <td class="text-end fw-semibold">${Number(item.count || 0).toLocaleString('vi-VN')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderRevenueChart(data) {
+        const series = data.series || [];
+        renderChart('revenueChart', {
+            type: 'line',
+            data: {
+                labels: series.map(item => item.label || ''),
+                datasets: [{
+                    label: 'Revenue',
+                    data: series.map(item => Number(item.amount || 0)),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.15)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {beginAtZero: true}
+                }
+            }
+        });
+
+        document.getElementById('summaryRevenue').textContent = formatCurrency(data.totalRevenue);
+        document.getElementById('summaryPaid').textContent = Number(data.paidInvoiceCount || 0).toLocaleString('vi-VN');
+        document.getElementById('summaryUnpaid').textContent = Number(data.unpaidInvoiceCount || 0).toLocaleString('vi-VN');
+        document.getElementById('summaryRefunded').textContent = Number(data.refundedInvoiceCount || 0).toLocaleString('vi-VN');
+
+        const tbody = document.getElementById('revenueDetailBody');
+        const details = data.details || [];
+        if (!details.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có dữ liệu</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = details.map(item => `
+            <tr>
+                <td>${escapeHtml(item.invoiceCode || '')}</td>
+                <td>${escapeHtml(item.patientName || '')}</td>
+                <td>${escapeHtml(item.medicalRecordCode || '')}</td>
+                <td class="text-end">${formatCurrency(item.totalAmount)}</td>
+                <td><span class="badge text-bg-${badgeClass(item.status)}">${escapeHtml(item.status || '')}</span></td>
+                <td>${escapeHtml(item.createdAt || '')}</td>
+            </tr>
+        `).join('');
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function badgeClass(status) {
+        switch ((status || '').toUpperCase()) {
+            case 'PAID':
+                return 'success';
+            case 'UNPAID':
+                return 'warning';
+            case 'REFUNDED':
+                return 'info';
+            case 'PARTIALLY_PAID':
+                return 'primary';
+            default:
+                return 'secondary';
+        }
+    }
+
+    async function loadStatistics() {
+        const fromDate = fromDateInput.value || defaultFromDate;
+        const toDate = toDateInput.value || defaultToDate;
+        const groupBy = groupByInput.value || defaultGroupBy;
+
+        showError('');
+        showLoading(true);
+
+        try {
+            const params = new URLSearchParams({fromDate, toDate});
+            const revenueParams = new URLSearchParams({fromDate, toDate, groupBy});
+            const apiBase = `${appRoot}/admin/statistics/api`;
+
+            const [patientsRes, servicesRes, diseasesRes, revenueRes] = await Promise.all([
+                fetch(`${apiBase}/patients?${params.toString()}`, {credentials: 'same-origin', headers: {'Accept': 'application/json'}}),
+                fetch(`${apiBase}/services?${params.toString()}`, {credentials: 'same-origin', headers: {'Accept': 'application/json'}}),
+                fetch(`${apiBase}/diseases?${params.toString()}`, {credentials: 'same-origin', headers: {'Accept': 'application/json'}}),
+                fetch(`${apiBase}/revenue?${revenueParams.toString()}`, {credentials: 'same-origin', headers: {'Accept': 'application/json'}})
+            ]);
+
+            if (!patientsRes.ok || !servicesRes.ok || !diseasesRes.ok || !revenueRes.ok) {
+                throw new Error('Không tải được dữ liệu thống kê');
+            }
+
+            if (patientsRes.redirected || servicesRes.redirected || diseasesRes.redirected || revenueRes.redirected) {
+                throw new Error('Phiên đăng nhập đã hết hạn hoặc không có quyền xem báo cáo');
+            }
+
+            const [patients, services, diseases, revenue] = await Promise.all([
+                patientsRes.json(),
+                servicesRes.json(),
+                diseasesRes.json(),
+                revenueRes.json()
+            ]);
+
+            renderPatientCharts(patients);
+            renderServiceChart(services);
+            renderDiseaseChart(diseases);
+            renderRevenueChart(revenue);
+
+            const query = new URLSearchParams({fromDate, toDate, groupBy});
+            window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`);
+        } catch (error) {
+            showError(error.message || 'Đã xảy ra lỗi khi tải báo cáo');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    filterBtn.addEventListener('click', loadStatistics);
+
+    resetBtn.addEventListener('click', () => {
+        fromDateInput.value = defaultFromDate;
+        toDateInput.value = defaultToDate;
+        groupByInput.value = defaultGroupBy;
+        loadStatistics();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadStatistics);
+</script>
+</body>
+</html>
