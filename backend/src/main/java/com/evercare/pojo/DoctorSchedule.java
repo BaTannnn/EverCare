@@ -6,6 +6,7 @@ package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -84,7 +85,7 @@ public class DoctorSchedule implements Serializable {
     @Column(name = "active", nullable = false, insertable = false)
     private Boolean active;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Doctor doctorId;
 
     public DoctorSchedule() {

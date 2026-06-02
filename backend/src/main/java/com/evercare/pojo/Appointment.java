@@ -6,6 +6,7 @@ package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -95,16 +96,16 @@ public class Appointment implements Serializable {
     @OneToOne(mappedBy = "appointmentId")
     private MedicalRecord medicalRecord;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Doctor doctorId;
     @JoinColumn(name = "service_id", referencedColumnName = "id")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private MedicalService serviceId;
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Patient patientId;
     @JoinColumn(name = "created_by", referencedColumnName = "id")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private User createdBy;
 
     public Appointment() {
