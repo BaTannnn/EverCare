@@ -22,6 +22,7 @@ import com.evercare.services.DoctorPrescriptionService;
 import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -84,8 +85,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         MedicalRecord medicalRecord = loadEditableMedicalRecord(doctor, recordId);
 
-        Prescription existing = this.prescriptionRepo.getPrescriptionByMedicalRecordId(recordId);
-        if (existing != null) {
+        if (this.prescriptionRepo.existsByMedicalRecordId(recordId)) {
             throw new IllegalStateException("Bệnh án này đã có đơn thuốc");
         }
 
@@ -127,10 +127,15 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         }
 
         java.util.Date now = new java.util.Date();
+        if (prescription.getPrescriptionItemSet() != null) {
+            prescription.getPrescriptionItemSet().clear();
+        }
         this.prescriptionItemRepo.deleteItemsByPrescriptionId(prescription.getId());
 
         Set<PrescriptionItem> items = buildItems(prescription, request, now);
-        prescription.setPrescriptionItemSet(new HashSet<>());
+        if (prescription.getPrescriptionItemSet() == null) {
+            prescription.setPrescriptionItemSet(new HashSet<>());
+        }
         for (PrescriptionItem item : items) {
             this.prescriptionItemRepo.addItem(item);
             prescription.getPrescriptionItemSet().add(item);
@@ -148,14 +153,15 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
             throw new IllegalArgumentException("Đơn thuốc phải có ít nhất một thuốc");
         }
 
+        Map<Long, Medicine> medicinesById = loadActiveMedicinesById(request);
         Set<PrescriptionItem> result = new HashSet<>();
         for (PrescriptionItemRequest itemRequest : request.getItems()) {
             if (itemRequest == null || itemRequest.getMedicineId() == null) {
                 throw new IllegalArgumentException("Vui lòng chọn thuốc");
             }
 
-            Medicine medicine = this.medicineRepo.getMedicineById(itemRequest.getMedicineId());
-            if (medicine == null || Boolean.FALSE.equals(medicine.getActive())) {
+            Medicine medicine = medicinesById.get(itemRequest.getMedicineId());
+            if (medicine == null) {
                 throw new IllegalArgumentException("Thuốc không tồn tại hoặc đã ngưng sử dụng");
             }
 
@@ -180,6 +186,23 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         }
 
         return result;
+    }
+
+    private Map<Long, Medicine> loadActiveMedicinesById(PrescriptionRequest request) {
+        List<Long> medicineIds = request.getItems()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(PrescriptionItemRequest::getMedicineId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, Medicine> medicinesById = new HashMap<>();
+        for (Medicine medicine : this.medicineRepo.getActiveMedicinesByIds(medicineIds)) {
+            medicinesById.put(medicine.getId(), medicine);
+        }
+
+        return medicinesById;
     }
 
     private MedicalRecord loadEditableMedicalRecord(Doctor doctor, Long recordId) {

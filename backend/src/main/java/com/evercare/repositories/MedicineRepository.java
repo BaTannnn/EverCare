@@ -10,6 +10,7 @@ public interface MedicineRepository {
     List<Object[]> getLowStockMedicines();
 
     Medicine getMedicineById(Long id);
+    List<Medicine> getActiveMedicinesByIds(List<Long> ids);
 
     Medicine getMedicineByCode(String medicineCode);
 

@@ -1,13 +1,10 @@
 import { Navigate, Outlet } from "react-router-dom";
-import cookies from "react-cookies";
-import { getDashboardPath } from "./authRouteUtils";
+import { useAuth } from "../contexts/useAuth";
 
 function PublicOnlyRoute({ children }) {
-  const token = cookies.load("token");
-  const savedRole = cookies.load("role");
-  const dashboardPath = getDashboardPath(savedRole);
+  const { dashboardPath, isAuthenticated } = useAuth();
 
-  if (token && dashboardPath) {
+  if (isAuthenticated && dashboardPath) {
     return <Navigate to={dashboardPath} replace />;
   }
 

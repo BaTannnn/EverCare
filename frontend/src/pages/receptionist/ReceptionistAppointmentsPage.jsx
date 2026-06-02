@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
-import { BsArrowRight, BsCalendarCheck, BsClipboardCheck, BsPencilSquare, BsPlusCircle, BsSearch } from "react-icons/bs";
+import { BsClipboardCheck, BsPlusCircle, BsSearch } from "react-icons/bs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
-import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
 import { checkInReceptionistAppointment, getReceptionistAppointments } from "../../services/receptionist/receptionistAppointmentApi";
 import { getReceptionistDepartments, getReceptionistDoctors } from "../../services/receptionist/receptionistReferenceApi";
 import {
   appointmentStatusMeta,
-  formatDate,
   formatTime,
   getErrorMessage,
   todayInputValue,

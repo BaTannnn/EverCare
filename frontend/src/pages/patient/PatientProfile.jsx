@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Form, Modal } from "react-bootstrap";
 import { BsCalendar3, BsEnvelope, BsExclamationTriangle, BsFileMedical, BsGenderAmbiguous, BsGeoAlt, BsHeartPulse, BsPencil, BsPhone, BsShieldCheck } from "react-icons/bs";
-import { useOutletContext } from "react-router-dom";
+import { usePatientShell } from "../../contexts/usePatientShell";
 import { createPatientProfile, updatePatientProfile } from "../../services/patient/patientProfileApi";
 import { getAvatarSource } from "./patientPageUtils";
 
@@ -22,7 +22,7 @@ const profileTemplate = {
 };
 
 function PatientProfile() {
-  const { profile, setProfile: setShellProfile } = useOutletContext() || {};
+  const { profile, setProfile: setShellProfile } = usePatientShell();
   const [form, setForm] = useState(profileTemplate);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);

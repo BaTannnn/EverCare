@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Form, Modal, Row, Spinner, Table } from "react-bootstrap";
 import EmptyState from "../../components/common/EmptyState";

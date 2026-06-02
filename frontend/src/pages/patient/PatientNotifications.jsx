@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, Nav } from "react-bootstrap";
 import { BsBell, BsCalendar2Check, BsCapsule, BsCheck2All, BsCreditCard2Front, BsFileEarmarkText, BsInfoCircle } from "react-icons/bs";
-import { useOutletContext } from "react-router-dom";
+import { usePatientShell } from "../../contexts/usePatientShell";
 import { getPatientNotifications, markPatientNotificationAsRead } from "../../services/patient/patientNotificationApi";
 import { filterByCategory, getPatientStatusMeta } from "./patientPageUtils";
 
@@ -25,7 +25,7 @@ const iconMap = {
 const NOTIFICATION_PAGE_SIZE = 6;
 
 function PatientNotifications() {
-  const { setNotifications: setShellNotifications } = useOutletContext() || {};
+  const { setNotifications: setShellNotifications } = usePatientShell();
   const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("ALL");
   const [visibleCount, setVisibleCount] = useState(NOTIFICATION_PAGE_SIZE);

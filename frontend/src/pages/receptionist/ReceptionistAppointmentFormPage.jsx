@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
-import { BsArrowLeft, BsCalendarCheck, BsClock, BsPersonPlus } from "react-icons/bs";
+import { BsArrowLeft, BsCalendarCheck } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
@@ -14,7 +14,7 @@ import {
   getReceptionistDoctors,
   getReceptionistMedicalServices,
 } from "../../services/receptionist/receptionistReferenceApi";
-import { formatDate, formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
+import { formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
 
 const emptyPatient = {
   fullName: "",

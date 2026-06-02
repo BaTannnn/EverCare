@@ -99,7 +99,9 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
         root.fetch("patientId", JoinType.INNER);
         root.fetch("serviceId", JoinType.LEFT);
-        root.fetch("medicalRecord", JoinType.LEFT);
+        Fetch<Appointment, ?> medicalRecordFetch = root.fetch("medicalRecord", JoinType.LEFT);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         query.select(root).distinct(true);
         query.where(

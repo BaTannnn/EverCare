@@ -55,6 +55,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         root.fetch("patientId", JoinType.INNER);
         Fetch<Prescription, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
         medicalRecordFetch.fetch("appointmentId", JoinType.LEFT);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
         Fetch<Prescription, ?> itemFetch = root.fetch("prescriptionItemSet", JoinType.LEFT);
         itemFetch.fetch("medicineId", JoinType.LEFT);
     }
@@ -202,6 +203,23 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
         return session.createQuery(cq)
                 .uniqueResult();
+    }
+
+    @Override
+    public boolean existsByMedicalRecordId(Long medicalRecordId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        cq.select(cb.count(root));
+        cq.where(
+                cb.equal(root.get("medicalRecordId").get("id"), medicalRecordId),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq).getSingleResult() > 0;
     }
 
     private long countPrescriptions(Long patientId, String status, LocalDate from, LocalDate to) {

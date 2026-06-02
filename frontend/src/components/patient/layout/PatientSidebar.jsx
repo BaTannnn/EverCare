@@ -1,9 +1,7 @@
-import cookies from "react-cookies";
 import { useNavigate, NavLink } from "react-router-dom";
 import {
   BsCalendar2Plus,
   BsCalendarCheck,
-  BsClipboard2Pulse,
   BsCreditCard2Front,
   BsFileEarmarkMedical,
   BsGrid1X2,
@@ -15,6 +13,7 @@ import {
   BsCapsule,
 } from "react-icons/bs";
 import { getAvatarSource } from "../../../pages/patient/patientPageUtils";
+import { useAuth } from "../../../contexts/useAuth";
 
 const navItems = [
   { to: "/patient/dashboard", label: "Tổng quan", icon: BsGrid1X2, end: true },
@@ -31,12 +30,11 @@ const navItems = [
 
 function PatientSidebar({ profile }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const avatarSource = getAvatarSource(profile, profile?.fullName || "Bệnh nhân EverCare");
 
   const handleLogout = () => {
-    cookies.remove("token", { path: "/" });
-    cookies.remove("role", { path: "/" });
-    cookies.remove("user", { path: "/" });
+    logout();
     navigate("/login", { replace: true });
   };
 

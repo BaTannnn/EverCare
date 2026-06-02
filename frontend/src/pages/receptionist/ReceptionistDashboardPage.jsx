@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Row, Table } from "react-bootstrap";
 import { BsArrowRight, BsCalendarCheck, BsCashCoin, BsClipboardCheck, BsReceipt, BsSearch } from "react-icons/bs";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
@@ -17,7 +17,6 @@ import {
 } from "./receptionistPageUtils";
 
 function ReceptionistDashboardPage() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [appointments, setAppointments] = useState([]);

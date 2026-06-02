@@ -14,6 +14,7 @@ public interface PrescriptionRepository {
     Prescription getPrescriptionByIdForUpdate(Long id);
     Prescription getPrescriptionByPatientIdAndId(Long patientId, Long id);
     Prescription getPrescriptionByMedicalRecordId(Long medicalRecordId);
+    boolean existsByMedicalRecordId(Long medicalRecordId);
 
     void addPrescription(Prescription prescription);
     void updatePrescription(Prescription prescription);

@@ -1,29 +1,11 @@
 import { useState } from "react";
 import { Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import cookies from "react-cookies";
-
-const readSavedUser = () => {
-  const savedUser = cookies.load("user");
-
-  if (!savedUser) {
-    return null;
-  }
-
-  if (typeof savedUser === "object") {
-    return savedUser;
-  }
-
-  try {
-    return JSON.parse(savedUser);
-  } catch {
-    return null;
-  }
-};
+import { useAuth } from "../../../contexts/useAuth";
 
 function PharmacistTopbar() {
   const navigate = useNavigate();
-  const user = readSavedUser();
+  const { user } = useAuth();
   const [keyword, setKeyword] = useState("");
 
   const handleSubmit = (e) => {
