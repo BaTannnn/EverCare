@@ -54,6 +54,7 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
         root.fetch("patientId", JoinType.INNER);
+        root.fetch("medicalRecord", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, builder, root, patientJoin, doctorJoin);
 

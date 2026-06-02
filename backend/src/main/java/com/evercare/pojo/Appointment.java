@@ -93,7 +93,7 @@ public class Appointment implements Serializable {
     private Date updatedAt;
     @Column(name = "active")
     private Boolean active;
-    @OneToOne(mappedBy = "appointmentId")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "appointmentId")
     private MedicalRecord medicalRecord;
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
