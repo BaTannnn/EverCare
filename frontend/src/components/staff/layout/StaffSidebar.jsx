@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import cookies from "react-cookies";
+import { useAuth } from "../../../contexts/useAuth";
 
 const menuItems = [
   { to: "/staff/dashboard", icon: "▦", label: "Tổng quan", active: (path) => path === "/staff/dashboard" },
@@ -10,11 +10,10 @@ const menuItems = [
 function StaffSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    cookies.remove("token", { path: "/" });
-    cookies.remove("user", { path: "/" });
-    cookies.remove("role", { path: "/" });
+    logout();
     navigate("/login", { replace: true });
   };
 

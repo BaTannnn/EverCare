@@ -57,6 +57,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         root.fetch("patientId", JoinType.INNER);
         Fetch<Prescription, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
         medicalRecordFetch.fetch("appointmentId", JoinType.LEFT);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
         Fetch<Prescription, ?> itemFetch = root.fetch("prescriptionItemSet", JoinType.LEFT);
         itemFetch.fetch("medicineId", JoinType.LEFT);
     }

@@ -1,5 +1,5 @@
 import Apis, { endpoints, authApis } from "../../configs/Apis";
-import { unwrapPatientList, unwrapPatientPage } from "./patientApiHelpers";
+import { unwrapPatientPage } from "./patientApiHelpers";
 import { mapMedicalRecord, mapMedicalRecordDetail } from "./patientMappers";
 
 export const getPatientMedicalRecords = (params = {}) => {

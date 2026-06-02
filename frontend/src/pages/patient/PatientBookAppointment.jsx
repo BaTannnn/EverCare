@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
-import { BsClock, BsExclamationTriangle, BsInfoCircle, BsStarFill } from "react-icons/bs";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { BsClock, BsExclamationTriangle, BsInfoCircle } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
+import { usePatientShell } from "../../contexts/usePatientShell";
 import { bookPatientAppointment } from "../../services/patient/patientAppointmentApi";
 import { getPatientDoctors, getPatientMedicalServices } from "../../services/patient/patientCatalogApi";
 import { getPatientDoctorSchedules } from "../../services/patient/patientDoctorScheduleApi";
-import { getAvatarSource, formatCurrency } from "./patientPageUtils";
+import { formatCurrency } from "./patientPageUtils";
 
 const toLocalDateInput = (date = new Date()) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -81,7 +82,7 @@ const matchesServiceDoctorDepartment = (service, doctor) => {
 
 function PatientBookAppointment() {
   const navigate = useNavigate();
-  const { profile } = useOutletContext() || {};
+  const { profile } = usePatientShell();
   const [doctors, setDoctors] = useState([]);
   const [services, setServices] = useState([]);
   const [doctorSchedules, setDoctorSchedules] = useState([]);

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Outlet, matchPath, useLocation } from "react-router-dom";
-import { getPatientNotifications } from "../../../services/patient/patientNotificationApi";
-import { getPatientProfile } from "../../../services/patient/patientProfileApi";
+import PatientShellProvider from "../../../contexts/PatientShellContext";
+import { usePatientShell } from "../../../contexts/usePatientShell";
 import PatientSidebar from "./PatientSidebar";
 import PatientTopBar from "./PatientTopBar";
 
@@ -74,40 +74,9 @@ const routeMeta = [
   },
 ];
 
-function PatientLayout() {
+function PatientLayoutContent() {
   const location = useLocation();
-  const [profile, setProfile] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadShellData = async () => {
-      try {
-        const [profileResult, notificationResult] = await Promise.allSettled([getPatientProfile(), getPatientNotifications()]);
-
-        if (!mounted) {
-          return;
-        }
-
-        if (profileResult.status === "fulfilled") {
-          setProfile(profileResult.value.data || null);
-        }
-
-        if (notificationResult.status === "fulfilled") {
-          setNotifications(notificationResult.value.data || []);
-        }
-      } catch (error) {
-        console.error("Failed to load patient shell data", error);
-      }
-    };
-
-    loadShellData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { profile, unreadNotifications } = usePatientShell();
 
   const meta = useMemo(() => {
     return (
@@ -115,8 +84,6 @@ function PatientLayout() {
       routeMeta[0]
     );
   }, [location.pathname]);
-
-  const unreadNotifications = notifications.filter((notification) => !notification.read).length;
 
   return (
     <div className="patient-shell">
@@ -132,7 +99,7 @@ function PatientLayout() {
         />
 
         <main className="patient-content">
-          <Outlet context={{ profile, setProfile, notifications, setNotifications }} />
+          <Outlet />
         </main>
 
         <footer className="patient-footer">
@@ -145,6 +112,14 @@ function PatientLayout() {
         </footer>
       </div>
     </div>
+  );
+}
+
+function PatientLayout() {
+  return (
+    <PatientShellProvider>
+      <PatientLayoutContent />
+    </PatientShellProvider>
   );
 }
 

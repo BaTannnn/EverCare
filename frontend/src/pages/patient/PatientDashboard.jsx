@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card } from "react-bootstrap";
 import { BsArrowRight, BsCalendar2Check, BsCashCoin, BsClipboard2Pulse, BsFileEarmarkMedical, BsHeartPulse } from "react-icons/bs";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { usePatientShell } from "../../contexts/usePatientShell";
 import { getPatientAppointments } from "../../services/patient/patientAppointmentApi";
 import { getPatientInvoices } from "../../services/patient/patientInvoiceApi";
 import { getPatientMedicalRecords } from "../../services/patient/patientMedicalRecordApi";
@@ -44,7 +45,7 @@ const normalizeCollection = (value) => {
 };
 
 function PatientDashboard() {
-  const { profile } = useOutletContext() || {};
+  const { profile } = usePatientShell();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
   const [records, setRecords] = useState([]);

@@ -51,6 +51,9 @@ public class HibernateConfigs {
         Properties props = new Properties();
         props.put(DIALECT, env.getProperty("hibernate.dialect"));
         props.put(SHOW_SQL, env.getProperty("hibernate.showSql"));
+        props.put("hibernate.generate_statistics", "true");
+        props.put("hibernate.session.events.log", "false");
+        props.put("hibernate.session_factory.statement_inspector", "com.evercare.utils.HibernateQueryCounter");
 
         return props;
     }

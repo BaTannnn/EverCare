@@ -102,9 +102,9 @@ public class MedicalRecord implements Serializable {
     private Patient patientId;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
     private Set<TestResult> testResultSet;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "medicalRecordId")
     private Prescription prescription;
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "medicalRecordId")
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "medicalRecordId")
     private Invoice invoice;
 
     public MedicalRecord() {
