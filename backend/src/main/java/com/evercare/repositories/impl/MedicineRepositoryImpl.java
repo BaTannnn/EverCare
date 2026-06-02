@@ -1,9 +1,14 @@
 package com.evercare.repositories.impl;
 
 import com.evercare.pojo.Medicine;
+import com.evercare.pojo.MedicineBatch;
+import com.evercare.pojo.PrescriptionItem;
 import com.evercare.repositories.MedicineRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
@@ -69,18 +74,22 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     public List<Object[]> getLowStockMedicines() {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT m, COALESCE(SUM(b.remainingQuantity), 0)
-                FROM Medicine m
-                LEFT JOIN MedicineBatch b
-                    ON b.medicineId.id = m.id
-                    AND b.active = true
-                WHERE m.active = true
-                GROUP BY m
-                HAVING COALESCE(SUM(b.remainingQuantity), 0) <= COALESCE(m.minStockQuantity, 0)
-                ORDER BY m.name ASC
-                """, Object[].class)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Object[]> cq = cb.createQuery(Object[].class);
+        Root<Medicine> root = cq.from(Medicine.class);
+        Join<Medicine, MedicineBatch> batchJoin = root.join("medicineBatchSet", JoinType.LEFT);
+        batchJoin.on(cb.isTrue(batchJoin.get("active")));
+
+        Expression<Long> totalRemaining = cb.coalesce(cb.sumAsLong(batchJoin.<Integer>get("remainingQuantity")), 0L);
+        Expression<Integer> minStockQuantity = cb.coalesce(root.<Integer>get("minStockQuantity"), 0);
+
+        cq.multiselect(root, totalRemaining);
+        cq.where(cb.isTrue(root.get("active")));
+        cq.groupBy(root);
+        cq.having(cb.le(totalRemaining, cb.toLong(minStockQuantity)));
+        cq.orderBy(cb.asc(root.get("name")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
@@ -93,11 +102,14 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     public Medicine getMedicineByCode(String medicineCode) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery(
-                "SELECT m FROM Medicine m WHERE lower(m.medicineCode) = :medicineCode",
-                Medicine.class
-        )
-                .setParameter("medicineCode", medicineCode.trim().toLowerCase())
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Medicine> cq = cb.createQuery(Medicine.class);
+        Root<Medicine> root = cq.from(Medicine.class);
+
+        cq.select(root);
+        cq.where(cb.equal(cb.lower(root.get("medicineCode")), medicineCode.trim().toLowerCase()));
+
+        return session.createQuery(cq)
                 .uniqueResult();
     }
 
@@ -105,16 +117,20 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     public boolean existsByCode(String medicineCode, Long excludeId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        String hql = """
-                SELECT COUNT(m) FROM Medicine m
-                WHERE lower(m.medicineCode) = :medicineCode
-                    AND (:excludeId IS NULL OR m.id <> :excludeId)
-                """;
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Medicine> root = cq.from(Medicine.class);
 
-        Long count = session.createQuery(hql, Long.class)
-                .setParameter("medicineCode", medicineCode.trim().toLowerCase())
-                .setParameter("excludeId", excludeId)
-                .getSingleResult();
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.equal(cb.lower(root.get("medicineCode")), medicineCode.trim().toLowerCase()));
+        if (excludeId != null) {
+            predicates.add(cb.notEqual(root.get("id"), excludeId));
+        }
+
+        cq.select(cb.count(root));
+        cq.where(predicates.toArray(Predicate[]::new));
+
+        Long count = session.createQuery(cq).getSingleResult();
 
         return count > 0;
     }
@@ -123,12 +139,14 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     public boolean hasPrescriptionItems(Long medicineId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        Long count = session.createQuery(
-                "SELECT COUNT(p) FROM PrescriptionItem p WHERE p.medicineId.id = :medicineId",
-                Long.class
-        )
-                .setParameter("medicineId", medicineId)
-                .getSingleResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<PrescriptionItem> root = cq.from(PrescriptionItem.class);
+
+        cq.select(cb.count(root));
+        cq.where(cb.equal(root.get("medicineId").get("id"), medicineId));
+
+        Long count = session.createQuery(cq).getSingleResult();
 
         return count > 0;
     }

@@ -7,6 +7,8 @@ import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
@@ -16,7 +18,6 @@ import java.util.Map;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
@@ -51,6 +52,15 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         return predicates;
     }
 
+    private void fetchPrescriptionGraph(Root<Prescription> root) {
+        root.fetch("doctorId", JoinType.INNER);
+        root.fetch("patientId", JoinType.INNER);
+        Fetch<Prescription, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("appointmentId", JoinType.LEFT);
+        Fetch<Prescription, ?> itemFetch = root.fetch("prescriptionItemSet", JoinType.LEFT);
+        itemFetch.fetch("medicineId", JoinType.LEFT);
+    }
+
     @Override
     public List<Prescription> getPrescriptions(Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
@@ -62,11 +72,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
         Root<Prescription> root = cq.from(Prescription.class);
 
-        root.fetch("doctorId");
-        root.fetch("patientId");
-        root.fetch("medicalRecordId");
-        root.fetch("prescriptionItemSet", jakarta.persistence.criteria.JoinType.LEFT)
-                .fetch("medicineId", jakarta.persistence.criteria.JoinType.LEFT);
+        fetchPrescriptionGraph(root);
 
         cq.select(root).distinct(true);
         cq.where(
@@ -81,34 +87,28 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     @Override
     public List<Prescription> getPrescriptionsByDoctorId(Long doctorId, Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
-        StringBuilder hql = new StringBuilder("""
-                SELECT DISTINCT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                LEFT JOIN FETCH mr.appointmentId appointment
-                LEFT JOIN FETCH p.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE p.active = true
-                    AND d.id = :doctorId
-                """);
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        fetchPrescriptionGraph(root);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+        predicates.add(cb.equal(root.get("doctorId").get("id"), doctorId));
 
         String status = params != null ? params.get("status") : null;
         if (status != null && !status.isBlank()) {
             status = PrescriptionStatus.normalize(status);
-            hql.append(" AND p.status = :status");
+            predicates.add(cb.equal(root.get("status"), status));
         }
 
-        hql.append(" ORDER BY p.prescribedAt DESC, p.id DESC");
+        cq.select(root).distinct(true);
+        cq.where(predicates.toArray(Predicate[]::new));
+        cq.orderBy(cb.desc(root.get("prescribedAt")), cb.desc(root.get("id")));
 
-        Query<Prescription> query = session.createQuery(hql.toString(), Prescription.class)
-                .setParameter("doctorId", doctorId);
-
-        if (status != null && !status.isBlank()) {
-            query.setParameter("status", status);
-        }
-
-        return query.getResultList();
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
@@ -140,17 +140,19 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     public Prescription getPrescriptionById(Long id) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                LEFT JOIN FETCH p.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE p.id = :id
-                    AND p.active = true
-                """, Prescription.class)
-                .setParameter("id", id)
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        fetchPrescriptionGraph(root);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("id"), id),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq)
                 .uniqueResult();
     }
 
@@ -170,19 +172,20 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     public Prescription getPrescriptionByPatientIdAndId(Long patientId, Long id) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                LEFT JOIN FETCH p.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE p.id = :id
-                    AND patient.id = :patientId
-                    AND p.active = true
-                """, Prescription.class)
-                .setParameter("id", id)
-                .setParameter("patientId", patientId)
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        fetchPrescriptionGraph(root);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("id"), id),
+                cb.equal(root.get("patientId").get("id"), patientId),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq)
                 .uniqueResult();
     }
 
@@ -190,17 +193,19 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
     public Prescription getPrescriptionByMedicalRecordId(Long medicalRecordId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT p FROM Prescription p
-                JOIN FETCH p.doctorId d
-                JOIN FETCH p.patientId patient
-                JOIN FETCH p.medicalRecordId mr
-                LEFT JOIN FETCH p.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE mr.id = :medicalRecordId
-                    AND p.active = true
-                """, Prescription.class)
-                .setParameter("medicalRecordId", medicalRecordId)
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Prescription> cq = cb.createQuery(Prescription.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        fetchPrescriptionGraph(root);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicalRecordId").get("id"), medicalRecordId),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq)
                 .uniqueResult();
     }
 

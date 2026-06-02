@@ -5,6 +5,8 @@ import com.evercare.repositories.MedicineBatchRepository;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.util.ArrayList;
@@ -31,7 +33,7 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
         Root<MedicineBatch> root = cq.from(MedicineBatch.class);
-        root.fetch("medicineId");
+        root.fetch("medicineId", JoinType.INNER);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -58,30 +60,37 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     public List<MedicineBatch> getBatchesByMedicineId(Long medicineId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT b FROM MedicineBatch b
-                JOIN FETCH b.medicineId m
-                WHERE m.id = :medicineId
-                    AND b.active = true
-                ORDER BY b.expiryDate ASC, b.id ASC
-                """, MedicineBatch.class)
-                .setParameter("medicineId", medicineId)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicineId").get("id"), medicineId),
+                cb.isTrue(root.get("active"))
+        );
+        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
     public Long getAvailableQuantityByMedicineId(Long medicineId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        Long total = session.createQuery("""
-                SELECT COALESCE(SUM(b.remainingQuantity), 0)
-                FROM MedicineBatch b
-                WHERE b.medicineId.id = :medicineId
-                    AND b.active = true
-                    AND b.remainingQuantity > 0
-                """, Long.class)
-                .setParameter("medicineId", medicineId)
-                .getSingleResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+
+        cq.select(cb.coalesce(cb.sumAsLong(root.<Integer>get("remainingQuantity")), 0L));
+        cq.where(
+                cb.equal(root.get("medicineId").get("id"), medicineId),
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0)
+        );
+
+        Long total = session.createQuery(cq).getSingleResult();
 
         return total != null ? total : 0L;
     }
@@ -146,7 +155,7 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
         Root<MedicineBatch> root = cq.from(MedicineBatch.class);
-        root.fetch("medicineId");
+        root.fetch("medicineId", JoinType.INNER);
 
         cq.select(root).distinct(true);
         cq.where(
@@ -166,44 +175,56 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     public List<MedicineBatch> getNearExpiryBatches(Date toDate) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT b FROM MedicineBatch b
-                JOIN FETCH b.medicineId m
-                WHERE b.active = true
-                    AND b.remainingQuantity > 0
-                    AND b.expiryDate <= :toDate
-                ORDER BY b.expiryDate ASC, m.name ASC, b.id ASC
-                """, MedicineBatch.class)
-                .setParameter("toDate", toDate)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        Join<MedicineBatch, ?> medicineJoin = root.join("medicineId", JoinType.INNER);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0),
+                cb.lessThanOrEqualTo(root.<Date>get("expiryDate"), toDate)
+        );
+        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(medicineJoin.get("name")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
     public List<MedicineBatch> getExpiredBatches(Date today) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT b FROM MedicineBatch b
-                JOIN FETCH b.medicineId m
-                WHERE b.active = true
-                    AND b.remainingQuantity > 0
-                    AND b.expiryDate < :today
-                ORDER BY b.expiryDate ASC, m.name ASC, b.id ASC
-                """, MedicineBatch.class)
-                .setParameter("today", today)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        Join<MedicineBatch, ?> medicineJoin = root.join("medicineId", JoinType.INNER);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.isTrue(root.get("active")),
+                cb.gt(root.<Integer>get("remainingQuantity"), 0),
+                cb.lessThan(root.<Date>get("expiryDate"), today)
+        );
+        cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(medicineJoin.get("name")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
     public boolean existsByBatchCode(String batchCode) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        Long count = session.createQuery(
-                "SELECT COUNT(b) FROM MedicineBatch b WHERE lower(b.batchCode) = :batchCode",
-                Long.class
-        )
-                .setParameter("batchCode", batchCode.trim().toLowerCase())
-                .getSingleResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+
+        cq.select(cb.count(root));
+        cq.where(cb.equal(cb.lower(root.get("batchCode")), batchCode.trim().toLowerCase()));
+
+        Long count = session.createQuery(cq).getSingleResult();
 
         return count > 0;
     }

@@ -2,6 +2,9 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.PrescriptionItem;
 import com.evercare.repositories.PrescriptionItemRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import java.util.List;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +27,15 @@ public class PrescriptionItemRepositoryImpl implements PrescriptionItemRepositor
     @Override
     public void deleteItemsByPrescriptionId(Long prescriptionId) {
         Session session = this.factory.getObject().getCurrentSession();
-        List<PrescriptionItem> items = session.createQuery("""
-                SELECT item FROM PrescriptionItem item
-                WHERE item.prescriptionId.id = :prescriptionId
-                """, PrescriptionItem.class)
-                .setParameter("prescriptionId", prescriptionId)
-                .getResultList();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<PrescriptionItem> cq = cb.createQuery(PrescriptionItem.class);
+        Root<PrescriptionItem> root = cq.from(PrescriptionItem.class);
+
+        cq.select(root);
+        cq.where(cb.equal(root.get("prescriptionId").get("id"), prescriptionId));
+
+        List<PrescriptionItem> items = session.createQuery(cq).getResultList();
 
         for (PrescriptionItem item : items) {
             session.remove(item);
