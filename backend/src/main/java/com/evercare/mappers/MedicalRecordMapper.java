@@ -77,7 +77,7 @@ public final class MedicalRecordMapper {
         List<MedicalRecordServiceResponse> serviceResponses = services == null
                 ? Collections.emptyList()
                 : services.stream()
-                        .map(service -> MedicalRecordServiceMapper.toResponse(service, getTestResultsForService(service, testResults)))
+                        .map(service -> MedicalRecordServiceMapper.toSummaryResponse(service, getTestResultsForService(service, testResults)))
                         .toList();
         res.setServices(serviceResponses);
 

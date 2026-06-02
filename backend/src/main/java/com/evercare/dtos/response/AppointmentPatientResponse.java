@@ -1,5 +1,7 @@
 package com.evercare.dtos.response;
 
+import java.util.List;
+
 public class AppointmentPatientResponse {
     private Long id;
     private String patientCode;
@@ -8,6 +10,8 @@ public class AppointmentPatientResponse {
     private String dateOfBirth;
     private String phone;
     private String email;
+    private Boolean profileComplete;
+    private List<String> missingFields;
 
     public Long getId() {
         return id;
@@ -63,5 +67,21 @@ public class AppointmentPatientResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Boolean getProfileComplete() {
+        return profileComplete;
+    }
+
+    public void setProfileComplete(Boolean profileComplete) {
+        this.profileComplete = profileComplete;
+    }
+
+    public List<String> getMissingFields() {
+        return missingFields;
+    }
+
+    public void setMissingFields(List<String> missingFields) {
+        this.missingFields = missingFields;
     }
 }

@@ -39,11 +39,10 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
 
         root.fetch("patientId", JoinType.INNER);
         root.fetch("medicalRecordId", JoinType.INNER);
-        root.fetch("paymentSet", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, cb, root, patientJoin, recordJoin);
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
 
@@ -101,8 +100,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaQuery<Invoice> cq = cb.createQuery(Invoice.class);
         Root<Invoice> root = cq.from(Invoice.class);
 
-        root.fetch("medicalRecordId", jakarta.persistence.criteria.JoinType.LEFT);
-        root.fetch("patientId");
+        root.fetch("medicalRecordId", JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -126,7 +124,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
             ));
         }
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
 

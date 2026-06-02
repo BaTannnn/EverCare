@@ -1,7 +1,15 @@
 package com.evercare.repositories.impl;
 
 import com.evercare.pojo.MedicalRecordService;
+import com.evercare.pojo.TestResult;
 import com.evercare.repositories.MedicalRecordServiceRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import java.util.List;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,38 +34,53 @@ public class MedicalRecordServiceRepositoryImpl implements MedicalRecordServiceR
     public List<MedicalRecordService> getServicesByMedicalRecordId(Long recordId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT mrs FROM MedicalRecordService mrs
-                JOIN FETCH mrs.medicalRecordId mr
-                JOIN FETCH mrs.serviceId s
-                WHERE mr.id = :recordId
-                    AND mrs.active = true
-                ORDER BY mrs.createdAt ASC, mrs.id ASC
-                """, MedicalRecordService.class)
-                .setParameter("recordId", recordId)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalRecordService> cq = cb.createQuery(MedicalRecordService.class);
+        Root<MedicalRecordService> root = cq.from(MedicalRecordService.class);
+
+        root.fetch("medicalRecordId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicalRecordId").get("id"), recordId),
+                cb.isTrue(root.get("active"))
+        );
+        cq.orderBy(cb.asc(root.get("createdAt")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
     public List<MedicalRecordService> getPendingTestRequests() {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT mrs FROM MedicalRecordService mrs
-                JOIN FETCH mrs.medicalRecordId mr
-                JOIN FETCH mr.patientId patient
-                JOIN FETCH mr.doctorId doctor
-                JOIN FETCH mrs.serviceId service
-                WHERE mrs.active = true
-                    AND mr.active = true
-                    AND NOT EXISTS (
-                        SELECT tr.id FROM TestResult tr
-                        WHERE tr.active = true
-                            AND tr.medicalRecordId.id = mr.id
-                            AND tr.serviceId.id = service.id
-                    )
-                ORDER BY mrs.createdAt ASC, mrs.id ASC
-                """, MedicalRecordService.class)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalRecordService> cq = cb.createQuery(MedicalRecordService.class);
+        Root<MedicalRecordService> root = cq.from(MedicalRecordService.class);
+
+        Fetch<MedicalRecordService, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("patientId", JoinType.INNER);
+        medicalRecordFetch.fetch("doctorId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.INNER);
+
+        Subquery<Long> resultSubquery = cq.subquery(Long.class);
+        Root<TestResult> testResult = resultSubquery.from(TestResult.class);
+        resultSubquery.select(testResult.get("id"));
+        resultSubquery.where(
+                cb.isTrue(testResult.get("active")),
+                cb.equal(testResult.get("medicalRecordId").get("id"), root.get("medicalRecordId").get("id")),
+                cb.equal(testResult.get("serviceId").get("id"), root.get("serviceId").get("id"))
+        );
+
+        Predicate activeRequest = cb.isTrue(root.get("active"));
+        Predicate activeRecord = cb.isTrue(root.get("medicalRecordId").get("active"));
+        Predicate hasNoActiveResult = cb.not(cb.exists(resultSubquery));
+
+        cq.select(root).distinct(true);
+        cq.where(activeRequest, activeRecord, hasNoActiveResult);
+        cq.orderBy(cb.asc(root.get("createdAt")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 }

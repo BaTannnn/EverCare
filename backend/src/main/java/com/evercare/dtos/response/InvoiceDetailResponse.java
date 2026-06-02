@@ -3,15 +3,15 @@ package com.evercare.dtos.response;
 import java.util.List;
 
 public class InvoiceDetailResponse extends InvoiceResponse {
-    private PatientResponse patient;
+    private AppointmentPatientResponse patient;
     private MedicalRecordResponse medicalRecord;
     private List<PaymentResponse> payments;
 
-    public PatientResponse getPatient() {
+    public AppointmentPatientResponse getPatient() {
         return patient;
     }
 
-    public void setPatient(PatientResponse patient) {
+    public void setPatient(AppointmentPatientResponse patient) {
         this.patient = patient;
     }
 

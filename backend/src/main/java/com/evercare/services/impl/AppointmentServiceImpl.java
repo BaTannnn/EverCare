@@ -167,7 +167,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<AppointmentResponse> getAppointmentsForReceptionist(Map<String, String> params) {
         this.authSupport.requireReceptionistUser();
-        return toPatientResponses(this.appointmentRepo.getAppointmentsForReceptionist(params));
+        return toReceptionistResponses(this.appointmentRepo.getAppointmentsForReceptionist(params));
     }
 
     @Override
@@ -179,7 +179,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new NoSuchElementException("Không tìm thấy lịch hẹn");
         }
 
-        return AppointmentMapper.toPatientResponse(appointment);
+        return AppointmentMapper.toReceptionistResponse(appointment);
     }
 
     @Override
@@ -223,7 +223,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         : "Bạn đã đặt lịch khám thành công."
         );
 
-        return AppointmentMapper.toPatientResponse(saved);
+        return AppointmentMapper.toReceptionistResponse(saved);
     }
 
     @Override
@@ -295,7 +295,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 "Thông tin lịch khám của bạn đã được lễ tân cập nhật."
         );
 
-        return AppointmentMapper.toPatientResponse(appointment);
+        return AppointmentMapper.toReceptionistResponse(appointment);
     }
 
     @Override
@@ -352,7 +352,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 "Bạn đã được tiếp nhận tại quầy và đang chờ bác sĩ khám."
         );
 
-        return AppointmentMapper.toPatientResponse(appointment);
+        return AppointmentMapper.toReceptionistResponse(appointment);
     }
 
     private void validateBookingRequest(AppointmentRequest request) {
@@ -368,6 +368,16 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return appointments.stream()
                 .map(AppointmentMapper::toPatientResponse)
+                .toList();
+    }
+
+    private List<AppointmentResponse> toReceptionistResponses(List<Appointment> appointments) {
+        if (appointments == null || appointments.isEmpty()) {
+            return List.of();
+        }
+
+        return appointments.stream()
+                .map(AppointmentMapper::toReceptionistResponse)
                 .toList();
     }
 

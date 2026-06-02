@@ -17,6 +17,21 @@ public final class MedicalRecordServiceMapper {
             MedicalRecordService recordService,
             List<TestResult> testResults
     ) {
+        return toResponse(recordService, testResults, true);
+    }
+
+    public static MedicalRecordServiceResponse toSummaryResponse(
+            MedicalRecordService recordService,
+            List<TestResult> testResults
+    ) {
+        return toResponse(recordService, testResults, false);
+    }
+
+    private static MedicalRecordServiceResponse toResponse(
+            MedicalRecordService recordService,
+            List<TestResult> testResults,
+            boolean includeTestResults
+    ) {
         MedicalRecordServiceResponse res = new MedicalRecordServiceResponse();
         MedicalService service = recordService.getServiceId();
 
@@ -33,10 +48,12 @@ public final class MedicalRecordServiceMapper {
         res.setUnitPrice(recordService.getUnitPrice());
         res.setResultSummary(recordService.getResultSummary());
 
-        List<TestResultResponse> resultResponses = testResults == null
-                ? Collections.emptyList()
-                : testResults.stream().map(TestResultMapper::toResponse).toList();
-        res.setTestResults(resultResponses);
+        if (includeTestResults) {
+            List<TestResultResponse> resultResponses = testResults == null
+                    ? Collections.emptyList()
+                    : testResults.stream().map(TestResultMapper::toResponse).toList();
+            res.setTestResults(resultResponses);
+        }
 
         return res;
     }
