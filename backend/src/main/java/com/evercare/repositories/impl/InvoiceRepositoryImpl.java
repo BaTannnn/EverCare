@@ -1,10 +1,7 @@
 package com.evercare.repositories.impl;
 
 import com.evercare.enums.InvoiceStatus;
-import com.evercare.pojo.Invoice;
-import com.evercare.pojo.MedicalRecordService;
-import com.evercare.pojo.MedicalService;
-import com.evercare.pojo.Patient;
+import com.evercare.pojo.*;
 import com.evercare.repositories.InvoiceRepository;
 import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.criteria.*;
@@ -43,7 +40,8 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         Join<Invoice, com.evercare.pojo.MedicalRecord> recordJoin = root.join("medicalRecordId", JoinType.INNER);
 
         root.fetch("patientId", JoinType.INNER);
-        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch =  root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, cb, root, patientJoin, recordJoin);
 
