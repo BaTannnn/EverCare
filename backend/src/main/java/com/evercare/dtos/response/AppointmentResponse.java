@@ -13,12 +13,11 @@ public class AppointmentResponse {
     private String cancelReason;
     private Long doctorId;
     private String doctorName;
+    private Long departmentId;
     private String departmentName;
     private Long serviceId;
     private String serviceName;
-    private PatientResponse patient;
-    private DoctorResponse doctor;
-    private MedicalServiceResponse service;
+    private AppointmentPatientResponse patient;
 
     public Long getId() {
         return id;
@@ -116,6 +115,14 @@ public class AppointmentResponse {
         this.doctorName = doctorName;
     }
 
+    public Long getDepartmentId() {
+        return departmentId;
+    }
+
+    public void setDepartmentId(Long departmentId) {
+        this.departmentId = departmentId;
+    }
+
     public String getDepartmentName() {
         return departmentName;
     }
@@ -140,27 +147,11 @@ public class AppointmentResponse {
         this.serviceName = serviceName;
     }
 
-    public PatientResponse getPatient() {
+    public AppointmentPatientResponse getPatient() {
         return patient;
     }
 
-    public void setPatient(PatientResponse patient) {
+    public void setPatient(AppointmentPatientResponse patient) {
         this.patient = patient;
-    }
-
-    public DoctorResponse getDoctor() {
-        return doctor;
-    }
-
-    public void setDoctor(DoctorResponse doctor) {
-        this.doctor = doctor;
-    }
-
-    public MedicalServiceResponse getService() {
-        return service;
-    }
-
-    public void setService(MedicalServiceResponse service) {
-        this.service = service;
     }
 }

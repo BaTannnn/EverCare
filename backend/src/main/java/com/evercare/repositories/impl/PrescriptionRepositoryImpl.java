@@ -121,9 +121,8 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         root.fetch("doctorId");
         root.fetch("patientId");
         root.fetch("medicalRecordId");
-        root.fetch("prescriptionItemSet", jakarta.persistence.criteria.JoinType.LEFT);
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(getPatientPredicates(patientId, status, from, to, cb, root).toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("prescribedAt")), cb.desc(root.get("id")));
 

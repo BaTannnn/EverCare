@@ -3,15 +3,13 @@ package com.evercare.mappers;
 import com.evercare.dtos.response.AppointmentPatientResponse;
 import com.evercare.dtos.response.AppointmentResponse;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
-import com.evercare.dtos.response.DoctorResponse;
-import com.evercare.dtos.response.MedicalServiceResponse;
-import com.evercare.dtos.response.PatientResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Patient;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 public final class AppointmentMapper {
     private static final String DATE_PATTERN = "yyyy-MM-dd";
@@ -57,6 +55,14 @@ public final class AppointmentMapper {
     }
 
     public static AppointmentResponse toPatientResponse(Appointment appointment) {
+        return toAppointmentResponse(appointment, false);
+    }
+
+    public static AppointmentResponse toReceptionistResponse(Appointment appointment) {
+        return toAppointmentResponse(appointment, true);
+    }
+
+    private static AppointmentResponse toAppointmentResponse(Appointment appointment, boolean includePatient) {
         if (appointment == null) {
             return null;
         }
@@ -77,6 +83,7 @@ public final class AppointmentMapper {
             res.setDoctorId(appointment.getDoctorId().getId());
             res.setDoctorName(appointment.getDoctorId().getFullName());
             if (appointment.getDoctorId().getDepartmentId() != null) {
+                res.setDepartmentId(appointment.getDoctorId().getDepartmentId().getId());
                 res.setDepartmentName(appointment.getDoctorId().getDepartmentId().getName());
             }
         }
@@ -86,16 +93,8 @@ public final class AppointmentMapper {
             res.setServiceName(appointment.getServiceId().getName());
         }
 
-        if (appointment.getPatientId() != null) {
-            res.setPatient(PatientMapper.toResponse(appointment.getPatientId()));
-        }
-
-        if (appointment.getDoctorId() != null) {
-            res.setDoctor(DoctorMapper.toResponse(appointment.getDoctorId()));
-        }
-
-        if (appointment.getServiceId() != null) {
-            res.setService(MedicalServiceMapper.toResponse(appointment.getServiceId()));
+        if (includePatient && appointment.getPatientId() != null) {
+            res.setPatient(toPatientResponse(appointment.getPatientId()));
         }
 
         return res;
@@ -114,6 +113,9 @@ public final class AppointmentMapper {
         res.setDateOfBirth(format(patient.getDateOfBirth(), DATE_PATTERN));
         res.setPhone(patient.getPhone());
         res.setEmail(patient.getEmail());
+        List<String> missingFields = PatientMapper.collectMissingFields(patient);
+        res.setMissingFields(missingFields);
+        res.setProfileComplete(missingFields.isEmpty());
 
         return res;
     }

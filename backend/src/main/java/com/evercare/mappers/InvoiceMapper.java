@@ -1,12 +1,13 @@
 package com.evercare.mappers;
 
+import com.evercare.dtos.response.AppointmentPatientResponse;
 import com.evercare.dtos.response.InvoiceDetailResponse;
 import com.evercare.dtos.response.InvoiceResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
-import com.evercare.dtos.response.PatientResponse;
 import com.evercare.dtos.response.PaymentResponse;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.MedicalRecordService;
+import com.evercare.pojo.Patient;
 import com.evercare.pojo.Payment;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -36,7 +37,7 @@ public final class InvoiceMapper {
 
         InvoiceDetailResponse res = new InvoiceDetailResponse();
         fillBase(invoice, res);
-        res.setPatient(invoice.getPatientId() != null ? PatientMapper.toResponse(invoice.getPatientId()) : null);
+        res.setPatient(toPatientResponse(invoice.getPatientId()));
         res.setMedicalRecord(invoice.getMedicalRecordId() != null ? MedicalRecordMapper.toResponse(invoice.getMedicalRecordId()) : null);
         List<PaymentResponse> paymentResponses = payments == null
                 ? Collections.emptyList()
@@ -113,5 +114,18 @@ public final class InvoiceMapper {
         BigDecimal unitPrice = recordService.getUnitPrice() != null ? recordService.getUnitPrice() : BigDecimal.ZERO;
         int quantity = recordService.getQuantity() != null ? recordService.getQuantity() : 0;
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    private static AppointmentPatientResponse toPatientResponse(Patient patient) {
+        if (patient == null) {
+            return null;
+        }
+
+        AppointmentPatientResponse res = new AppointmentPatientResponse();
+        res.setId(patient.getId());
+        res.setPatientCode(patient.getPatientCode());
+        res.setFullName(patient.getFullName());
+        res.setPhone(patient.getPhone());
+        return res;
     }
 }

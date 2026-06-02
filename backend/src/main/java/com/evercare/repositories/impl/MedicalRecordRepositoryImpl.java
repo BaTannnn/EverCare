@@ -70,12 +70,9 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
         Root<MedicalRecord> root = cq.from(MedicalRecord.class);
 
         root.fetch("doctorId");
-        root.fetch("patientId");
         root.fetch("appointmentId");
-        root.fetch("prescription", jakarta.persistence.criteria.JoinType.LEFT);
-        root.fetch("testResultSet", jakarta.persistence.criteria.JoinType.LEFT);
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(getPatientPredicates(patientId, from, to, cb, root).toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("visitDate")), cb.desc(root.get("id")));
 
