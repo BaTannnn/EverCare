@@ -10,6 +10,7 @@ import com.evercare.repositories.InvoiceRepository;
 import com.evercare.repositories.PaymentRepository;
 import com.evercare.services.InvoiceService;
 import com.evercare.utils.AuthSupport;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -44,9 +45,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         LocalDate from = parseDate(params != null ? params.get("from") : null, "from");
         LocalDate to = parseDate(params != null ? params.get("to") : null, "to");
 
-        return this.invoiceRepo.getInvoicesByPatientId(currentPatient.getId(), paymentStatus, from, to)
+        List<Invoice> invoices = this.invoiceRepo.getInvoicesByPatientId(currentPatient.getId(), paymentStatus, from, to);
+        Map<Long, BigDecimal> testAmounts = getTestAmountsByMedicalRecordId(invoices);
+
+        return invoices
                 .stream()
-                .map(InvoiceMapper::toResponse)
+                .map(invoice -> InvoiceMapper.toResponse(invoice, getTestAmount(invoice, testAmounts)))
                 .toList();
     }
 
@@ -58,7 +62,11 @@ public class InvoiceServiceImpl implements InvoiceService {
             throw new java.util.NoSuchElementException("Không tìm thấy hóa đơn");
         }
 
-        return InvoiceMapper.toDetailResponse(invoice, this.paymentRepo.getPaymentsByInvoiceId(invoice.getId()));
+        return InvoiceMapper.toDetailResponse(
+                invoice,
+                this.paymentRepo.getPaymentsByInvoiceId(invoice.getId()),
+                getTestAmount(invoice, getTestAmountsByMedicalRecordId(List.of(invoice)))
+        );
     }
 
     @Override
@@ -66,7 +74,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         this.authSupport.requireReceptionistUser();
         return this.invoiceRepo.getInvoicesForReceptionist(params)
                 .stream()
-                .map(InvoiceMapper::toResponse)
+                .map(InvoiceMapper::toReceptionistResponse)
                 .toList();
     }
 
@@ -91,6 +99,38 @@ public class InvoiceServiceImpl implements InvoiceService {
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException(fieldName + " không hợp lệ");
         }
+    }
+
+    private Map<Long, BigDecimal> getTestAmountsByMedicalRecordId(List<Invoice> invoices) {
+        if (invoices == null || invoices.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> medicalRecordIds = invoices.stream()
+                .map(this::getMedicalRecordId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (medicalRecordIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return this.invoiceRepo.getTotalTestAmountsByMedicalRecordIds(medicalRecordIds);
+    }
+
+    private BigDecimal getTestAmount(Invoice invoice, Map<Long, BigDecimal> testAmounts) {
+        Long medicalRecordId = getMedicalRecordId(invoice);
+        if (medicalRecordId == null || testAmounts == null) {
+            return BigDecimal.ZERO;
+        }
+        return testAmounts.getOrDefault(medicalRecordId, BigDecimal.ZERO);
+    }
+
+    private Long getMedicalRecordId(Invoice invoice) {
+        return invoice != null && invoice.getMedicalRecordId() != null
+                ? invoice.getMedicalRecordId().getId()
+                : null;
     }
 
 }

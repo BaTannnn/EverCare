@@ -13,6 +13,7 @@ public interface AppointmentRepository {
     Map<String, Long> countAppointmentsByDoctorAndDate(Long doctorId, Date appointmentDate);
     long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime);
     long countBookedAppointmentsByDoctorAndDateAndWindow(Long doctorId, Date appointmentDate, Time startTime, Time endTime, Long excludeId);
+    List<Appointment> getBookableAppointmentsByDoctorAndDateRange(Long doctorId, Date fromDate, Date toDate);
     List<Appointment> getAppointmentsByPatientId(Long patientId, Map<String, String> params);
     Appointment getAppointmentByPatientIdAndId(Long patientId, Long appointmentId);
     Appointment createAppointment(Appointment appointment);

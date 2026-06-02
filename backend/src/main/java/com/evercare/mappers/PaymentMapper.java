@@ -28,7 +28,7 @@ public final class PaymentMapper {
         fillBase(payment, res);
         res.setPaymentUrl(paymentUrl);
         if (payment != null && payment.getInvoiceId() != null) {
-            res.setInvoice(InvoiceMapper.toResponse(payment.getInvoiceId()));
+            res.setInvoice(InvoiceMapper.toEmbeddedResponse(payment.getInvoiceId(), null));
         }
         return res;
     }
@@ -37,7 +37,7 @@ public final class PaymentMapper {
         PaymentResultResponse res = new PaymentResultResponse();
         fillBase(payment, res);
         res.setPaymentUrl(paymentUrl);
-        res.setInvoice(invoice != null ? InvoiceMapper.toResponse(invoice) : null);
+        res.setInvoice(invoice != null ? InvoiceMapper.toEmbeddedResponse(invoice, null) : null);
         return res;
     }
 

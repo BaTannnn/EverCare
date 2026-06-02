@@ -56,7 +56,8 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
         CriteriaQuery<MedicalRecord> cq = cb.createQuery(MedicalRecord.class);
         Root<MedicalRecord> root = cq.from(MedicalRecord.class);
 
-        root.fetch("doctorId", JoinType.INNER);
+        Fetch<MedicalRecord, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("patientId", JoinType.INNER);
         root.fetch("appointmentId", JoinType.LEFT);
         root.fetch("invoice", JoinType.LEFT);
@@ -100,9 +101,9 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
         CriteriaQuery<MedicalRecord> cq = cb.createQuery(MedicalRecord.class);
         Root<MedicalRecord> root = cq.from(MedicalRecord.class);
 
-        root.fetch("doctorId", JoinType.INNER);
-        root.fetch("patientId", JoinType.INNER);
-        root.fetch("appointmentId", JoinType.LEFT);
+        Fetch<MedicalRecord, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
+        root.fetch("invoice", JoinType.LEFT);
 
         cq.select(root).distinct(true);
         cq.where(

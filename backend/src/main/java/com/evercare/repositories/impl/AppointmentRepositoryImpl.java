@@ -50,7 +50,8 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
         Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
 
-        root.fetch("doctorId", JoinType.INNER);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
         root.fetch("patientId", JoinType.INNER);
 
@@ -153,7 +154,8 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
         Root<Appointment> root = query.from(Appointment.class);
-        root.fetch("doctorId", JoinType.INNER);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
 
         List<Predicate> predicates = buildPatientPredicates(patientId, builder, root, params);
@@ -198,7 +200,8 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
         Root<Appointment> root = query.from(Appointment.class);
-        root.fetch("doctorId", JoinType.INNER);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
 
         query.select(root);
@@ -263,13 +266,47 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public List<Appointment> getBookableAppointmentsByDoctorAndDateRange(Long doctorId, Date fromDate, Date toDate) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(builder.equal(root.get("doctorId").get("id"), doctorId));
+        predicates.add(builder.isTrue(root.get("active")));
+        predicates.add(builder.or(
+                builder.isNull(root.get("status")),
+                builder.not(root.get("status").in(
+                        AppointmentStatus.CANCELLED.getCode(),
+                        AppointmentStatus.NO_SHOW.getCode()
+                ))
+        ));
+
+        if (fromDate != null) {
+            predicates.add(builder.greaterThanOrEqualTo(root.get("appointmentDate"), fromDate));
+        }
+
+        if (toDate != null) {
+            predicates.add(builder.lessThanOrEqualTo(root.get("appointmentDate"), toDate));
+        }
+
+        query.select(root);
+        query.where(predicates.toArray(Predicate[]::new));
+
+        return session.createQuery(query).getResultList();
+    }
+
+    @Override
     public Appointment getAppointmentById(Long appointmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
         Root<Appointment> root = query.from(Appointment.class);
-        root.fetch("doctorId", JoinType.INNER);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("patientId", JoinType.INNER);
         root.fetch("serviceId", JoinType.LEFT);
         Fetch<Appointment, ?> medicalRecordFetch = root.fetch("medicalRecord", JoinType.LEFT);
