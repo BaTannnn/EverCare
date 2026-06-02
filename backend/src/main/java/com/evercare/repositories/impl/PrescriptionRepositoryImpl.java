@@ -4,6 +4,7 @@ import com.evercare.enums.PrescriptionStatus;
 import com.evercare.pojo.Prescription;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.utils.PaginationUtils;
+import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -119,8 +120,6 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
         Root<Prescription> root = cq.from(Prescription.class);
 
         root.fetch("doctorId");
-        root.fetch("patientId");
-        root.fetch("medicalRecordId");
         root.fetch("prescriptionItemSet", jakarta.persistence.criteria.JoinType.LEFT);
 
         cq.select(root).distinct(true);
@@ -129,9 +128,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
         Query<Prescription> query = session.createQuery(cq);
         int pageSize = this.env.getProperty("patientRecord.pageSize", Integer.class);
-        int normalizedPage = PaginationUtils.normalizePage(PaginationUtils.getPage(params), countPrescriptions(patientId, status, from, to), pageSize);
-        query.setFirstResult((normalizedPage - 1) * pageSize);
-        query.setMaxResults(pageSize);
+        QueryPagingSupport.applyPaging(query, params, countPrescriptions(patientId, status, from, to), pageSize);
 
         return query.getResultList();
     }
