@@ -2,14 +2,11 @@ package com.evercare.repositories.impl;
 
 import com.evercare.enums.InvoiceStatus;
 import com.evercare.pojo.Invoice;
+import com.evercare.pojo.Patient;
 import com.evercare.repositories.InvoiceRepository;
 import com.evercare.utils.QueryPagingSupport;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,17 +73,24 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     public Invoice getInvoiceByMedicalRecordId(Long medicalRecordId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.medicalRecordId.id = :medicalRecordId
-                    AND i.active = true
-                """, Invoice.class)
-                .setParameter("medicalRecordId", medicalRecordId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+
+        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
+        patientFetch.fetch("userId", JoinType.LEFT);
+
+        query.select(root);
+        query.where(
+                builder.equal(root.get("medicalRecordId").get("id"), medicalRecordId),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -131,36 +135,49 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     public Invoice getInvoiceByPatientIdAndId(Long patientId, Long invoiceId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND p.id = :patientId
-                    AND i.id = :invoiceId
-                """, Invoice.class)
-                .setParameter("patientId", patientId)
-                .setParameter("invoiceId", invoiceId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
+
+        patientFetch.fetch("userId", JoinType.LEFT);
+
+        query.select(root);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.equal(root.get("id"), invoiceId),
+                builder.equal(root.get("patientId").get("id"), patientId)
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
     public Invoice getInvoiceById(Long invoiceId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND i.id = :invoiceId
-                """, Invoice.class)
-                .setParameter("invoiceId", invoiceId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
+
+        patientFetch.fetch("userId", JoinType.LEFT);
+
+        query.select(root);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.equal(root.get("id"), invoiceId)
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override

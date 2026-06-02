@@ -1,10 +1,14 @@
 package com.evercare.repositories.impl;
 
 import com.evercare.pojo.MedicalRecord;
+import com.evercare.pojo.Appointment;
+import com.evercare.pojo.Doctor;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.time.LocalDate;
@@ -48,18 +52,22 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
     @Override
     public MedicalRecord getMedicalRecordById(Long recordId) {
         Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalRecord> cq = cb.createQuery(MedicalRecord.class);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
 
-        return session.createQuery("""
-                SELECT mr FROM MedicalRecord mr
-                JOIN FETCH mr.doctorId d
-                JOIN FETCH mr.patientId p
-                JOIN FETCH mr.appointmentId a
-                LEFT JOIN FETCH mr.invoice i
-                LEFT JOIN FETCH a.medicalRecord amr
-                WHERE mr.id = :recordId
-                """, MedicalRecord.class)
-                .setParameter("recordId", recordId)
-                .uniqueResult();
+        root.fetch("doctorId", JoinType.INNER);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("appointmentId", JoinType.LEFT);
+        root.fetch("invoice", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.equal(root.get("id"), recordId));
+
+        return session.createQuery(cq)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -88,21 +96,25 @@ public class MedicalRecordRepositoryImpl implements MedicalRecordRepository {
     @Override
     public MedicalRecord getMedicalRecordByPatientIdAndId(Long patientId, Long recordId) {
         Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalRecord> cq = cb.createQuery(MedicalRecord.class);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
 
-        return session.createQuery("""
-                SELECT DISTINCT mr
-                FROM MedicalRecord mr
-                JOIN FETCH mr.doctorId d
-                LEFT JOIN FETCH d.departmentId dept
-                JOIN FETCH mr.patientId p
-                LEFT JOIN FETCH mr.appointmentId a
-                WHERE mr.active = true
-                    AND p.id = :patientId
-                    AND mr.id = :recordId
-                """, MedicalRecord.class)
-                .setParameter("patientId", patientId)
-                .setParameter("recordId", recordId)
-                .uniqueResult();
+        root.fetch("doctorId", JoinType.INNER);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("appointmentId", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.isTrue(root.get("active")),
+                cb.equal(root.get("patientId").get("id"), patientId),
+                cb.equal(root.get("id"), recordId)
+        );
+
+        return session.createQuery(cq)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     private long countMedicalRecords(Long patientId, LocalDate from, LocalDate to) {

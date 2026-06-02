@@ -4,13 +4,10 @@ import com.evercare.enums.PrescriptionStatus;
 import com.evercare.pojo.Prescription;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.utils.PaginationUtils;
+import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.LockModeType;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Fetch;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +15,7 @@ import java.util.Map;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
@@ -129,9 +127,7 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
 
         Query<Prescription> query = session.createQuery(cq);
         int pageSize = this.env.getProperty("patientRecord.pageSize", Integer.class);
-        int normalizedPage = PaginationUtils.normalizePage(PaginationUtils.getPage(params), countPrescriptions(patientId, status, from, to), pageSize);
-        query.setFirstResult((normalizedPage - 1) * pageSize);
-        query.setMaxResults(pageSize);
+        QueryPagingSupport.applyPaging(query, params, countPrescriptions(patientId, status, from, to), pageSize);
 
         return query.getResultList();
     }
