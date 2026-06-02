@@ -99,6 +99,33 @@ public class MedicineRepositoryImpl implements MedicineRepository {
     }
 
     @Override
+    public List<Medicine> getActiveMedicinesByIds(List<Long> ids) {
+        List<Long> normalizedIds = ids == null
+                ? List.of()
+                : ids.stream()
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        if (normalizedIds.isEmpty()) {
+            return List.of();
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Medicine> cq = cb.createQuery(Medicine.class);
+        Root<Medicine> root = cq.from(Medicine.class);
+
+        cq.select(root);
+        cq.where(
+                root.get("id").in(normalizedIds),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
     public Medicine getMedicineByCode(String medicineCode) {
         Session session = this.factory.getObject().getCurrentSession();
 

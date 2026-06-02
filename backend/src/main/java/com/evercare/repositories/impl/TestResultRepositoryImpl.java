@@ -5,6 +5,7 @@ import com.evercare.repositories.TestResultRepository;
 import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -46,7 +47,9 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     }
 
     private void fetchTestResultGraph(Root<TestResult> root) {
-        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<TestResult, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
         root.fetch("performedBy", JoinType.LEFT);
     }

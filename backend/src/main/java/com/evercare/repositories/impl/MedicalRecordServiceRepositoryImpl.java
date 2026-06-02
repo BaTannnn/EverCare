@@ -62,6 +62,8 @@ public class MedicalRecordServiceRepositoryImpl implements MedicalRecordServiceR
         Fetch<MedicalRecordService, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
         medicalRecordFetch.fetch("patientId", JoinType.INNER);
         medicalRecordFetch.fetch("doctorId", JoinType.INNER);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
         root.fetch("serviceId", JoinType.INNER);
 
         Subquery<Long> resultSubquery = cq.subquery(Long.class);

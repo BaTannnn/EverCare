@@ -19,14 +19,14 @@ public final class AppointmentMapper {
     }
 
     public static DoctorAppointmentResponse toDoctorResponse(Appointment appointment) {
-        return toDoctorResponse(appointment, true);
+        return toDoctorResponse(appointment, true, true);
     }
 
     public static DoctorAppointmentResponse toDoctorSummaryResponse(Appointment appointment) {
-        return toDoctorResponse(appointment, false);
+        return toDoctorResponse(appointment, false,false);
     }
 
-    private static DoctorAppointmentResponse toDoctorResponse(Appointment appointment, boolean includePrescription) {
+    private static DoctorAppointmentResponse toDoctorResponse(Appointment appointment, boolean includePrescription, boolean includeMedicalRecord) {
         DoctorAppointmentResponse res = new DoctorAppointmentResponse();
         res.setId(appointment.getId());
         res.setAppointmentCode(appointment.getAppointmentCode());
@@ -40,7 +40,7 @@ public final class AppointmentMapper {
         res.setPatient(toPatientResponse(appointment.getPatientId()));
         res.setService(MedicalServiceMapper.toResponse(appointment.getServiceId()));
 
-        MedicalRecord medicalRecord = appointment.getMedicalRecord();
+        MedicalRecord medicalRecord = includeMedicalRecord ? appointment.getMedicalRecord() : null;
         if (medicalRecord != null) {
             res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
             if (includePrescription && medicalRecord.getPrescription() != null) {

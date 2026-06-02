@@ -205,6 +205,23 @@ public class PrescriptionRepositoryImpl implements PrescriptionRepository {
                 .uniqueResult();
     }
 
+    @Override
+    public boolean existsByMedicalRecordId(Long medicalRecordId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Prescription> root = cq.from(Prescription.class);
+
+        cq.select(cb.count(root));
+        cq.where(
+                cb.equal(root.get("medicalRecordId").get("id"), medicalRecordId),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq).getSingleResult() > 0;
+    }
+
     private long countPrescriptions(Long patientId, String status, LocalDate from, LocalDate to) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
