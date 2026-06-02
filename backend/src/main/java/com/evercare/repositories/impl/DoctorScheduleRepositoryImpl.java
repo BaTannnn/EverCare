@@ -1,5 +1,6 @@
 package com.evercare.repositories.impl;
 
+import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.pojo.DoctorSchedule;
 import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.utils.PaginationUtils;
@@ -193,31 +194,31 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
                                              Long excludeId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        String hql = """
-                SELECT COUNT(s.id)
-                FROM DoctorSchedule s
-                WHERE s.doctorId.id = :doctorId
-                  AND s.workDate = :workDate
-                  AND s.active = true
-                  AND s.startTime < :endTime
-                  AND s.endTime > :startTime
-                """;
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Long> query = builder.createQuery(Long.class);
+        Root<DoctorSchedule> root = query.from(DoctorSchedule.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        predicates.add(builder.equal(root.get("doctorId").get("id"), doctorId));
+        predicates.add(builder.equal(root.get("workDate"), workDate));
+        predicates.add(builder.isTrue(root.get("active")));
+        predicates.add(builder.lessThan(root.get("startTime"), endTime));
+        predicates.add(builder.greaterThan(root.get("endTime"), startTime));
+        predicates.add(builder.equal(root.get("status"), DoctorScheduleStatus.AVAILABLE.getCode()));
 
         if (excludeId != null) {
-            hql += " AND s.id <> :excludeId";
+            predicates.add(builder.notEqual(root.get("id"), excludeId));
         }
 
-        var query = session.createQuery(hql, Long.class);
-        query.setParameter("doctorId", doctorId);
-        query.setParameter("workDate", workDate);
-        query.setParameter("startTime", startTime);
-        query.setParameter("endTime", endTime);
+        query.select(root.get("id"));
+        query.where(predicates.toArray(Predicate[]::new));
 
-        if (excludeId != null) {
-            query.setParameter("excludeId", excludeId);
-        }
-
-        return query.getSingleResult() > 0;
+        return session.createQuery(query)
+                .setMaxResults(1)
+                .getResultStream()
+                .findFirst()
+                .isPresent();
     }
 
     @Override

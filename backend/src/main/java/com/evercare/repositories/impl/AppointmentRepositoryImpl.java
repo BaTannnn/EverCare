@@ -266,41 +266,55 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     public Appointment getAppointmentById(Long appointmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT a FROM Appointment a
-                JOIN FETCH a.doctorId d
-                JOIN FETCH a.patientId p
-                LEFT JOIN FETCH a.serviceId s
-                LEFT JOIN FETCH a.medicalRecord mr
-                LEFT JOIN FETCH mr.prescription pr
-                LEFT JOIN FETCH pr.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE a.id = :appointmentId
-                    AND a.active = true
-                """, Appointment.class)
-                .setParameter("appointmentId", appointmentId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+        root.fetch("doctorId", JoinType.INNER);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.LEFT);
+        Fetch<Appointment, ?> medicalRecordFetch = root.fetch("medicalRecord", JoinType.LEFT);
+        Fetch<?, ?> prescriptionFetch = medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        Fetch<?, ?> itemFetch = prescriptionFetch.fetch("prescriptionItemSet", JoinType.LEFT);
+        itemFetch.fetch("medicineId", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.equal(root.get("id"), appointmentId),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
     public Appointment getAppointmentByDoctorAndId(Long doctorId, Long appointmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT a FROM Appointment a
-                JOIN FETCH a.patientId p
-                LEFT JOIN FETCH a.serviceId s
-                LEFT JOIN FETCH a.medicalRecord mr
-                LEFT JOIN FETCH mr.prescription pr
-                LEFT JOIN FETCH pr.prescriptionItemSet item
-                LEFT JOIN FETCH item.medicineId medicine
-                WHERE a.doctorId.id = :doctorId
-                    AND a.id = :appointmentId
-                    AND a.active = true
-                """, Appointment.class)
-                .setParameter("doctorId", doctorId)
-                .setParameter("appointmentId", appointmentId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.LEFT);
+        Fetch<Appointment, ?> medicalRecordFetch = root.fetch("medicalRecord", JoinType.LEFT);
+        Fetch<?, ?> prescriptionFetch = medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        Fetch<?, ?> itemFetch = prescriptionFetch.fetch("prescriptionItemSet", JoinType.LEFT);
+        itemFetch.fetch("medicineId", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.equal(root.get("doctorId").get("id"), doctorId),
+                builder.equal(root.get("id"), appointmentId),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
