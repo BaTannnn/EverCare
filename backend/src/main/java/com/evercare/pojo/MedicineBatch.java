@@ -6,6 +6,7 @@ package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -87,7 +88,7 @@ public class MedicineBatch implements Serializable {
     @Column(name = "active")
     private Boolean active;
     @JoinColumn(name = "medicine_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Medicine medicineId;
     @OneToMany(mappedBy = "batchId")
     private Set<InventoryTransaction> inventoryTransactionSet;
