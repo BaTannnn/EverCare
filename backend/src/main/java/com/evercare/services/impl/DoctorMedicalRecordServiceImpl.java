@@ -29,6 +29,7 @@ import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.DoctorMedicalRecordService;
 import com.evercare.utils.AuthSupport;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -36,12 +37,16 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordService {
+    private static final String INSURANCE_DISCOUNT_RATE_PROPERTY = "payment.insurance.discountRate";
+    private static final BigDecimal DEFAULT_INSURANCE_DISCOUNT_RATE = new BigDecimal("0.8");
+
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
 
@@ -65,6 +70,9 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
 
     @Autowired
     private AuthSupport authSupport;
+
+    @Autowired
+    private Environment env;
 
     @Override
     public MedicalRecordResponse updateMedicalRecord(String username, Long recordId, UpdateMedicalRecordRequest request) {
@@ -266,9 +274,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
 
         BigDecimal serviceAmount = calculateServiceAmount(medicalRecord);
         BigDecimal medicineAmount = calculateMedicineAmount(medicalRecord.getId());
-        BigDecimal discountAmount = invoice != null && invoice.getDiscountAmount() != null
-                ? invoice.getDiscountAmount()
-                : BigDecimal.ZERO;
+        BigDecimal discountAmount = resolveInsuranceDiscountAmount(medicalRecord.getPatientId(), serviceAmount.add(medicineAmount));
         BigDecimal totalAmount = serviceAmount.add(medicineAmount).subtract(discountAmount);
 
         if (invoice == null) {
@@ -298,6 +304,49 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         }
 
         return true;
+    }
+
+    private BigDecimal resolveInsuranceDiscountAmount(com.evercare.pojo.Patient patient, BigDecimal baseAmount) {
+        if (patient == null || patient.getHealthInsuranceNo() == null || patient.getHealthInsuranceNo().isBlank()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal normalizedBaseAmount = baseAmount != null ? baseAmount : BigDecimal.ZERO;
+        if (normalizedBaseAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discountRate = resolveInsuranceDiscountRate();
+        if (discountRate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discountAmount = normalizedBaseAmount.multiply(discountRate);
+        return discountAmount.min(normalizedBaseAmount).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveInsuranceDiscountRate() {
+        if (this.env == null) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        String configuredValue = this.env.getProperty(INSURANCE_DISCOUNT_RATE_PROPERTY);
+        if (configuredValue == null || configuredValue.isBlank()) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        try {
+            BigDecimal parsed = new BigDecimal(configuredValue.trim());
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                return BigDecimal.ZERO;
+            }
+            if (parsed.compareTo(BigDecimal.ONE) > 0) {
+                return BigDecimal.ONE;
+            }
+            return parsed;
+        } catch (NumberFormatException ex) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
     }
 
     private BigDecimal calculateServiceAmount(MedicalRecord medicalRecord) {

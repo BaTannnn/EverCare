@@ -24,6 +24,7 @@ import com.evercare.utils.AuthSupport;
 import com.evercare.utils.PaymentGatewaySupport;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -48,6 +49,8 @@ public class PaymentServiceImpl implements PaymentService {
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Logger logger = LoggerFactory.getLogger(PaymentServiceImpl.class);
     private static final String PAYMENT_TYPE = "PAYMENT";
+    private static final String INSURANCE_DISCOUNT_RATE_PROPERTY = "payment.insurance.discountRate";
+    private static final BigDecimal DEFAULT_INSURANCE_DISCOUNT_RATE = new BigDecimal("0.8");
 
     @Autowired
     private InvoiceRepository invoiceRepo;
@@ -399,6 +402,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentResultResponse createPaymentForInvoice(Invoice invoice, PaymentRequest request) {
+        applyHealthInsuranceDiscount(invoice);
         validateInvoiceForPayment(invoice);
 
         String paymentMethod = normalizePaymentMethod(request != null ? request.getPaymentMethod() : null);
@@ -476,6 +480,76 @@ public class PaymentServiceImpl implements PaymentService {
         if (invoice.getTotalAmount() == null || invoice.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Tổng tiền hóa đơn không hợp lệ");
         }
+    }
+
+    private void applyHealthInsuranceDiscount(Invoice invoice) {
+        if (invoice == null || invoice.getPatientId() == null) {
+            return;
+        }
+
+        Patient patient = invoice.getPatientId();
+        if (patient.getHealthInsuranceNo() == null || patient.getHealthInsuranceNo().isBlank()) {
+            return;
+        }
+
+        BigDecimal baseAmount = normalizeAmount(invoice.getTotalServiceAmount())
+                .add(normalizeAmount(invoice.getTotalMedicineAmount()));
+        if (baseAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        BigDecimal discountRate = resolveInsuranceDiscountRate();
+        if (discountRate.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        BigDecimal discountAmount = baseAmount.multiply(discountRate)
+                .min(baseAmount)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = baseAmount.subtract(discountAmount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+
+        boolean changed = invoice.getDiscountAmount() == null
+                || invoice.getDiscountAmount().compareTo(discountAmount) != 0
+                || invoice.getTotalAmount() == null
+                || invoice.getTotalAmount().compareTo(totalAmount) != 0;
+
+        if (!changed) {
+            return;
+        }
+
+        invoice.setDiscountAmount(discountAmount);
+        invoice.setTotalAmount(totalAmount);
+        invoice.setUpdatedAt(new Date());
+        this.invoiceRepo.updateInvoice(invoice);
+    }
+
+    private BigDecimal resolveInsuranceDiscountRate() {
+        if (this.env == null) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        String configuredValue = this.env.getProperty(INSURANCE_DISCOUNT_RATE_PROPERTY);
+        if (configuredValue == null || configuredValue.isBlank()) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        try {
+            BigDecimal parsed = new BigDecimal(configuredValue.trim());
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                return BigDecimal.ZERO;
+            }
+            if (parsed.compareTo(BigDecimal.ONE) > 0) {
+                return BigDecimal.ONE;
+            }
+            return parsed;
+        } catch (NumberFormatException ex) {
+            logger.warn("Invalid insurance discount rate '{}', using default {}", configuredValue, DEFAULT_INSURANCE_DISCOUNT_RATE);
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+    }
+
+    private BigDecimal normalizeAmount(BigDecimal amount) {
+        return amount != null ? amount : BigDecimal.ZERO;
     }
 
     private BigDecimal resolveRemainingAmount(Invoice invoice) {
