@@ -77,7 +77,10 @@ public class AuthSupport {
             return null;
         }
 
-        Patient patient = this.patientRepo.getPatientByUserId(currentUser.getId());
+        Patient patient = currentUser.getPatient();
+        if (patient == null) {
+            patient = this.patientRepo.getPatientByUserId(currentUser.getId());
+        }
         return patient != null && !Boolean.FALSE.equals(patient.getActive()) ? patient : null;
     }
 

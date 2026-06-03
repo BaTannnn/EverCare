@@ -160,10 +160,12 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
         doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("medicalRecord", JoinType.LEFT);
 
         List<Predicate> predicates = buildPatientPredicates(patientId, builder, root, params);
 
-        query.select(root);
+        query.select(root).distinct(true);
         query.where(predicates.toArray(Predicate[]::new));
         query.orderBy(
                 builder.desc(root.get("appointmentDate")),
@@ -206,8 +208,10 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
         doctorFetch.fetch("departmentId", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("medicalRecord", JoinType.LEFT);
 
-        query.select(root);
+        query.select(root).distinct(true);
         query.where(
                 builder.equal(root.get("id"), appointmentId),
                 builder.equal(root.get("patientId").get("id"), patientId),
