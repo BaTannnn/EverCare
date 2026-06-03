@@ -383,6 +383,29 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public Appointment getAppointmentForEmail(Long appointmentId) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+        root.fetch("doctorId", JoinType.INNER);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.equal(root.get("id"), appointmentId),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
     public Appointment getAppointmentByDoctorAndId(Long doctorId, Long appointmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 

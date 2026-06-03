@@ -134,10 +134,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
 
         Map<String, Long> countsByStatus = getInvoiceStatusCounts(fromDate, toDate);
         response.setPaidInvoiceCount(countsByStatus.getOrDefault(InvoiceStatus.PAID.getCode(), 0L));
-        response.setUnpaidInvoiceCount(
-                countsByStatus.getOrDefault(InvoiceStatus.UNPAID.getCode(), 0L)
-                        + countsByStatus.getOrDefault(InvoiceStatus.PARTIALLY_PAID.getCode(), 0L)
-        );
+        response.setUnpaidInvoiceCount(countsByStatus.getOrDefault(InvoiceStatus.UNPAID.getCode(), 0L));
         response.setRefundedInvoiceCount(countsByStatus.getOrDefault(InvoiceStatus.REFUNDED.getCode(), 0L));
         response.setSeries(getRevenueSeries(fromDate, toDate, groupBy));
         response.setDetails(getRevenueDetails(fromDate, toDate));
