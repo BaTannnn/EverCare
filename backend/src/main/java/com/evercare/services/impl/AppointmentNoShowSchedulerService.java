@@ -3,6 +3,7 @@ package com.evercare.services.impl;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Appointment;
 import com.evercare.repositories.AppointmentRepository;
+import com.evercare.utils.DateTimeUtils;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Date;
@@ -38,8 +39,10 @@ public class AppointmentNoShowSchedulerService {
                 continue;
             }
 
-            LocalDate appointmentDate = toLocalDate(appointment.getAppointmentDate());
-            LocalTime cutoffTime = toLocalTime(appointment.getEndTime() != null ? appointment.getEndTime() : appointment.getStartTime());
+            LocalDate appointmentDate = DateTimeUtils.toLocalDate(appointment.getAppointmentDate());
+            LocalTime cutoffTime = DateTimeUtils.toNormalizedLocalTime(
+                    appointment.getEndTime() != null ? appointment.getEndTime() : appointment.getStartTime()
+            );
             if (appointmentDate == null || cutoffTime == null) {
                 continue;
             }
@@ -61,27 +64,4 @@ public class AppointmentNoShowSchedulerService {
         }
     }
 
-    private LocalDate toLocalDate(Date date) {
-        if (date == null) {
-            return null;
-        }
-
-        if (date instanceof java.sql.Date sqlDate) {
-            return sqlDate.toLocalDate();
-        }
-
-        return date.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private LocalTime toLocalTime(Date time) {
-        if (time == null) {
-            return null;
-        }
-
-        if (time instanceof java.sql.Time sqlTime) {
-            return sqlTime.toLocalTime();
-        }
-
-        return time.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0);
-    }
 }
