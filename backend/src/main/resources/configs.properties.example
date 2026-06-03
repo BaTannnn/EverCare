@@ -1,0 +1,22 @@
+department.pageSize = 8
+medicalService.pageSize = 8
+doctor.pageSize = 8
+doctorSchedule.pageSize = 8
+
+# MiMo/OpenAI-compatible chat completion settings. Keep the API key only on backend.
+mimo.chat-completions-url = https://api.openai.com/v1/chat/completions
+mimo.model = gpt-4o-mini
+mimo.api.key =
+
+# SMTP settings. For Gmail, use a Google App Password, not the Gmail account password.
+mail.host=smtp.gmail.com
+mail.port=587
+mail.username=nguyenbatan.2908@gmail.com
+mail.password=mfmr tztl tgpj eclp
+mail.from=nguyenbatan.2908@gmail.com
+mail.transport.protocol=smtp
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+mail.smtp.connectiontimeout=5000
+mail.smtp.timeout=5000
+mail.smtp.writetimeout=5000

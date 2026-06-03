@@ -1,0 +1,65 @@
+package com.evercare.mappers;
+
+import com.evercare.dtos.response.MedicalRecordServiceResponse;
+import com.evercare.dtos.response.TestResultResponse;
+import com.evercare.enums.MedicalRecordServiceStatus;
+import com.evercare.pojo.MedicalRecordService;
+import com.evercare.pojo.MedicalService;
+import com.evercare.pojo.TestResult;
+import java.util.Collections;
+import java.util.List;
+
+public final class MedicalRecordServiceMapper {
+    private MedicalRecordServiceMapper() {
+    }
+
+    public static MedicalRecordServiceResponse toResponse(
+            MedicalRecordService recordService,
+            List<TestResult> testResults
+    ) {
+        return toResponse(recordService, testResults, true);
+    }
+
+    public static MedicalRecordServiceResponse toSummaryResponse(
+            MedicalRecordService recordService,
+            List<TestResult> testResults
+    ) {
+        return toResponse(recordService, testResults, false);
+    }
+
+    private static MedicalRecordServiceResponse toResponse(
+            MedicalRecordService recordService,
+            List<TestResult> testResults,
+            boolean includeTestResults
+    ) {
+        MedicalRecordServiceResponse res = new MedicalRecordServiceResponse();
+        MedicalService service = recordService.getServiceId();
+
+        res.setId(recordService.getId());
+        res.setMedicalRecordId(recordService.getMedicalRecordId() != null ? recordService.getMedicalRecordId().getId() : null);
+        res.setServiceId(service != null ? service.getId() : null);
+        res.setServiceCode(service != null ? service.getCode() : null);
+        res.setServiceName(service != null ? service.getName() : null);
+        res.setServiceType(service != null ? service.getServiceType() : null);
+        MedicalRecordServiceStatus status = MedicalRecordServiceStatus.fromHasActiveResult(hasActiveResult(testResults));
+        res.setStatus(status.getCode());
+        res.setStatusLabel(status.getLabel());
+        res.setQuantity(recordService.getQuantity());
+        res.setUnitPrice(recordService.getUnitPrice());
+        res.setResultSummary(recordService.getResultSummary());
+
+        if (includeTestResults) {
+            List<TestResultResponse> resultResponses = testResults == null
+                    ? Collections.emptyList()
+                    : testResults.stream().map(TestResultMapper::toResponse).toList();
+            res.setTestResults(resultResponses);
+        }
+
+        return res;
+    }
+
+    private static boolean hasActiveResult(List<TestResult> testResults) {
+        return testResults != null
+                && testResults.stream().anyMatch(result -> result != null && !Boolean.FALSE.equals(result.getActive()));
+    }
+}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+    <head>
+        <title>Chi tiết dịch vụ</title>
+    <th:block th:replace="base :: css"></th:block>
+<body>
+<div th:replace="base :: header"></div>
+    <section class="container">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1" th:text="${pageTitle}">Form dịch vụ</h2>
+                <p class="text-muted mb-0">Nhập thông tin dịch vụ y tế.</p>
+            </div>
+
+            <a class="btn btn-outline-secondary" th:href="@{/admin/services}">
+                Quay lại
+            </a>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+
+                <div th:if="${err}" class="alert alert-danger" th:text="${err}"></div>
+
+                <form th:action="${isEdit}
+                        ? @{/admin/services/{id}/edit(id=${serviceId})}
+                        : @{/admin/services}"
+                    th:object="${service}"
+                    method="post">
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            Tên dịch vụ <span class="text-danger">*</span>
+                        </label>
+                        <input id="name"
+                            class="form-control"
+                            type="text"
+                            th:field="*{name}"
+                            placeholder="Ví dụ: Khám tổng quát"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="departmentId" class="form-label">
+                            Khoa phụ trách <span class="text-danger">*</span>
+                        </label>
+
+                        <select id="departmentId"
+                                class="form-select"
+                                th:field="*{departmentId}"
+                                required>
+                            <option value="">-- Chọn khoa --</option>
+                            <option th:each="d : ${departments}"
+                                    th:value="${d.id}"
+                                    th:text="${d.name}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="price" class="form-label">Giá dịch vụ</label>
+                            <input id="price"
+                                class="form-control"
+                                type="number"
+                                min="0"
+                                step="1000"
+                                th:field="*{price}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <select id="serviceType" class="form-select" name="serviceType">
+                                <option th:each="type : ${serviceTypes}"
+                                        th:value="${type.code}"
+                                        th:text="${type.label}"
+                                        th:selected="${serviceType == type.code}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Mô tả</label>
+                        <textarea id="description"
+                                class="form-control"
+                                rows="4"
+                                th:field="*{description}"
+                                placeholder="Nhập mô tả ngắn về dịch vụ"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Lưu</button>
+                        <a class="btn btn-outline-secondary" th:href="@{/admin/services}">Hủy</a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </section>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>

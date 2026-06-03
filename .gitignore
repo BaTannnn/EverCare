@@ -1,8 +1,27 @@
+backend/src/main/resources/database.properties
+backend/src/main/resources/configs.properties
+backend/src/main/resources/payments.properties
+*.env
+.env
+
+# Maven build output
+target/
+*/target/
+
+# NetBeans
+nbproject/private/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
 # Compiled class file
 *.class
 
 # Log file
 *.log
+logs/
 
 # BlueJ files
 *.ctxt
@@ -22,3 +41,4 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+/backend/target/
