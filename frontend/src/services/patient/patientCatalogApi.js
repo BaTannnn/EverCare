@@ -4,7 +4,11 @@ import { unwrapPatientList } from "./patientApiHelpers";
 import { mapDoctor, mapMedicalService } from "./patientMappers";
 
 export const getPatientDoctors = async () => {
-  const response = await authApis().get(endpoints.doctors);
+  const response = await authApis().get(endpoints.doctors, {
+    params: {
+      noPaging: true,
+    },
+  });
   return { ...response, data: unwrapPatientList(response).map(mapDoctor) };
 };
 
@@ -13,6 +17,7 @@ export const getPatientMedicalServices = async () => {
     {
       params: {
         serviceTypes: "EXAMINATION",
+        noPaging: true,
       }
     }
   );

@@ -219,10 +219,6 @@ public class PaymentServiceImpl implements PaymentService {
                 invoice.setUpdatedAt(new Date());
                 this.invoiceRepo.updateInvoice(invoice);
             }
-        } else if (invoice.getTotalAmount() != null && paidAmount.compareTo(BigDecimal.ZERO) > 0) {
-            invoice.setPaymentStatus(InvoiceStatus.PARTIALLY_PAID.getCode());
-            invoice.setUpdatedAt(new Date());
-            this.invoiceRepo.updateInvoice(invoice);
         }
     }
 

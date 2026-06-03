@@ -110,10 +110,6 @@ public class UserServiceImpl implements UserService {
         HashSet<Role> roles = new HashSet<>();
         roles.add(patientRole);
         user.setRoleSet(roles);
-        if (patientRole.getUserSet() == null) {
-            patientRole.setUserSet(new HashSet<>());
-        }
-        patientRole.getUserSet().add(user);
         user.setActive(true);
         user.setEnabled(true);
         user.setAccountNonLocked(true);

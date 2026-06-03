@@ -23,6 +23,8 @@ public interface AppointmentRepository {
 
     Appointment getAppointmentById(Long appointmentId);
 
+    Appointment getAppointmentForEmail(Long appointmentId);
+
     Appointment getAppointmentByDoctorAndId(Long doctorId, Long appointmentId);
 
     void updateAppointment(Appointment appointment);

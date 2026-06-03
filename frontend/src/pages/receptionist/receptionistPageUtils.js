@@ -53,7 +53,6 @@ export const invoiceStatusMeta = (status) => {
   const normalized = String(status || "UNPAID").toUpperCase();
   const map = {
     UNPAID: { label: "Chưa thanh toán", variant: "danger" },
-    PARTIALLY_PAID: { label: "Thanh toán một phần", variant: "warning" },
     PAID: { label: "Đã thanh toán", variant: "success" },
     REFUNDED: { label: "Đã hoàn tiền", variant: "secondary" },
     PENDING: { label: "Đang xử lý", variant: "warning" },
@@ -89,4 +88,3 @@ export const invoiceSearchText = (invoice) =>
     invoice?.patientPhone,
     invoice?.medicalRecordCode,
   ].join(" ")).toLowerCase();
-

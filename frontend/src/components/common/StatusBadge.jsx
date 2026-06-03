@@ -17,7 +17,6 @@ const STATUS_META = {
   NO_SHOW: { label: "Không đến", bg: "secondary" },
   PRESCRIBED: { label: "Chờ cấp phát", bg: "primary" },
   DISPENSED: { label: "Đã cấp phát", bg: "success" },
-  PARTIALLY_PAID: { label: "Thanh toán một phần", bg: "warning" },
   REFUNDED: { label: "Đã hoàn tiền", bg: "secondary" },
   ENOUGH: { label: "Đủ tồn", bg: "success" },
   LOW: { label: "Sắp hết", bg: "warning" },

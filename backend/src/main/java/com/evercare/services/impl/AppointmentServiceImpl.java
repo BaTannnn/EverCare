@@ -22,6 +22,7 @@ import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.services.AppointmentService;
+import com.evercare.services.EmailService;
 import com.evercare.utils.AuthSupport;
 import com.evercare.utils.DateTimeUtils;
 import com.evercare.utils.LookupSupport;
@@ -39,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -70,6 +73,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Autowired
     private LookupSupport lookupSupport;
+
+    @Autowired
+    private EmailService emailService;
 
     @Override
     public AppointmentResponse bookAppointment(AppointmentRequest request) {
@@ -114,6 +120,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             this.appointmentRepo.updateAppointment(existingAppointment);
 
             createNotification(currentUser, "Đặt lịch khám thành công", "Bạn đã đặt lịch khám thành công.", existingAppointment.getId());
+            sendAppointmentConfirmationEmailAfterCommit(existingAppointment.getId());
             return AppointmentMapper.toPatientResponse(existingAppointment);
         }
 
@@ -132,6 +139,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 request.getSymptomNote()
         );
         createNotification(currentUser, "Đặt lịch khám thành công", "Bạn đã đặt lịch khám thành công.", saved.getId());
+        sendAppointmentConfirmationEmailAfterCommit(saved.getId());
 
         return AppointmentMapper.toPatientResponse(saved);
     }
@@ -232,6 +240,45 @@ public class AppointmentServiceImpl implements AppointmentService {
         LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
 
         validateDateTime(appointmentDate, startTime, endTime);
+
+        Appointment existingAppointment = this.appointmentRepo.getAppointmentByPatientDoctorAndSlot(
+                patient.getId(),
+                doctor.getId(),
+                java.sql.Date.valueOf(appointmentDate),
+                Time.valueOf(startTime),
+                Time.valueOf(endTime)
+        );
+
+        if (existingAppointment != null) {
+            if (!STATUS_CANCELLED.equalsIgnoreCase(existingAppointment.getStatus())) {
+                throw new IllegalStateException("Đặt lịch trùng");
+            }
+
+            validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, existingAppointment.getId());
+
+            existingAppointment.setStatus(STATUS_BOOKED);
+            existingAppointment.setCancelReason(null);
+            existingAppointment.setReason(trimToNull(request.getReason()));
+            existingAppointment.setSymptomNote(trimToNull(request.getSymptomNote()));
+            existingAppointment.setDoctorId(doctor);
+            existingAppointment.setPatientId(patient);
+            existingAppointment.setServiceId(service);
+            existingAppointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
+            existingAppointment.setStartTime(Time.valueOf(startTime));
+            existingAppointment.setEndTime(Time.valueOf(endTime));
+            existingAppointment.setUpdatedAt(new Date());
+            this.appointmentRepo.updateAppointment(existingAppointment);
+
+            notifyPatientByAppointment(
+                    patient,
+                    existingAppointment,
+                    "Đặt lịch khám thành công",
+                    "Bạn đã đặt lịch khám thành công."
+            );
+
+            return AppointmentMapper.toReceptionistResponse(existingAppointment);
+        }
+
         validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
         boolean checkInNow = Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now());
@@ -256,6 +303,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         ? "Bạn đã được tiếp nhận tại quầy và đang chờ bác sĩ khám."
                         : "Bạn đã đặt lịch khám thành công."
         );
+        sendAppointmentConfirmationEmailAfterCommit(saved.getId());
 
         return AppointmentMapper.toReceptionistResponse(saved);
     }
@@ -591,7 +639,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         LocalDate today = LocalDate.now();
         if (appointmentDate.isBefore(today)
-                || (appointmentDate.isEqual(today) && startTime.isBefore(LocalTime.now()))) {
+                || (appointmentDate.isEqual(today) && endTime.isBefore(LocalTime.now()))) {
             throw new IllegalStateException("Không thể đặt lịch trong quá khứ");
         }
     }
@@ -625,6 +673,32 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         createNotification(userId, title, content, appointment.getId(), TYPE_APPOINTMENT_REMINDER);
+    }
+
+    private void sendAppointmentConfirmationEmailAfterCommit(Long appointmentId) {
+        if (appointmentId == null || this.emailService == null) {
+            return;
+        }
+
+        Runnable sendMail = () -> {
+            try {
+                this.emailService.sendAppointmentConfirmationEmailAsync(appointmentId);
+            } catch (Exception ex) {
+                logger.error("Could not schedule appointment confirmation email for appointmentId={}", appointmentId, ex);
+            }
+        };
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    sendMail.run();
+                }
+            });
+            return;
+        }
+
+        sendMail.run();
     }
 
     private String generatePatientCode() {

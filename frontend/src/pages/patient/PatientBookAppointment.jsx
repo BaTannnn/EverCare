@@ -3,6 +3,7 @@ import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { BsClock, BsExclamationTriangle, BsInfoCircle } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 import { usePatientShell } from "../../contexts/usePatientShell";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import { bookPatientAppointment } from "../../services/patient/patientAppointmentApi";
 import { getPatientDoctors, getPatientMedicalServices } from "../../services/patient/patientCatalogApi";
 import { getPatientDoctorSchedules } from "../../services/patient/patientDoctorScheduleApi";
@@ -369,31 +370,34 @@ function PatientBookAppointment() {
               <Form onSubmit={handleConfirm}>
                 <Row className="g-3">
                   <Col md={6}>
-                    <Form.Group className="patient-form-group">
-                      <Form.Label>Dịch vụ</Form.Label>
-                      <Form.Select value={selectedServiceId} onChange={handleServiceChange}>
-                        <option value="">Chọn dịch vụ</option>
-                        {availableServices.map((service) => (
-                          <option key={service.id} value={normalizeId(service.id)}>
-                            {service.name}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
+                    <SearchableSelect
+                      label="Dịch vụ"
+                      value={selectedServiceId}
+                      options={availableServices}
+                      onChange={(nextValue) => handleServiceChange({ target: { value: nextValue } })}
+                      placeholder="Chọn dịch vụ"
+                      searchPlaceholder="Tìm dịch vụ"
+                      emptyMessage="Không tìm thấy dịch vụ"
+                      getOptionValue={(service) => normalizeId(service.id)}
+                      getOptionLabel={(service) => service.name || ""}
+                      getOptionDescription={(service) => service.departmentName || service.code || ""}
+                    />
                   </Col>
 
                   <Col md={6}>
-                    <Form.Group className="patient-form-group">
-                      <Form.Label>Bác sĩ</Form.Label>
-                      <Form.Select value={selectedDoctorId} onChange={handleDoctorChange} disabled={!selectedServiceId}>
-                        <option value="">{selectedServiceId ? "Chọn bác sĩ" : "Chọn dịch vụ trước"}</option>
-                        {availableDoctors.map((doctor) => (
-                          <option key={doctor.id} value={normalizeId(doctor.id)}>
-                            {doctor.fullName}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
+                    <SearchableSelect
+                      label="Bác sĩ"
+                      value={selectedDoctorId}
+                      options={availableDoctors}
+                      onChange={(nextValue) => handleDoctorChange({ target: { value: nextValue } })}
+                      placeholder={selectedServiceId ? "Chọn bác sĩ" : "Chọn dịch vụ trước"}
+                      searchPlaceholder="Tìm bác sĩ"
+                      emptyMessage="Không tìm thấy bác sĩ"
+                      disabled={!selectedServiceId}
+                      getOptionValue={(doctor) => normalizeId(doctor.id)}
+                      getOptionLabel={(doctor) => doctor.fullName || ""}
+                      getOptionDescription={(doctor) => doctor.departmentName || doctor.doctorCode || ""}
+                    />
                   </Col>
 
                   <Col md={4}>
