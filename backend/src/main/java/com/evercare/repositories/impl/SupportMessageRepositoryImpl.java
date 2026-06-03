@@ -5,6 +5,8 @@ import com.evercare.repositories.SupportMessageRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.CriteriaUpdate;
+import jakarta.persistence.criteria.Fetch;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -40,7 +42,7 @@ public class SupportMessageRepositoryImpl implements SupportMessageRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportMessage> query = builder.createQuery(SupportMessage.class);
         Root<SupportMessage> root = query.from(SupportMessage.class);
-        root.fetch("senderId");
+        fetchMessageGraph(root);
 
         int normalizedLimit = normalizeLimit(limit);
         boolean onlyNewMessages = afterId != null && afterId > 0;
@@ -83,7 +85,7 @@ public class SupportMessageRepositoryImpl implements SupportMessageRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportMessage> query = builder.createQuery(SupportMessage.class);
         Root<SupportMessage> root = query.from(SupportMessage.class);
-        root.fetch("senderId");
+        fetchMessageGraph(root);
 
         Subquery<Long> latestMessageIds = query.subquery(Long.class);
         Root<SupportMessage> subRoot = latestMessageIds.from(SupportMessage.class);
@@ -112,7 +114,7 @@ public class SupportMessageRepositoryImpl implements SupportMessageRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportMessage> query = builder.createQuery(SupportMessage.class);
         Root<SupportMessage> root = query.from(SupportMessage.class);
-        root.fetch("senderId");
+        fetchMessageGraph(root);
 
         query.select(root).distinct(true);
         query.where(
@@ -201,6 +203,13 @@ public class SupportMessageRepositoryImpl implements SupportMessageRepository {
         session.persist(message);
         session.flush();
         return message;
+    }
+
+    private void fetchMessageGraph(Root<SupportMessage> root) {
+        Fetch<?, ?> senderFetch = root.fetch("senderId");
+        senderFetch.fetch("patient", JoinType.LEFT);
+        senderFetch.fetch("employee", JoinType.LEFT);
+        senderFetch.fetch("doctor", JoinType.LEFT);
     }
 
     private int normalizeLimit(Integer limit) {
