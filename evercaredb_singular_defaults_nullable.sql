@@ -511,7 +511,7 @@ CREATE TABLE invoice (
     active BOOLEAN DEFAULT TRUE,
     CONSTRAINT chk_invoice_amount CHECK (total_service_amount >= 0 AND total_medicine_amount >= 0 AND discount_amount >= 0 AND total_amount >= 0),
     CONSTRAINT chk_invoice_payment_method CHECK (payment_method IS NULL OR payment_method IN ('CASH','BANK_TRANSFER','VIETQR','MOMO','VNPAY','PAYPAL')),
-    CONSTRAINT chk_invoice_payment_status CHECK (payment_status IN ('UNPAID','PAID','REFUNDED','PARTIALLY_PAID')),
+    CONSTRAINT chk_invoice_payment_status CHECK (payment_status IN ('UNPAID','PAID','REFUNDED')),
     CONSTRAINT fk_invoice_medical_record
         FOREIGN KEY (medical_record_id) REFERENCES medical_record(id)
         ON DELETE CASCADE,

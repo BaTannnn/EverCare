@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.sql.Time;
+import java.time.LocalDate;
 
 public interface AppointmentRepository {
     List<Appointment> getAppointmentsForReceptionist(Map<String, String> params);
@@ -17,6 +18,7 @@ public interface AppointmentRepository {
     List<Appointment> getAppointmentsByPatientId(Long patientId, Map<String, String> params);
     Appointment getAppointmentByPatientIdAndId(Long patientId, Long appointmentId);
     Appointment getAppointmentByPatientDoctorAndSlot(Long patientId, Long doctorId, Date appointmentDate, Time startTime, Time endTime);
+    List<Appointment> getAppointmentsEligibleForNoShow(LocalDate currentDate);
     Appointment createAppointment(Appointment appointment);
 
     Appointment getAppointmentById(Long appointmentId);

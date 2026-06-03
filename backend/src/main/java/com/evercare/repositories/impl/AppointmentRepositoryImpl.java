@@ -253,6 +253,27 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public List<Appointment> getAppointmentsEligibleForNoShow(LocalDate currentDate) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+
+        query.select(root);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.lessThanOrEqualTo(root.get("appointmentDate"), java.sql.Date.valueOf(currentDate)),
+                root.get("status").in(
+                        AppointmentStatus.BOOKED.getCode(),
+                        AppointmentStatus.WAITING.getCode()
+                )
+        );
+
+        return session.createQuery(query).getResultList();
+    }
+
+    @Override
     public Appointment createAppointment(Appointment appointment) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(appointment);
