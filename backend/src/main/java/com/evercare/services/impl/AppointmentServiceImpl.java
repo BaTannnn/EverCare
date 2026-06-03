@@ -23,6 +23,7 @@ import com.evercare.repositories.NotificationRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.services.AppointmentService;
 import com.evercare.utils.AuthSupport;
+import com.evercare.utils.DateTimeUtils;
 import com.evercare.utils.LookupSupport;
 import java.math.BigInteger;
 import java.sql.Time;
@@ -83,6 +84,39 @@ public class AppointmentServiceImpl implements AppointmentService {
         LocalTime startTime = requireStartTime(request.getStartTime());
         LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
         validateDateTime(appointmentDate, startTime, endTime);
+
+        Appointment existingAppointment = this.appointmentRepo.getAppointmentByPatientDoctorAndSlot(
+                currentPatient.getId(),
+                doctor.getId(),
+                java.sql.Date.valueOf(appointmentDate),
+                Time.valueOf(startTime),
+                Time.valueOf(endTime)
+        );
+
+        if (existingAppointment != null) {
+            if (!STATUS_CANCELLED.equalsIgnoreCase(existingAppointment.getStatus())) {
+                throw new IllegalStateException("Đặt lịch trùng");
+            }
+
+            validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, existingAppointment.getId());
+
+            existingAppointment.setStatus(STATUS_BOOKED);
+            existingAppointment.setCancelReason(null);
+            existingAppointment.setReason(trimToNull(request.getReason()));
+            existingAppointment.setSymptomNote(trimToNull(request.getSymptomNote()));
+            existingAppointment.setDoctorId(doctor);
+            existingAppointment.setPatientId(currentPatient);
+            existingAppointment.setServiceId(service);
+            existingAppointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
+            existingAppointment.setStartTime(Time.valueOf(startTime));
+            existingAppointment.setEndTime(Time.valueOf(endTime));
+            existingAppointment.setUpdatedAt(new Date());
+            this.appointmentRepo.updateAppointment(existingAppointment);
+
+            createNotification(currentUser, "Đặt lịch khám thành công", "Bạn đã đặt lịch khám thành công.", existingAppointment.getId());
+            return AppointmentMapper.toPatientResponse(existingAppointment);
+        }
+
         validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
         Appointment saved = createAndPersistAppointment(
@@ -260,13 +294,15 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             LocalDate appointmentDate = request.getAppointmentDate() != null
                     ? request.getAppointmentDate()
-                    : toLocalDate(appointment.getAppointmentDate());
+                    : DateTimeUtils.toLocalDate(appointment.getAppointmentDate());
             LocalTime startTime = request.getStartTime() != null
                     ? request.getStartTime()
-                    : toLocalTime(appointment.getStartTime());
+                    : DateTimeUtils.toLocalTime(appointment.getStartTime());
             LocalTime endTime = request.getEndTime() != null
                     ? request.getEndTime()
-                    : (appointment.getEndTime() != null ? toLocalTime(appointment.getEndTime()) : startTime.plusMinutes(DEFAULT_APPOINTMENT_MINUTES));
+                    : (appointment.getEndTime() != null
+                            ? DateTimeUtils.toNormalizedLocalTime(appointment.getEndTime())
+                            : startTime.plusMinutes(DEFAULT_APPOINTMENT_MINUTES));
 
             validateDateTime(appointmentDate, startTime, endTime);
             validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, appointment.getId());
@@ -308,7 +344,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new NoSuchElementException("Không tìm thấy lịch hẹn");
         }
 
-        LocalDate appointmentDate = toLocalDate(appointment.getAppointmentDate());
+        LocalDate appointmentDate = DateTimeUtils.toLocalDate(appointment.getAppointmentDate());
         if (!LocalDate.now().equals(appointmentDate)) {
             throw new IllegalStateException("Chỉ có thể check-in lịch hẹn trong ngày hôm nay");
         }
@@ -576,26 +612,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalArgumentException("Vui lòng chọn giờ khám");
         }
         return startTime;
-    }
-
-    private LocalDate toLocalDate(Date date) {
-        if (date == null) {
-            return null;
-        }
-        if (date instanceof java.sql.Date) {
-            return ((java.sql.Date) date).toLocalDate();
-        }
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private LocalTime toLocalTime(Date time) {
-        if (time == null) {
-            return null;
-        }
-        if (time instanceof java.sql.Time) {
-            return ((java.sql.Time) time).toLocalTime();
-        }
-        return time.toInstant().atZone(ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0);
     }
 
     private void notifyPatientByAppointment(Patient patient, Appointment appointment, String title, String content) {

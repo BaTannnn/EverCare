@@ -30,6 +30,7 @@ export const endpoints = {
   "receptionist-appointments": "/secure/receptionist/appointments",
   "receptionist-appointment-detail": (id) => `/secure/receptionist/appointments/${id}`,
   "receptionist-appointment-check-in": (id) => `/secure/receptionist/appointments/${id}/check-in`,
+  "receptionist-patient-search": "/secure/receptionist/patients/search",
   "receptionist-invoices": "/secure/receptionist/invoices",
   "receptionist-invoice-detail": (id) => `/secure/receptionist/invoices/${id}`,
   "receptionist-invoice-payments": (id) => `/secure/receptionist/invoices/${id}/payments`,

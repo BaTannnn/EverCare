@@ -13,14 +13,13 @@ import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.services.DoctorScheduleService;
 import com.evercare.utils.AuthSupport;
 import com.evercare.utils.LookupSupport;
+import com.evercare.utils.DateTimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -164,7 +163,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
         return (int) bookedAppointmentsByDate.getOrDefault(schedule.getWorkDate(), List.of())
                 .stream()
-                .map(appointment -> toLocalTime(appointment.getStartTime()))
+                .map(appointment -> DateTimeUtils.toLocalTime(appointment.getStartTime()))
                 .filter(startTime -> startTime != null)
                 .filter(startTime -> !startTime.isBefore(schedule.getStartTime()))
                 .filter(startTime -> !startTime.isAfter(schedule.getEndTime()))
@@ -178,7 +177,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         }
 
         for (Appointment appointment : appointments) {
-            LocalDate appointmentDate = toLocalDate(appointment.getAppointmentDate());
+            LocalDate appointmentDate = DateTimeUtils.toLocalDate(appointment.getAppointmentDate());
             if (appointmentDate == null) {
                 continue;
             }
@@ -187,26 +186,6 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         }
 
         return grouped;
-    }
-
-    private LocalDate toLocalDate(java.util.Date value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof Date sqlDate) {
-            return sqlDate.toLocalDate();
-        }
-        return value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private LocalTime toLocalTime(java.util.Date value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof java.sql.Time sqlTime) {
-            return sqlTime.toLocalTime();
-        }
-        return value.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
     }
 
     private void validateSchedule(DoctorScheduleRequest req, Long excludeId) {

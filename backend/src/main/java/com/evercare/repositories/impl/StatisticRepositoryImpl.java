@@ -28,6 +28,7 @@ import jakarta.persistence.criteria.Root;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -95,27 +96,31 @@ public class StatisticRepositoryImpl implements StatisticRepository {
     public DiseaseStatisticsResponse getDiseaseStatistics(LocalDate fromDate, LocalDate toDate) {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
-        CriteriaQuery<StatisticItemResponse> cq = cb.createQuery(StatisticItemResponse.class);
+        CriteriaQuery<String> cq = cb.createQuery(String.class);
         Root<MedicalRecord> root = cq.from(MedicalRecord.class);
-        Expression<String> diagnosis = cb.trim(root.<String>get("diagnosis"));
 
-        cq.select(cb.construct(
-                StatisticItemResponse.class,
-                diagnosis,
-                cb.count(root.get("id"))
-        ));
+        cq.select(root.get("diagnosis"));
         cq.where(
                 cb.isTrue(root.get("active")),
                 cb.isNotNull(root.get("diagnosis")),
-                cb.notEqual(diagnosis, ""),
                 betweenTimestamp(cb, root.<java.util.Date>get("visitDate"), fromDate, toDate)
         );
-        cq.groupBy(diagnosis);
-        cq.orderBy(cb.desc(cb.count(root.get("id"))), cb.asc(diagnosis));
 
-        List<StatisticItemResponse> items = session.createQuery(cq)
-                
-                .getResultList();
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (String diagnosis : session.createQuery(cq).getResultList()) {
+            String normalizedDiagnosis = normalizeDiagnosis(diagnosis);
+            if (normalizedDiagnosis == null) {
+                continue;
+            }
+
+            counts.merge(normalizedDiagnosis, 1L, Long::sum);
+        }
+
+        List<StatisticItemResponse> items = counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .map(entry -> new StatisticItemResponse(entry.getKey(), entry.getValue()))
+                .toList();
 
         DiseaseStatisticsResponse response = new DiseaseStatisticsResponse();
         response.setItems(items);
@@ -436,5 +441,14 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                 cb.greaterThanOrEqualTo(datePath, java.sql.Timestamp.valueOf(fromDate.atStartOfDay())),
                 cb.lessThan(datePath, java.sql.Timestamp.valueOf(toDate.plusDays(1).atStartOfDay()))
         );
+    }
+
+    private String normalizeDiagnosis(String diagnosis) {
+        if (diagnosis == null) {
+            return null;
+        }
+
+        String normalized = diagnosis.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Repository
 @Transactional
 public class PatientRepositoryImpl implements PatientRepository {
@@ -88,6 +90,34 @@ public class PatientRepositoryImpl implements PatientRepository {
                 """, Patient.class)
                 .setParameter("citizenId", citizenId.trim())
                 .uniqueResult();
+    }
+
+    @Override
+    public List<Patient> searchPatientsByKeyword(String keyword, int limit) {
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+
+        int normalizedLimit = Math.max(1, Math.min(limit, 20));
+        String like = "%" + keyword.trim().toLowerCase() + "%";
+
+        Session session = this.factory.getObject().getCurrentSession();
+        return session.createQuery("""
+                SELECT p
+                FROM Patient p
+                LEFT JOIN FETCH p.userId u
+                WHERE p.active = true
+                    AND (
+                        LOWER(p.fullName) LIKE :keyword
+                        OR LOWER(COALESCE(p.phone, '')) LIKE :keyword
+                        OR LOWER(COALESCE(p.citizenId, '')) LIKE :keyword
+                        OR LOWER(COALESCE(p.patientCode, '')) LIKE :keyword
+                    )
+                ORDER BY p.fullName ASC, p.id DESC
+                """, Patient.class)
+                .setParameter("keyword", like)
+                .setMaxResults(normalizedLimit)
+                .getResultList();
     }
 
     @Override
