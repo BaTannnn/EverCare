@@ -49,6 +49,29 @@ const emptyForm = {
   checkInNow: false,
 };
 
+const getEntityId = (value) => {
+  if (!value) return "";
+  if (typeof value === "object") {
+    return value.id || value.departmentId || value.serviceId || value.doctorId || "";
+  }
+  return value;
+};
+
+const getServiceDepartmentId = (service) => getEntityId(service?.departmentId);
+
+const getServiceDepartmentName = (service, departments) => {
+  if (!service) return "";
+
+  if (typeof service.departmentName === "string" && service.departmentName.trim()) {
+    return service.departmentName;
+  }
+
+  const departmentId = getServiceDepartmentId(service);
+  if (!departmentId) return "";
+
+  return departments.find((department) => String(department.id) === String(departmentId))?.name || "";
+};
+
 function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const navigate = useNavigate();
   const isEdit = mode === "edit";
@@ -72,7 +95,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     const [departmentRes, doctorRes, serviceRes] = await Promise.all([
       getReceptionistDepartments(),
       getReceptionistDoctors(),
-      getReceptionistMedicalServices(),
+      getReceptionistMedicalServices({ serviceTypes: "EXAMINATION" }),
     ]);
 
     setDepartments(departmentRes.data || []);
@@ -94,7 +117,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
       setForm({
         patientId: "",
         patient: emptyPatient,
-        departmentId: detail.departmentId || detail.doctor?.departmentId || "",
+        departmentId: detail.service?.departmentId || detail.departmentId || detail.doctor?.departmentId || "",
         doctorId: detail.doctorId || detail.doctor?.id || "",
         serviceId: detail.serviceId || detail.service?.id || "",
         appointmentDate: detail.appointmentDate || todayInputValue(),
@@ -142,15 +165,23 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredDoctors = useMemo(() => {
-    if (!form.departmentId) return doctors;
-    return doctors.filter((doctor) => String(doctor.departmentId) === String(form.departmentId));
-  }, [doctors, form.departmentId]);
+  const selectedService = useMemo(
+    () => services.find((service) => String(service.id) === String(form.serviceId)) || null,
+    [form.serviceId, services],
+  );
 
-  const filteredServices = useMemo(() => {
-    if (!form.departmentId) return services;
-    return services.filter((service) => String(service.departmentId) === String(form.departmentId));
-  }, [form.departmentId, services]);
+  const selectedDepartmentId = getServiceDepartmentId(selectedService) || form.departmentId || "";
+  const selectedDepartmentName = getServiceDepartmentName(selectedService, departments);
+
+  const filteredDoctors = useMemo(() => {
+    if (!selectedDepartmentId) return doctors;
+    return doctors.filter((doctor) => String(doctor.departmentId) === String(selectedDepartmentId));
+  }, [doctors, selectedDepartmentId]);
+
+  const filteredServices = useMemo(
+    () => services.filter((service) => String(service.serviceType).toUpperCase() === "EXAMINATION"),
+    [services],
+  );
 
   const selectedSchedule = useMemo(
     () => doctorSchedules.find((schedule) => String(schedule.id) === String(form.scheduleId)) || null,
@@ -170,6 +201,15 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   }, [filteredServices, form.serviceId]);
 
   useEffect(() => {
+    if (!selectedService) return;
+
+    setForm((current) => ({
+      ...current,
+      departmentId: getServiceDepartmentId(selectedService) ? String(getServiceDepartmentId(selectedService)) : "",
+    }));
+  }, [selectedService]);
+
+  useEffect(() => {
     if (!form.doctorId || !form.appointmentDate) {
       setDoctorSchedules([]);
       return;
@@ -182,6 +222,15 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const updateField = (field, value) => {
     setForm((current) => {
       const next = { ...current, [field]: value };
+
+      if (field === "serviceId") {
+        const service = services.find((item) => String(item.id) === String(value)) || null;
+        next.departmentId = getServiceDepartmentId(service) ? String(getServiceDepartmentId(service)) : "";
+        next.doctorId = "";
+        next.scheduleId = "";
+        next.startTime = "";
+        next.endTime = "";
+      }
 
       if (field === "doctorId") {
         next.scheduleId = "";
@@ -330,9 +379,9 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   };
 
   const validate = () => {
-    if (!form.departmentId) return "Vui lòng chọn chuyên khoa.";
-    if (!form.doctorId) return "Vui lòng chọn bác sĩ.";
     if (!form.serviceId) return "Vui lòng chọn dịch vụ.";
+    if (!selectedDepartmentId) return "Dịch vụ đã chọn chưa xác định được chuyên khoa.";
+    if (!form.doctorId) return "Vui lòng chọn bác sĩ.";
     if (!form.appointmentDate) return "Vui lòng chọn ngày khám.";
     if (!form.scheduleId) return "Vui lòng chọn ca khám của bác sĩ.";
 
@@ -348,8 +397,9 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
 
   const buildPayload = () => {
     const schedule = selectedSchedule;
+    const departmentId = Number(selectedDepartmentId || 0);
     const payload = {
-      departmentId: Number(form.departmentId),
+      departmentId,
       doctorId: Number(form.doctorId),
       serviceId: Number(form.serviceId),
       appointmentDate: schedule?.workDate || form.appointmentDate,
@@ -597,12 +647,12 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
               <Row className="g-3">
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Chuyên khoa</Form.Label>
-                    <Form.Select value={form.departmentId} onChange={(e) => updateField("departmentId", e.target.value)}>
-                      <option value="">Chọn chuyên khoa</option>
-                      {departments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
+                    <Form.Label>Dịch vụ</Form.Label>
+                    <Form.Select value={form.serviceId} onChange={(e) => updateField("serviceId", e.target.value)}>
+                      <option value="">Chọn dịch vụ</option>
+                      {filteredServices.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name}
                         </option>
                       ))}
                     </Form.Select>
@@ -623,21 +673,18 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Dịch vụ</Form.Label>
-                    <Form.Select value={form.serviceId} onChange={(e) => updateField("serviceId", e.target.value)}>
-                      <option value="">Chọn dịch vụ</option>
-                      {filteredServices.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </Form.Select>
+                    <Form.Label>Ngày khám</Form.Label>
+                    <Form.Control type="date" value={form.appointmentDate} onChange={(e) => updateField("appointmentDate", e.target.value)} />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Ngày khám</Form.Label>
-                    <Form.Control type="date" value={form.appointmentDate} onChange={(e) => updateField("appointmentDate", e.target.value)} />
+                    <Form.Label>Chuyên khoa</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={selectedDepartmentName || "Sẽ tự động xác định từ dịch vụ EXAMINATION"}
+                      readOnly
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={4}>
