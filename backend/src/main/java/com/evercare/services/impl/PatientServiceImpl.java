@@ -16,6 +16,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -77,6 +78,15 @@ public class PatientServiceImpl implements PatientService {
         userRepository.update(currentUser);
         Patient updated = patientRepository.update(patient);
         return PatientMapper.toResponse(updated);
+    }
+
+    @Override
+    public List<PatientResponse> searchForReceptionist(String keyword, Integer limit) {
+        int normalizedLimit = limit == null ? 10 : limit;
+        return this.patientRepository.searchPatientsByKeyword(keyword, normalizedLimit)
+                .stream()
+                .map(PatientMapper::toResponse)
+                .toList();
     }
 
     private void requireActiveUser(User user) {

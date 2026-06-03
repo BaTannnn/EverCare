@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
-import { BsArrowLeft, BsCalendarCheck } from "react-icons/bs";
+import { BsArrowLeft, BsCalendarCheck, BsSearch } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
@@ -9,11 +9,13 @@ import {
   getReceptionistAppointmentDetail,
   updateReceptionistAppointment,
 } from "../../services/receptionist/receptionistAppointmentApi";
+import { searchReceptionistPatients } from "../../services/receptionist/receptionistPatientApi";
 import {
   getReceptionistDepartments,
   getReceptionistDoctors,
   getReceptionistMedicalServices,
 } from "../../services/receptionist/receptionistReferenceApi";
+import { getReceptionistDoctorSchedules } from "../../services/receptionist/receptionistDoctorScheduleApi";
 import { formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
 
 const emptyPatient = {
@@ -21,6 +23,15 @@ const emptyPatient = {
   phone: "",
   gender: "",
   dateOfBirth: "",
+  email: "",
+  citizenId: "",
+  healthInsuranceNo: "",
+  address: "",
+  emergencyContactName: "",
+  emergencyContactPhone: "",
+  bloodType: "",
+  allergyNote: "",
+  medicalHistoryNote: "",
 };
 
 const emptyForm = {
@@ -30,7 +41,8 @@ const emptyForm = {
   doctorId: "",
   serviceId: "",
   appointmentDate: todayInputValue(),
-  startTime: "08:00",
+  scheduleId: "",
+  startTime: "",
   endTime: "",
   reason: "",
   symptomNote: "",
@@ -48,6 +60,12 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [services, setServices] = useState([]);
+  const [doctorSchedules, setDoctorSchedules] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [patientKeyword, setPatientKeyword] = useState("");
+  const [patientSearchResults, setPatientSearchResults] = useState([]);
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+  const [patientSearchNotice, setPatientSearchNotice] = useState("");
   const [form, setForm] = useState(emptyForm);
 
   const loadReferences = async () => {
@@ -80,7 +98,8 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
         doctorId: detail.doctorId || detail.doctor?.id || "",
         serviceId: detail.serviceId || detail.service?.id || "",
         appointmentDate: detail.appointmentDate || todayInputValue(),
-        startTime: formatTime(detail.startTime) !== "--" ? formatTime(detail.startTime) : "08:00",
+        scheduleId: "",
+        startTime: formatTime(detail.startTime) !== "--" ? formatTime(detail.startTime) : "",
         endTime: formatTime(detail.endTime) !== "--" ? formatTime(detail.endTime) : "",
         reason: detail.reason || "",
         symptomNote: detail.symptomNote || "",
@@ -133,6 +152,11 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     return services.filter((service) => String(service.departmentId) === String(form.departmentId));
   }, [form.departmentId, services]);
 
+  const selectedSchedule = useMemo(
+    () => doctorSchedules.find((schedule) => String(schedule.id) === String(form.scheduleId)) || null,
+    [doctorSchedules, form.scheduleId],
+  );
+
   useEffect(() => {
     if (form.doctorId && !filteredDoctors.some((doctor) => String(doctor.id) === String(form.doctorId))) {
       setForm((current) => ({ ...current, doctorId: "" }));
@@ -145,8 +169,34 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     }
   }, [filteredServices, form.serviceId]);
 
+  useEffect(() => {
+    if (!form.doctorId || !form.appointmentDate) {
+      setDoctorSchedules([]);
+      return;
+    }
+
+    loadDoctorSchedules(form.doctorId, form.appointmentDate, form.scheduleId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.doctorId, form.appointmentDate]);
+
   const updateField = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+
+      if (field === "doctorId") {
+        next.scheduleId = "";
+        next.startTime = "";
+        next.endTime = "";
+      }
+
+      if (field === "appointmentDate") {
+        next.scheduleId = "";
+        next.startTime = "";
+        next.endTime = "";
+      }
+
+      return next;
+    });
   };
 
   const updatePatientField = (field, value) => {
@@ -156,12 +206,135 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     }));
   };
 
+  const applyPatientCandidate = (patient) => {
+    if (!patient) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      patientId: String(patient.id || ""),
+      patient: {
+        fullName: patient.fullName || "",
+        phone: patient.phone || "",
+        gender: patient.gender || "",
+        dateOfBirth: patient.dateOfBirthRaw || patient.dateOfBirth || "",
+        email: patient.email || "",
+        citizenId: patient.citizenId || "",
+        healthInsuranceNo: patient.healthInsuranceNo || "",
+        address: patient.address || "",
+        emergencyContactName: patient.emergencyContactName || "",
+        emergencyContactPhone: patient.emergencyContactPhone || "",
+        bloodType: patient.bloodType || "",
+        allergyNote: patient.allergyNote || "",
+        medicalHistoryNote: patient.medicalHistoryNote || "",
+      },
+    }));
+  };
+
+  const loadPatientCandidates = async () => {
+    const keyword = patientKeyword.trim();
+    if (!keyword) {
+      setPatientSearchNotice("Vui lòng nhập tên, số điện thoại hoặc CCCD của bệnh nhân.");
+      setPatientSearchResults([]);
+      return;
+    }
+
+    setPatientSearchLoading(true);
+    setPatientSearchNotice("");
+
+    try {
+      const response = await searchReceptionistPatients(keyword, 10);
+      const candidates = response.data || [];
+      setPatientSearchResults(candidates);
+
+      if (!candidates.length) {
+        setForm((current) => ({ ...current, patientId: "", patient: emptyPatient }));
+        setPatientSearchNotice("Không tìm thấy bệnh nhân phù hợp.");
+        return;
+      }
+
+      if (candidates.length === 1) {
+        applyPatientCandidate(candidates[0]);
+        setPatientSearchNotice(`Đã nạp bệnh nhân ${candidates[0].fullName || candidates[0].patientCode || ""}.`);
+      } else {
+        setPatientSearchNotice("Có nhiều kết quả, hãy chọn một bệnh nhân để nạp thông tin.");
+      }
+    } catch (err) {
+      setPatientSearchNotice(getErrorMessage(err));
+    } finally {
+      setPatientSearchLoading(false);
+    }
+  };
+
+  const loadDoctorSchedules = async (doctorId, appointmentDate, preferredScheduleId = "") => {
+    if (!doctorId || !appointmentDate) {
+      setDoctorSchedules([]);
+      return;
+    }
+
+    setScheduleLoading(true);
+    try {
+      const response = await getReceptionistDoctorSchedules(doctorId, {
+        from: appointmentDate,
+        to: appointmentDate,
+      });
+      const schedules = (response.data || []).filter((schedule) => schedule.status === "AVAILABLE");
+      setDoctorSchedules(schedules);
+
+      setForm((current) => {
+        if (preferredScheduleId) {
+          const preferred = schedules.find((schedule) => String(schedule.id) === String(preferredScheduleId));
+          if (preferred) {
+            return {
+              ...current,
+              scheduleId: String(preferred.id),
+              appointmentDate: preferred.workDate || current.appointmentDate,
+              startTime: preferred.startTime || current.startTime,
+              endTime: preferred.endTime || current.endTime,
+            };
+          }
+        }
+
+        if (current.scheduleId) {
+          const matched = schedules.find((schedule) => String(schedule.id) === String(current.scheduleId));
+          if (matched) {
+            return {
+              ...current,
+              startTime: matched.startTime || current.startTime,
+              endTime: matched.endTime || current.endTime,
+            };
+          }
+        }
+
+        const matchedByTime = schedules.find((schedule) =>
+          String(schedule.workDate || "") === String(current.appointmentDate || appointmentDate)
+          && String(schedule.startTime || "") === String(current.startTime || "")
+          && String(schedule.endTime || "") === String(current.endTime || ""),
+        );
+        if (matchedByTime) {
+          return {
+            ...current,
+            scheduleId: String(matchedByTime.id),
+          };
+        }
+
+        return current;
+      });
+    } catch (err) {
+      setDoctorSchedules([]);
+      setError(getErrorMessage(err));
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
   const validate = () => {
     if (!form.departmentId) return "Vui lòng chọn chuyên khoa.";
     if (!form.doctorId) return "Vui lòng chọn bác sĩ.";
     if (!form.serviceId) return "Vui lòng chọn dịch vụ.";
     if (!form.appointmentDate) return "Vui lòng chọn ngày khám.";
-    if (!form.startTime) return "Vui lòng chọn giờ khám.";
+    if (!form.scheduleId) return "Vui lòng chọn ca khám của bác sĩ.";
 
     if (!isEdit && !String(form.patientId || "").trim()) {
       if (!form.patient.fullName.trim()) return "Vui lòng nhập tên bệnh nhân.";
@@ -174,13 +347,14 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   };
 
   const buildPayload = () => {
+    const schedule = selectedSchedule;
     const payload = {
       departmentId: Number(form.departmentId),
       doctorId: Number(form.doctorId),
       serviceId: Number(form.serviceId),
-      appointmentDate: form.appointmentDate,
-      startTime: form.startTime,
-      endTime: form.endTime || undefined,
+      appointmentDate: schedule?.workDate || form.appointmentDate,
+      startTime: schedule?.startTime || form.startTime,
+      endTime: schedule?.endTime || form.endTime || undefined,
       reason: form.reason.trim() || undefined,
       symptomNote: form.symptomNote.trim() || undefined,
     };
@@ -275,17 +449,54 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
               <section className="receptionist-form-section">
                 <h2>Thông tin bệnh nhân</h2>
                 <Row className="g-3">
-                  <Col md={4}>
+                  <Col md={12}>
                     <Form.Group>
-                      <Form.Label>patientId nếu đã có</Form.Label>
-                      <Form.Control
-                        value={form.patientId}
-                        onChange={(e) => updateField("patientId", e.target.value)}
-                        placeholder="ID bệnh nhân"
-                      />
+                      <Form.Label>Tìm bệnh nhân theo CCCD, số điện thoại hoặc tên</Form.Label>
+                      <div className="d-flex gap-2 align-items-stretch">
+                        <Form.Control
+                          className="flex-grow-1"
+                          value={patientKeyword}
+                          onChange={(e) => setPatientKeyword(e.target.value)}
+                          placeholder="Nhập CCCD, số điện thoại hoặc tên bệnh nhân"
+                        />
+                        <Button type="button" variant="outline-primary" className="flex-shrink-0" onClick={loadPatientCandidates} disabled={patientSearchLoading}>
+                          <BsSearch />
+                          {patientSearchLoading ? "Đang tìm..." : "Tìm và nạp"}
+                        </Button>
+                      </div>
                     </Form.Group>
                   </Col>
-                  <Col md={8} />
+                  {patientSearchNotice && (
+                    <Col md={12}>
+                      <Alert variant={patientSearchResults.length ? "info" : "warning"} className="mb-0">
+                        {patientSearchNotice}
+                      </Alert>
+                    </Col>
+                  )}
+                  {patientSearchResults.length > 1 && (
+                    <Col md={12}>
+                      <Form.Group>
+                        <Form.Label>Chọn bệnh nhân</Form.Label>
+                        <Form.Select
+                          value={form.patientId}
+                          onChange={(e) => {
+                            const picked = patientSearchResults.find((patient) => String(patient.id) === String(e.target.value));
+                            applyPatientCandidate(picked);
+                            if (picked) {
+                              setPatientSearchNotice(`Đã nạp bệnh nhân ${picked.fullName || picked.patientCode || ""}.`);
+                            }
+                          }}
+                        >
+                          <option value="">Chọn một bệnh nhân</option>
+                          {patientSearchResults.map((patient) => (
+                            <option key={patient.id} value={patient.id}>
+                              {patient.fullName} {patient.phone ? `- ${patient.phone}` : ""} {patient.citizenId ? `- ${patient.citizenId}` : ""}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  )}
                   <Col md={6}>
                     <Form.Group>
                       <Form.Label>Họ và tên</Form.Label>
@@ -313,6 +524,68 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
                     <Form.Group>
                       <Form.Label>Ngày sinh</Form.Label>
                       <Form.Control type="date" value={form.patient.dateOfBirth} onChange={(e) => updatePatientField("dateOfBirth", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>CCCD / Citizen ID</Form.Label>
+                      <Form.Control value={form.patient.citizenId} onChange={(e) => updatePatientField("citizenId", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Số BHYT</Form.Label>
+                      <Form.Control value={form.patient.healthInsuranceNo} onChange={(e) => updatePatientField("healthInsuranceNo", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Địa chỉ</Form.Label>
+                      <Form.Control value={form.patient.address} onChange={(e) => updatePatientField("address", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Liên hệ khẩn cấp</Form.Label>
+                      <Form.Control value={form.patient.emergencyContactName} onChange={(e) => updatePatientField("emergencyContactName", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>SĐT khẩn cấp</Form.Label>
+                      <Form.Control value={form.patient.emergencyContactPhone} onChange={(e) => updatePatientField("emergencyContactPhone", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Nhóm máu</Form.Label>
+                      <Form.Select value={form.patient.bloodType} onChange={(e) => updatePatientField("bloodType", e.target.value)}>
+                        <option value="">Chọn nhóm máu</option>
+                        <option value="A">A</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B">B</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB">AB</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O">O</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Dị ứng</Form.Label>
+                      <Form.Control as="textarea" rows={2} value={form.patient.allergyNote} onChange={(e) => updatePatientField("allergyNote", e.target.value)} />
+                    </Form.Group>
+                  </Col>
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Tiền sử bệnh</Form.Label>
+                      <Form.Control as="textarea" rows={2} value={form.patient.medicalHistoryNote} onChange={(e) => updatePatientField("medicalHistoryNote", e.target.value)} />
                     </Form.Group>
                   </Col>
                 </Row>
@@ -369,14 +642,36 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
                 </Col>
                 <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Giờ bắt đầu</Form.Label>
-                    <Form.Control type="time" value={form.startTime} onChange={(e) => updateField("startTime", e.target.value)} />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Giờ kết thúc</Form.Label>
-                    <Form.Control type="time" value={form.endTime} onChange={(e) => updateField("endTime", e.target.value)} />
+                    <Form.Label>Ca khám của bác sĩ</Form.Label>
+                    <Form.Select
+                      value={form.scheduleId}
+                      onChange={(e) => {
+                        const schedule = doctorSchedules.find((item) => String(item.id) === String(e.target.value));
+                        if (!schedule) {
+                          updateField("scheduleId", "");
+                          return;
+                        }
+
+                        setForm((current) => ({
+                          ...current,
+                          scheduleId: String(schedule.id),
+                          appointmentDate: schedule.workDate || current.appointmentDate,
+                          startTime: schedule.startTime || current.startTime,
+                          endTime: schedule.endTime || current.endTime,
+                        }));
+                      }}
+                      disabled={!form.doctorId || !form.appointmentDate || scheduleLoading}
+                    >
+                      <option value="">
+                        {scheduleLoading ? "Đang tải ca khám..." : !form.doctorId || !form.appointmentDate ? "Chọn bác sĩ và ngày khám trước" : "Chọn ca khám"}
+                      </option>
+                      {doctorSchedules.map((schedule) => (
+                        <option key={schedule.id} value={schedule.id}>
+                          {schedule.workDate} {schedule.startTime} - {schedule.endTime}
+                          {typeof schedule.remainingSlots === "number" ? ` | còn ${schedule.remainingSlots} chỗ` : ""}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
