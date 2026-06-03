@@ -2,7 +2,6 @@ package com.evercare.enums;
 
 public enum InvoiceStatus {
     UNPAID("Chua thanh toan"),
-    PARTIALLY_PAID("Thanh toan mot phan"),
     PAID("Da thanh toan"),
     REFUNDED("Da hoan tien");
 

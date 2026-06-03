@@ -119,6 +119,25 @@ public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
     }
 
     @Override
+    public List<MedicalService> getActiveMedicalServicesByType(String serviceType) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<MedicalService> query = builder.createQuery(MedicalService.class);
+        Root<MedicalService> root = query.from(MedicalService.class);
+        root.fetch("departmentId", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.equal(root.get("serviceType"), MedicalServiceType.normalize(serviceType))
+        );
+        query.orderBy(builder.asc(root.get("name")));
+
+        return session.createQuery(query).getResultList();
+    }
+
+    @Override
     public List<MedicalService> getActiveExaminationServicesByDepartmentId(Long departmentId) {
         Session session = this.factory.getObject().getCurrentSession();
 

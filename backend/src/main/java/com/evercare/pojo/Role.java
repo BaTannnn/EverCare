@@ -11,8 +11,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.NamedQueries;
 import jakarta.persistence.NamedQuery;
@@ -72,10 +70,7 @@ public class Role implements Serializable {
     private Date updatedAt;
     @Column(name = "active")
     private Boolean active;
-    @JoinTable(name = "user_role", joinColumns = {
-        @JoinColumn(name = "role_id", referencedColumnName = "id")}, inverseJoinColumns = {
-        @JoinColumn(name = "user_id", referencedColumnName = "id")})
-    @ManyToMany
+    @ManyToMany(mappedBy = "roleSet")
     @JsonIgnore
     private Set<User> userSet;
 

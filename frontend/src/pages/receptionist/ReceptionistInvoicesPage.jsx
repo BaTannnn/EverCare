@@ -118,7 +118,6 @@ function ReceptionistInvoicesPage() {
   const summary = useMemo(() => ({
     unpaid: invoices.filter((invoice) => invoice.paymentStatus === "UNPAID").length,
     paid: invoices.filter((invoice) => invoice.paymentStatus === "PAID").length,
-    partiallyPaid: invoices.filter((invoice) => invoice.paymentStatus === "PARTIALLY_PAID").length,
   }), [invoices]);
 
   if (loading) {
@@ -149,12 +148,6 @@ function ReceptionistInvoicesPage() {
           <Card.Body>
             <span>UNPAID</span>
             <strong>{summary.unpaid}</strong>
-          </Card.Body>
-        </Card>
-        <Card className="doctor-card receptionist-summary-card">
-          <Card.Body>
-            <span>PARTIALLY_PAID</span>
-            <strong>{summary.partiallyPaid}</strong>
           </Card.Body>
         </Card>
         <Card className="doctor-card receptionist-summary-card">
@@ -191,7 +184,6 @@ function ReceptionistInvoicesPage() {
                   <Form.Select value={form.paymentStatus} onChange={(e) => updateField("paymentStatus", e.target.value)}>
                     <option value="">Tất cả</option>
                     <option value="UNPAID">UNPAID</option>
-                    <option value="PARTIALLY_PAID">PARTIALLY_PAID</option>
                     <option value="PAID">PAID</option>
                     <option value="REFUNDED">REFUNDED</option>
                   </Form.Select>

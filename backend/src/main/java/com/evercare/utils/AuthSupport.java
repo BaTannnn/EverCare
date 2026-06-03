@@ -118,7 +118,7 @@ public class AuthSupport {
 
     public Doctor requireCurrentDoctor(String username) {
         User user = getCurrentUser(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
+        Doctor doctor = user.getDoctor() != null ? user.getDoctor() : this.doctorRepo.getDoctorByUserId(user.getId());
         if (!hasRole(user, "DOCTOR")
                 || doctor == null
                 || Boolean.FALSE.equals(doctor.getActive())) {
@@ -129,7 +129,7 @@ public class AuthSupport {
 
     public Employee requireCurrentEmployee(String username, String expectedRole, String message) {
         User user = getCurrentUser(username);
-        Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
+        Employee employee = user.getEmployee() != null ? user.getEmployee() : this.employeeRepo.getEmployeeByUserId(user.getId());
         if (!hasRole(user, expectedRole)
                 || employee == null
                 || Boolean.FALSE.equals(employee.getActive())) {
@@ -139,7 +139,7 @@ public class AuthSupport {
     }
 
     public Employee getCurrentReceptionistEmployee(User user) {
-        Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
+        Employee employee = user.getEmployee() != null ? user.getEmployee() : this.employeeRepo.getEmployeeByUserId(user.getId());
         if (employee == null && !hasAnyRole(user, "ROLE_ADMIN")) {
             throw new AccessDeniedException("Tài khoản lễ tân chưa liên kết hồ sơ nhân viên");
         }

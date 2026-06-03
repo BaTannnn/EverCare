@@ -25,6 +25,12 @@ export const sendReceptionistSupportMessage = (conversationId, payload) =>
     data: response.data,
   }));
 
+export const suggestReceptionistSupportReply = (conversationId) =>
+  authApis().post(endpoints["ai-suggest-reply"](conversationId)).then((response) => ({
+    ...response,
+    data: response.data,
+  }));
+
 export const createReceptionistSupportSchedule = (conversationId, payload) =>
   authApis().post(endpoints["receptionist-support-schedules"](conversationId), payload).then((response) => ({
     ...response,

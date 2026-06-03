@@ -39,6 +39,7 @@ export const endpoints = {
   "receptionist-support-messages": (id) => `/secure/receptionist/support/conversations/${id}/messages`,
   "receptionist-support-schedules": (id) => `/secure/receptionist/support/conversations/${id}/consultation-schedules`,
   "receptionist-support-close": (id) => `/secure/receptionist/support/conversations/${id}/close`,
+  "ai-suggest-reply": (id) => `/ai/conversations/${id}/suggest-reply`,
   "departments": "/departments",
   "doctors": "/doctors",
   "medical-services": "/medical-services",

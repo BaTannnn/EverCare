@@ -294,11 +294,18 @@ function ExaminationWorkspacePage() {
       return;
     }
 
+    const selectedServiceId = Number(serviceForm.serviceId);
+    const alreadySelected = services.some((item) => Number(item.serviceId) === selectedServiceId);
+    if (alreadySelected) {
+      setUi({ notice: "Dịch vụ này đã có trong bệnh án." });
+      return;
+    }
+
     setWorkspace({
       services: (current) => [
         {
           id: `pending-${Date.now()}-${serviceForm.serviceId}`,
-          serviceId: Number(serviceForm.serviceId),
+          serviceId: selectedServiceId,
           serviceCode: serviceForm.serviceCode,
           serviceName: serviceForm.serviceName || serviceKeyword,
           serviceType: serviceForm.serviceType,
@@ -386,6 +393,13 @@ function ExaminationWorkspacePage() {
   };
 
   const selectMedicalService = (service) => {
+    const alreadySelected = services.some((item) => Number(item.serviceId) === Number(service.id));
+    if (alreadySelected) {
+      setServiceSearch({ form: emptyServiceForm, keyword: "", dropdownOpen: false });
+      setUi({ notice: "Dịch vụ này đã có trong bệnh án." });
+      return;
+    }
+
     setServiceSearch({ form: (current) => ({
       ...current,
       serviceId: service.id,
@@ -564,6 +578,10 @@ function ExaminationWorkspacePage() {
     [services]
   );
   const pendingServices = useMemo(() => services.filter((item) => item.pending), [services]);
+  const orderedServiceIds = useMemo(
+    () => new Set(services.map((item) => Number(item.serviceId)).filter(Boolean)),
+    [services]
+  );
   const pendingServiceCount = pendingServices.length;
   const selectedPendingCount = selectedServiceIds.length;
   const allPendingSelected = pendingServiceCount > 0 && selectedPendingCount === pendingServiceCount;
@@ -617,6 +635,7 @@ function ExaminationWorkspacePage() {
             savingService={savingService}
             selectedPendingCount={selectedPendingCount}
             selectedServiceIds={selectedServiceIds}
+            orderedServiceIds={orderedServiceIds}
             serviceDropdownOpen={serviceDropdownOpen}
             serviceForm={serviceForm}
             serviceKeyword={serviceKeyword}

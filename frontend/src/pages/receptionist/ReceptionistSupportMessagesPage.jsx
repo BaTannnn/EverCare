@@ -11,6 +11,7 @@ import {
   getReceptionistSupportConversations,
   getReceptionistSupportMessages,
   sendReceptionistSupportMessage,
+  suggestReceptionistSupportReply,
 } from "../../services/receptionist/receptionistSupportApi";
 import {
   receptionistSupportActionTypes,
@@ -39,6 +40,9 @@ function ReceptionistSupportMessagesPage() {
     conversationPage,
     conversations,
     doctors,
+    aiError,
+    aiLoading,
+    aiSuggestion,
     error,
     filters,
     loading,
@@ -69,6 +73,9 @@ function ReceptionistSupportMessagesPage() {
   const setFilters = useCallback((value) => setSupportField("filters", value), [setSupportField]);
   const setLoading = useCallback((value) => setSupportField("loading", value), [setSupportField]);
   const setMessagesLoading = useCallback((value) => setSupportField("messagesLoading", value), [setSupportField]);
+  const setAiLoading = useCallback((value) => setSupportField("aiLoading", value), [setSupportField]);
+  const setAiSuggestion = useCallback((value) => setSupportField("aiSuggestion", value), [setSupportField]);
+  const setAiError = useCallback((value) => setSupportField("aiError", value), [setSupportField]);
   const setSubmitting = useCallback((value) => setSupportField("submitting", value), [setSupportField]);
   const setError = useCallback((value) => setSupportField("error", value), [setSupportField]);
   const setNotice = useCallback((value) => setSupportField("notice", value), [setSupportField]);
@@ -141,7 +148,7 @@ function ReceptionistSupportMessagesPage() {
       setLoading(true);
       setError("");
       try {
-        const [doctorResponse] = await Promise.all([getReceptionistDoctors()]);
+        const [doctorResponse] = await Promise.all([getReceptionistDoctors({ all: true })]);
         if (mounted) {
           setDoctors(doctorResponse.data || []);
         }
@@ -252,6 +259,8 @@ function ReceptionistSupportMessagesPage() {
 
   const selectConversation = (conversationId) => {
     setSelectedId(conversationId);
+    setAiSuggestion(null);
+    setAiError("");
     latestMessageIdRef.current = 0;
     loadMessages(conversationId);
   };
@@ -302,6 +311,8 @@ function ReceptionistSupportMessagesPage() {
     try {
       await sendReceptionistSupportMessage(selectedId, { content: messageText.trim() });
       setMessageText("");
+      setAiSuggestion(null);
+      setAiError("");
       await loadMessages(selectedId);
       await loadConversations(selectedId, selectedId);
     } catch (err) {
@@ -309,6 +320,31 @@ function ReceptionistSupportMessagesPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const suggestAiReply = async () => {
+    if (!selectedId) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await suggestReceptionistSupportReply(selectedId);
+      setAiSuggestion(response.data || null);
+    } catch (err) {
+      setAiSuggestion(null);
+      setAiError(getErrorMessage(err));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const insertAiSuggestion = () => {
+    if (!aiSuggestion?.suggestedReply) return;
+    setMessageText(aiSuggestion.suggestedReply);
+  };
+
+  const dismissAiSuggestion = () => {
+    setAiSuggestion(null);
+    setAiError("");
   };
 
   const createSchedule = async (event) => {
@@ -382,6 +418,9 @@ function ReceptionistSupportMessagesPage() {
         />
 
         <SupportChatWindow
+          aiError={aiError}
+          aiLoading={aiLoading}
+          aiSuggestion={aiSuggestion}
           doctors={doctors}
           messageText={messageText}
           messages={messages}
@@ -390,11 +429,14 @@ function ReceptionistSupportMessagesPage() {
           selectedConversation={selectedConversation}
           submitting={submitting}
           onAcceptConversation={acceptConversation}
+          onDismissAiSuggestion={dismissAiSuggestion}
+          onInsertAiSuggestion={insertAiSuggestion}
           onCloseConversation={closeConversation}
           onCreateSchedule={createSchedule}
           onMessageTextChange={setMessageText}
           onScheduleChange={updateSchedule}
           onSendMessage={sendMessage}
+          onSuggestAiReply={suggestAiReply}
         />
       </div>
     </div>

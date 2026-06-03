@@ -147,6 +147,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         }
 
         validateOrderableService(service);
+        validateServiceNotAlreadyOrdered(medicalRecord.getId(), service.getId());
 
         Date now = new Date();
         MedicalRecordService recordService = new MedicalRecordService();
@@ -162,6 +163,18 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         this.medicalRecordServiceRepo.addMedicalRecordService(recordService);
 
         return MedicalRecordServiceMapper.toResponse(recordService, Collections.emptyList());
+    }
+
+    private void validateServiceNotAlreadyOrdered(Long recordId, Long serviceId) {
+        boolean alreadyOrdered = this.medicalRecordServiceRepo.getServicesByMedicalRecordId(recordId)
+                .stream()
+                .filter(recordService -> !Boolean.FALSE.equals(recordService.getActive()))
+                .anyMatch(recordService -> recordService.getServiceId() != null
+                        && serviceId.equals(recordService.getServiceId().getId()));
+
+        if (alreadyOrdered) {
+            throw new IllegalStateException("Dịch vụ này đã được chỉ định trong bệnh án");
+        }
     }
 
     private void validateOrderableService(MedicalService service) {

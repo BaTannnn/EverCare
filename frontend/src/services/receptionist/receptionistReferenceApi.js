@@ -32,3 +32,4 @@ export const getReceptionistMedicalServices = (params) => authApis().get(endpoin
   ...response,
   data: unwrapList(response),
 }));
+
