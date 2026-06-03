@@ -3,3 +3,7 @@ medicalService.pageSize = 8
 doctor.pageSize = 8
 doctorSchedule.pageSize = 8
 
+# MiMo/OpenAI-compatible chat completion settings. Keep the API key only on backend.
+mimo.chat-completions-url = https://api.openai.com/v1/chat/completions
+mimo.model = gpt-4o-mini
+mimo.api.key =

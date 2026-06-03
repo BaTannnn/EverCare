@@ -6,7 +6,7 @@ export const getReceptionistDepartments = (params = {}) => authApis().get(endpoi
   data: unwrapList(response),
 }));
 
-export const getReceptionistDoctors = (params = {}) => authApis().get(endpoints.doctors, { params }).then((response) => ({
+export const getReceptionistDoctors = (params = {}) => authApis().get(endpoints.doctors, { params: { all: true, ...params } }).then((response) => ({
   ...response,
   data: unwrapList(response),
 }));
@@ -15,4 +15,3 @@ export const getReceptionistMedicalServices = (params = {}) => authApis().get(en
   ...response,
   data: unwrapList(response),
 }));
-
