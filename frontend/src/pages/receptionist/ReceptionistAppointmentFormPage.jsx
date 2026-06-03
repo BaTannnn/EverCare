@@ -16,6 +16,7 @@ import {
   getReceptionistMedicalServices,
 } from "../../services/receptionist/receptionistReferenceApi";
 import { getReceptionistDoctorSchedules } from "../../services/receptionist/receptionistDoctorScheduleApi";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import { formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
 
 const emptyPatient = {
@@ -646,30 +647,33 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
               <h2>Thông tin lịch hẹn</h2>
               <Row className="g-3">
                 <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Dịch vụ</Form.Label>
-                    <Form.Select value={form.serviceId} onChange={(e) => updateField("serviceId", e.target.value)}>
-                      <option value="">Chọn dịch vụ</option>
-                      {filteredServices.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
+                  <SearchableSelect
+                    label="Dịch vụ"
+                    value={form.serviceId}
+                    options={filteredServices}
+                    onChange={(nextValue) => updateField("serviceId", nextValue)}
+                    placeholder="Chọn dịch vụ"
+                    searchPlaceholder="Tìm dịch vụ"
+                    emptyMessage="Không tìm thấy dịch vụ"
+                    getOptionValue={(service) => service.id}
+                    getOptionLabel={(service) => service.name || ""}
+                    getOptionDescription={(service) => service.departmentName || service.code || ""}
+                  />
                 </Col>
                 <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Bác sĩ</Form.Label>
-                    <Form.Select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)}>
-                      <option value="">Chọn bác sĩ</option>
-                      {filteredDoctors.map((doctor) => (
-                        <option key={doctor.id} value={doctor.id}>
-                          {doctor.fullName} {doctor.departmentName ? `- ${doctor.departmentName}` : ""}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
+                  <SearchableSelect
+                    label="Bác sĩ"
+                    value={form.doctorId}
+                    options={filteredDoctors}
+                    onChange={(nextValue) => updateField("doctorId", nextValue)}
+                    placeholder="Chọn bác sĩ"
+                    searchPlaceholder="Tìm bác sĩ"
+                    emptyMessage="Không tìm thấy bác sĩ"
+                    disabled={!form.serviceId}
+                    getOptionValue={(doctor) => doctor.id}
+                    getOptionLabel={(doctor) => doctor.fullName || ""}
+                    getOptionDescription={(doctor) => doctor.departmentName || doctor.doctorCode || ""}
+                  />
                 </Col>
                 <Col md={4}>
                   <Form.Group>

@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import { checkInReceptionistAppointment, getReceptionistAppointments } from "../../services/receptionist/receptionistAppointmentApi";
 import { getReceptionistDepartments, getReceptionistDoctors } from "../../services/receptionist/receptionistReferenceApi";
 import {
@@ -280,17 +281,18 @@ function ReceptionistAppointmentsPage() {
                 </Form.Group>
               </Col>
               <Col md={2}>
-                <Form.Group>
-                  <Form.Label>Bác sĩ</Form.Label>
-                  <Form.Select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)}>
-                    <option value="">Tất cả</option>
-                    {filteredDoctors.map((doctor) => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.fullName}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+                <SearchableSelect
+                  label="Bác sĩ"
+                  value={form.doctorId}
+                  options={filteredDoctors}
+                  onChange={(nextValue) => updateField("doctorId", nextValue)}
+                  placeholder="Tất cả"
+                  searchPlaceholder="Tìm bác sĩ"
+                  emptyMessage="Không tìm thấy bác sĩ"
+                  getOptionValue={(doctor) => doctor.id}
+                  getOptionLabel={(doctor) => doctor.fullName || ""}
+                  getOptionDescription={(doctor) => doctor.departmentName || doctor.doctorCode || ""}
+                />
               </Col>
               <Col md={2}>
                 <Form.Group>
