@@ -3,12 +3,10 @@ package com.evercare.services.impl;
 import com.evercare.dtos.response.DoctorDashboardSummaryResponse;
 import com.evercare.enums.AppointmentStatus;
 import com.evercare.pojo.Doctor;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
-import com.evercare.repositories.DoctorRepository;
 import com.evercare.services.DoctorDashboardService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Map;
@@ -23,14 +21,11 @@ public class DoctorDashboardServiceImpl implements DoctorDashboardService {
     private AppointmentRepository appointmentRepo;
 
     @Autowired
-    private DoctorRepository doctorRepo;
-
-    @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public DoctorDashboardSummaryResponse getTodaySummary(String username) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Map<String, Long> counts = this.appointmentRepo.countAppointmentsByDoctorAndDate(
                 doctor.getId(),
                 Date.valueOf(LocalDate.now())
@@ -46,33 +41,4 @@ public class DoctorDashboardServiceImpl implements DoctorDashboardService {
         return res;
     }
 
-    private Doctor getCurrentDoctor(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
-
-        if (!hasRole(user, "DOCTOR")
-                || doctor == null
-                || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
-    }
 }

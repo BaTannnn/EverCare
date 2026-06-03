@@ -10,6 +10,8 @@ public interface MedicalServiceRepository {
 
     MedicalService getServiceById(int id);
 
+    List<MedicalService> getActiveMedicalServicesByType(String serviceType);
+
     List<MedicalService> getActiveExaminationServicesByDepartmentId(Long departmentId);
 
     void addService(MedicalService service);

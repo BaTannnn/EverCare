@@ -4,6 +4,7 @@ import com.evercare.dtos.request.PrescriptionItemRequest;
 import com.evercare.dtos.request.PrescriptionRequest;
 import com.evercare.dtos.response.PrescriptionResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.PrescriptionStatus;
 import com.evercare.mappers.PrescriptionMapper;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
@@ -11,18 +12,17 @@ import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Medicine;
 import com.evercare.pojo.Prescription;
 import com.evercare.pojo.PrescriptionItem;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
-import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.MedicineRepository;
 import com.evercare.repositories.PrescriptionItemRepository;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.services.DoctorPrescriptionService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,14 +52,11 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
     private MedicineBatchRepository batchRepo;
 
     @Autowired
-    private DoctorRepository doctorRepo;
-
-    @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<PrescriptionResponse> getPrescriptions(String username, Map<String, String> params) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         List<Prescription> prescriptions = this.prescriptionRepo.getPrescriptionsByDoctorId(doctor.getId(), params);
         Map<Long, Long> availableQuantityByMedicineId = getAvailableQuantities(prescriptions);
 
@@ -71,7 +68,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 
     @Override
     public PrescriptionResponse getPrescription(String username, Long prescriptionId) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Prescription prescription = this.prescriptionRepo.getPrescriptionById(prescriptionId);
 
         if (prescription == null || Boolean.FALSE.equals(prescription.getActive())) {
@@ -85,11 +82,10 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 
     @Override
     public PrescriptionResponse createPrescription(String username, Long recordId, PrescriptionRequest request) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         MedicalRecord medicalRecord = loadEditableMedicalRecord(doctor, recordId);
 
-        Prescription existing = this.prescriptionRepo.getPrescriptionByMedicalRecordId(recordId);
-        if (existing != null) {
+        if (this.prescriptionRepo.existsByMedicalRecordId(recordId)) {
             throw new IllegalStateException("Bệnh án này đã có đơn thuốc");
         }
 
@@ -100,7 +96,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         prescription.setDoctorId(doctor);
         prescription.setPatientId(medicalRecord.getPatientId());
         prescription.setPrescribedAt(now);
-        prescription.setStatus("PRESCRIBED");
+        prescription.setStatus(PrescriptionStatus.PRESCRIBED.getCode());
         prescription.setNote(clean(request != null ? request.getNote() : null));
         prescription.setCreatedAt(now);
         prescription.setUpdatedAt(now);
@@ -115,7 +111,7 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
 
     @Override
     public PrescriptionResponse updatePrescription(String username, Long prescriptionId, PrescriptionRequest request) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Prescription prescription = this.prescriptionRepo.getPrescriptionById(prescriptionId);
 
         if (prescription == null) {
@@ -126,15 +122,20 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         validateOwnedMedicalRecord(doctor, medicalRecord);
         validateAppointmentEditable(medicalRecord);
 
-        if (!"PRESCRIBED".equalsIgnoreCase(prescription.getStatus())) {
+        if (!PrescriptionStatus.PRESCRIBED.getCode().equalsIgnoreCase(prescription.getStatus())) {
             throw new IllegalStateException("Chỉ có thể cập nhật đơn thuốc trạng thái PRESCRIBED");
         }
 
         java.util.Date now = new java.util.Date();
+        if (prescription.getPrescriptionItemSet() != null) {
+            prescription.getPrescriptionItemSet().clear();
+        }
         this.prescriptionItemRepo.deleteItemsByPrescriptionId(prescription.getId());
 
         Set<PrescriptionItem> items = buildItems(prescription, request, now);
-        prescription.setPrescriptionItemSet(new HashSet<>());
+        if (prescription.getPrescriptionItemSet() == null) {
+            prescription.setPrescriptionItemSet(new HashSet<>());
+        }
         for (PrescriptionItem item : items) {
             this.prescriptionItemRepo.addItem(item);
             prescription.getPrescriptionItemSet().add(item);
@@ -152,14 +153,15 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
             throw new IllegalArgumentException("Đơn thuốc phải có ít nhất một thuốc");
         }
 
+        Map<Long, Medicine> medicinesById = loadActiveMedicinesById(request);
         Set<PrescriptionItem> result = new HashSet<>();
         for (PrescriptionItemRequest itemRequest : request.getItems()) {
             if (itemRequest == null || itemRequest.getMedicineId() == null) {
                 throw new IllegalArgumentException("Vui lòng chọn thuốc");
             }
 
-            Medicine medicine = this.medicineRepo.getMedicineById(itemRequest.getMedicineId());
-            if (medicine == null || Boolean.FALSE.equals(medicine.getActive())) {
+            Medicine medicine = medicinesById.get(itemRequest.getMedicineId());
+            if (medicine == null) {
                 throw new IllegalArgumentException("Thuốc không tồn tại hoặc đã ngưng sử dụng");
             }
 
@@ -184,6 +186,23 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         }
 
         return result;
+    }
+
+    private Map<Long, Medicine> loadActiveMedicinesById(PrescriptionRequest request) {
+        List<Long> medicineIds = request.getItems()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(PrescriptionItemRequest::getMedicineId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, Medicine> medicinesById = new HashMap<>();
+        for (Medicine medicine : this.medicineRepo.getActiveMedicinesByIds(medicineIds)) {
+            medicinesById.put(medicine.getId(), medicine);
+        }
+
+        return medicinesById;
     }
 
     private MedicalRecord loadEditableMedicalRecord(Doctor doctor, Long recordId) {
@@ -220,36 +239,6 @@ public class DoctorPrescriptionServiceImpl implements DoctorPrescriptionService 
         if (!AppointmentStatus.IN_PROGRESS.getCode().equalsIgnoreCase(appointment.getStatus())) {
             throw new IllegalStateException("Chỉ có thể kê đơn khi lịch khám đang IN_PROGRESS");
         }
-    }
-
-    private Doctor getCurrentDoctor(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
-
-        if (!hasRole(user, "DOCTOR")
-                || doctor == null
-                || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private PrescriptionResponse toResponse(Prescription prescription) {

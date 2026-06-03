@@ -5,18 +5,11 @@ import com.evercare.dtos.response.MedicalRecordDetailResponse;
 import com.evercare.dtos.response.MedicalRecordServiceResponse;
 import com.evercare.dtos.response.TestResultResponse;
 import com.evercare.dtos.response.PrescriptionResponse;
-import com.evercare.dtos.response.AppointmentPatientResponse;
-import com.evercare.dtos.response.AppointmentResponse;
-import com.evercare.dtos.response.DepartmentResponse;
-import com.evercare.dtos.response.DoctorResponse;
-import com.evercare.pojo.Appointment;
 import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.MedicalRecordService;
-import com.evercare.pojo.Patient;
 import com.evercare.pojo.Prescription;
 import com.evercare.pojo.TestResult;
-import com.evercare.pojo.Doctor;
-import com.evercare.pojo.Department;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Collections;
@@ -55,7 +48,6 @@ public final class MedicalRecordMapper {
         res.setId(medicalRecord.getId());
         res.setRecordCode(medicalRecord.getRecordCode());
         res.setVisitDate(format(medicalRecord.getVisitDate()));
-        res.setAppointmentCode(medicalRecord.getAppointmentId() != null ? medicalRecord.getAppointmentId().getAppointmentCode() : null);
         res.setDoctorName(medicalRecord.getDoctorId() != null ? medicalRecord.getDoctorId().getFullName() : null);
         res.setDepartmentName(
                 medicalRecord.getDoctorId() != null && medicalRecord.getDoctorId().getDepartmentId() != null
@@ -67,17 +59,11 @@ public final class MedicalRecordMapper {
         res.setTreatmentPlan(medicalRecord.getTreatmentPlan());
         res.setDoctorNote(medicalRecord.getDoctorNote());
         res.setPaymentStatus(medicalRecord.getPaymentStatus());
-        res.setAppointment(toAppointmentResponse(medicalRecord.getAppointmentId()));
-        res.setPatient(toPatientResponse(medicalRecord.getPatientId()));
-        res.setDoctor(toDoctorResponse(medicalRecord.getDoctorId()));
-        res.setDepartment(toDepartmentResponse(
-                medicalRecord.getDoctorId() != null ? medicalRecord.getDoctorId().getDepartmentId() : null
-        ));
 
         List<MedicalRecordServiceResponse> serviceResponses = services == null
                 ? Collections.emptyList()
                 : services.stream()
-                        .map(service -> MedicalRecordServiceMapper.toResponse(service, getTestResultsForService(service, testResults)))
+                        .map(service -> MedicalRecordServiceMapper.toSummaryResponse(service, getTestResultsForService(service, testResults)))
                         .toList();
         res.setServices(serviceResponses);
 
@@ -87,6 +73,9 @@ public final class MedicalRecordMapper {
         res.setTestResults(testResultResponses);
         res.setPrescription(prescription != null
                 ? PrescriptionMapper.toResponse(prescription, (java.util.function.Function<Long, Long>) null)
+                : null);
+        res.setInvoice(medicalRecord.getInvoice() != null
+                ? InvoiceMapper.toEmbeddedResponse(medicalRecord.getInvoice(), calculateTotalTestAmount(services))
                 : null);
 
         return res;
@@ -102,60 +91,31 @@ public final class MedicalRecordMapper {
                 .toList();
     }
 
-    private static AppointmentResponse toAppointmentResponse(Appointment appointment) {
-        return appointment != null ? AppointmentMapper.toPatientResponse(appointment) : null;
-    }
-
-    private static AppointmentPatientResponse toPatientResponse(Patient patient) {
-        if (patient == null) {
-            return null;
+    private static BigDecimal calculateTotalTestAmount(List<MedicalRecordService> services) {
+        if (services == null || services.isEmpty()) {
+            return BigDecimal.ZERO;
         }
 
-        AppointmentPatientResponse res = new AppointmentPatientResponse();
-        res.setId(patient.getId());
-        res.setPatientCode(patient.getPatientCode());
-        res.setFullName(patient.getFullName());
-        res.setGender(patient.getGender());
-        res.setDateOfBirth(format(patient.getDateOfBirth()));
-        res.setPhone(patient.getPhone());
-        res.setEmail(patient.getEmail());
-        return res;
+        return services.stream()
+                .filter(service -> !Boolean.FALSE.equals(service.getActive()))
+                .filter(MedicalRecordMapper::isTestService)
+                .map(MedicalRecordMapper::calculateServiceAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private static DoctorResponse toDoctorResponse(Doctor doctor) {
-        if (doctor == null) {
-            return null;
+    private static boolean isTestService(MedicalRecordService recordService) {
+        if (recordService.getServiceId() == null || recordService.getServiceId().getServiceType() == null) {
+            return false;
         }
 
-        DoctorResponse res = new DoctorResponse();
-        res.setId(doctor.getId());
-        res.setDoctorCode(doctor.getDoctorCode());
-        res.setFullName(doctor.getFullName());
-        res.setAvatarUrl(doctor.getAvatarUrl());
-        res.setQualification(doctor.getQualification());
-        res.setSpecialization(doctor.getSpecialization());
-        res.setDoctorType(doctor.getDoctorType());
-        res.setWorkStatus(doctor.getWorkStatus());
-        res.setDepartmentId(doctor.getDepartmentId() != null ? doctor.getDepartmentId().getId() : null);
-        res.setDepartmentName(doctor.getDepartmentId() != null ? doctor.getDepartmentId().getName() : null);
-        res.setActive(doctor.getActive());
-        return res;
+        String serviceType = recordService.getServiceId().getServiceType().trim();
+        return "TEST".equalsIgnoreCase(serviceType) || "LAB_TEST".equalsIgnoreCase(serviceType);
     }
 
-    private static DepartmentResponse toDepartmentResponse(Department department) {
-        if (department == null) {
-            return null;
-        }
-
-        DepartmentResponse res = new DepartmentResponse();
-        res.setId(department.getId());
-        res.setCode(department.getCode());
-        res.setName(department.getName());
-        res.setDescription(department.getDescription());
-        res.setActive(department.getActive());
-        res.setCreatedAt(department.getCreatedAt());
-        res.setUpdatedAt(department.getUpdatedAt());
-        return res;
+    private static BigDecimal calculateServiceAmount(MedicalRecordService recordService) {
+        BigDecimal unitPrice = recordService.getUnitPrice() != null ? recordService.getUnitPrice() : BigDecimal.ZERO;
+        int quantity = recordService.getQuantity() != null ? recordService.getQuantity() : 0;
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
     private static String format(Date value) {

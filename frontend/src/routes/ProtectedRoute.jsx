@@ -1,18 +1,16 @@
 import { Navigate, Outlet } from "react-router-dom";
-import cookies from "react-cookies";
 import { isAllowedRole } from "./authRouteUtils";
+import { useAuth } from "../contexts/useAuth";
 
 function ProtectedRoute({ children, roles }) {
-  const token = cookies.load("token");
+  const { isAuthenticated, roles: savedRoles } = useAuth();
 
-  if (!token) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   if (roles?.length) {
-    const savedRole = cookies.load("role");
-
-    if (!isAllowedRole(savedRole, roles)) {
+    if (!isAllowedRole(savedRoles, roles)) {
       return <Navigate to="/login" replace />;
     }
   }

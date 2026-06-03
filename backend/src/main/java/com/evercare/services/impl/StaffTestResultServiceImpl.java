@@ -17,16 +17,14 @@ import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.MedicalRecordService;
 import com.evercare.pojo.MedicalService;
 import com.evercare.pojo.Patient;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.TestResult;
 import com.evercare.pojo.User;
-import com.evercare.repositories.EmployeeRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.repositories.MedicalRecordServiceRepository;
 import com.evercare.repositories.MedicalServiceRepository;
 import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.StaffTestResultService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -56,17 +54,14 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
     private MedicalRecordServiceRepository medicalRecordServiceRepo;
 
     @Autowired
-    private EmployeeRepository employeeRepo;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
     private Cloudinary cloudinary;
+
+    @Autowired
+    private AuthSupport authSupport;
 
     @Override
     public List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username) {
-        getCurrentEmployee(username);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
 
         Map<Long, StaffTestRequestSummaryResponse> result = new LinkedHashMap<>();
         for (MedicalRecordService request : this.medicalRecordServiceRepo.getPendingTestRequests()) {
@@ -80,7 +75,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
                     id -> toSummaryResponse(medicalRecord)
             );
             summary.setPendingServiceCount(summary.getPendingServiceCount() + 1);
-            summary.getPendingServices().add(MedicalRecordServiceMapper.toResponse(request, Collections.emptyList()));
+            summary.getPendingServices().add(MedicalRecordServiceMapper.toSummaryResponse(request, Collections.emptyList()));
 
             String requestedAt = format(request.getCreatedAt());
             if (summary.getRequestedAt() == null || requestedAt != null && requestedAt.compareTo(summary.getRequestedAt()) < 0) {
@@ -93,7 +88,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Override
     public StaffTestRequestDetailResponse getTestRequestDetail(String username, Long recordId) {
-        getCurrentEmployee(username);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
 
         MedicalRecord medicalRecord = this.medicalRecordRepo.getMedicalRecordById(recordId);
         if (medicalRecord == null || Boolean.FALSE.equals(medicalRecord.getActive())) {
@@ -129,7 +124,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Override
     public List<TestResultResponse> getTestResults(String username, Map<String, String> params) {
-        getCurrentEmployee(username);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
 
         return this.testResultRepo.getTestResults(params)
                 .stream()
@@ -139,7 +134,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Override
     public TestResultResponse getTestResultById(String username, Long id) {
-        getCurrentEmployee(username);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
 
         TestResult testResult = this.testResultRepo.getTestResultById(id);
         if (testResult == null) {
@@ -151,7 +146,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Override
     public TestResultResponse createTestResult(String username, Long recordId, TestResultRequest request) {
-        Employee employee = getCurrentEmployee(username);
+        Employee employee = this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
         MedicalRecord medicalRecord = this.medicalRecordRepo.getMedicalRecordById(recordId);
 
         if (medicalRecord == null || Boolean.FALSE.equals(medicalRecord.getActive())) {
@@ -186,7 +181,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
 
     @Override
     public TestResultResponse updateTestResult(String username, Long id, TestResultRequest request) {
-        Employee employee = getCurrentEmployee(username);
+        Employee employee = this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
         TestResult testResult = this.testResultRepo.getTestResultById(id);
 
         if (testResult == null) {
@@ -269,36 +264,6 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
         if (this.testResultRepo.existsByMedicalRecordIdAndServiceId(recordId, serviceId, excludeResultId)) {
             throw new IllegalStateException("Dịch vụ này đã có kết quả xét nghiệm");
         }
-    }
-
-    private Employee getCurrentEmployee(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
-
-        if (!hasRole(user, "LAB_TECH")
-                || employee == null
-                || Boolean.FALSE.equals(employee.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
-        }
-
-        return employee;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private String generateResultCode() {

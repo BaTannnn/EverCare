@@ -12,7 +12,7 @@ import com.evercare.repositories.InventoryTransactionRepository;
 import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.MedicineRepository;
 import com.evercare.services.MedicineBatchService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -35,13 +35,12 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
 
     @Autowired
     private MedicineRepository medicineRepo;
-
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public MedicineBatchImportResponse importBatch(String username, MedicineBatchImportRequest request) {
-        User user = this.userService.getUserByUsername(username);
+        User user = this.authSupport.getCurrentUser(username);
         validateRequest(request);
 
         Medicine medicine = this.medicineRepo.getMedicineById(request.getMedicineId());

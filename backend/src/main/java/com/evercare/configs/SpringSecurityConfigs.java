@@ -13,6 +13,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -35,9 +36,13 @@ import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
         basePackages = {
             "com.evercare.controllers",
             "com.evercare.repositories",
-            "com.evercare.services",}
+            "com.evercare.services",
+            "com.evercare.utils",
+        }
 )
 @PropertySource("classpath:database.properties")
+@PropertySource("classpath:configs.properties")
+
 public class SpringSecurityConfigs {
     @Autowired
     private Environment env;
@@ -64,7 +69,8 @@ public class SpringSecurityConfigs {
                                 "/login",
                                 "/js/**"
                         ).permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form

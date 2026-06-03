@@ -8,6 +8,7 @@ import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -98,15 +99,15 @@ public class User implements Serializable {
     private Set<Role> roleSet;
     @OneToMany(mappedBy = "createdBy")
     private Set<Appointment> appointmentSet;
-    @OneToOne(mappedBy = "userId")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "userId")
     private Employee employee;
     @OneToMany(mappedBy = "createdBy")
     private Set<InventoryTransaction> inventoryTransactionSet;
-    @OneToOne(mappedBy = "userId")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "userId")
     private Doctor doctor;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "userId")
     private Set<Notification> notificationSet;
-    @OneToOne(mappedBy = "userId")
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "userId")
     private Patient patient;
     @OneToMany(mappedBy = "cashierId")
     private Set<Invoice> invoiceSet;

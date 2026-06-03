@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Alert, Button, Form, Spinner } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import cookies from "react-cookies";
 import Apis, { authApis, endpoints } from "../configs/Apis";
-import { getDashboardPath, normalizeRoles } from "../routes/authRouteUtils";
+import { useAuth } from "../contexts/useAuth";
+import { getDashboardPath } from "../routes/authRouteUtils";
 import authBackground from "../assets/auth-medical-bg.png";
 
 const getErrorMessage = (error) => {
@@ -16,14 +16,9 @@ const getErrorMessage = (error) => {
   return data?.message || "Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.";
 };
 
-const clearAuthCookies = () => {
-  cookies.remove("token", { path: "/" });
-  cookies.remove("user", { path: "/" });
-  cookies.remove("role", { path: "/" });
-};
-
 function LoginPage() {
   const navigate = useNavigate();
+  const { logout, setSessionUser, startSession } = useAuth();
   const [form, setForm] = useState({
     username: "",
     password: "",
@@ -40,29 +35,13 @@ function LoginPage() {
     }));
   };
 
-  const saveAuthCookie = (name, value) => {
-    const options = { path: "/" };
-
-    if (form.remember) {
-      options.maxAge = 7 * 24 * 60 * 60;
-    }
-
-    cookies.save(name, value, options);
-  };
-
   const loadProfile = async () => {
     try {
       const response = await authApis().get(endpoints.profile);
       const profile = response.data;
 
       if (profile) {
-        saveAuthCookie("user", JSON.stringify(profile));
-
-        const roles = normalizeRoles(profile.roles);
-
-        if (roles.length) {
-          saveAuthCookie("role", JSON.stringify(roles));
-        }
+        setSessionUser(profile, { remember: form.remember });
       }
 
       return profile;
@@ -93,17 +72,17 @@ function LoginPage() {
         throw new Error("Backend không trả token đăng nhập.");
       }
 
-      saveAuthCookie("token", token);
+      startSession(token, { remember: form.remember });
       const profile = await loadProfile();
-      const dashboardPath = getDashboardPath(profile?.roles);
+      const nextDashboardPath = getDashboardPath(profile?.roles);
 
-      if (!dashboardPath) {
+      if (!nextDashboardPath) {
         throw new Error("Tài khoản chưa được gán quyền truy cập giao diện.");
       }
 
-      navigate(dashboardPath, { replace: true });
+      navigate(nextDashboardPath, { replace: true });
     } catch (err) {
-      clearAuthCookies();
+      logout();
       setError(err.response ? getErrorMessage(err) : err.message);
     } finally {
       setSubmitting(false);

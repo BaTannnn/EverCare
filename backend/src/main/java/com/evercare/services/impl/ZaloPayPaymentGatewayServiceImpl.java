@@ -4,7 +4,6 @@ import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
 import com.evercare.dtos.response.PaymentGatewayResultResponse;
-import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
@@ -22,7 +21,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
+public class ZaloPayPaymentGatewayServiceImpl extends AbstractPaymentGatewayService {
     private static final String METHOD = "ZALOPAY";
     private static final Logger logger = LoggerFactory.getLogger(ZaloPayPaymentGatewayServiceImpl.class);
 
@@ -30,12 +29,7 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
     private Environment env;
 
     @Override
-    public boolean supports(String paymentMethod) {
-        return paymentMethod != null && METHOD.equalsIgnoreCase(paymentMethod.trim());
-    }
-
-    @Override
-    public String getProvider() {
+    protected String getMethod() {
         return METHOD;
     }
 
@@ -50,7 +44,7 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
         String amount = toZaloPayAmount(payment.getAmount());
         String description = "Thanh toan hoa don " + invoice.getInvoiceCode();
         String bankCode = resolveBankCode(request);
-        String embedData = buildEmbedData(request, buildBackendReturnUrl("payment.zalopay.redirectUrl", request != null ? request.getReturnUrl() : null));
+        String embedData = buildEmbedData(request, buildBackendReturnUrl(this.env, "payment.zalopay.redirectUrl", request != null ? request.getReturnUrl() : null));
 
         Map<String, String> body = new HashMap<>();
         body.put("app_id", appId);
@@ -162,15 +156,6 @@ public class ZaloPayPaymentGatewayServiceImpl implements PaymentGatewayService {
         result.setSuccess(success);
         result.setMessage(json.hasNonNull("return_message") ? json.get("return_message").asText() : null);
         return result;
-    }
-
-    private String buildBackendReturnUrl(String propertyKey, String frontendReturnUrl) {
-        String backendUrl = PaymentGatewaySupport.requireProperty(this.env, propertyKey);
-        if (frontendReturnUrl == null || frontendReturnUrl.isBlank()) {
-            return backendUrl;
-        }
-
-        return PaymentGatewaySupport.appendQueryParam(backendUrl, "frontendReturnUrl", frontendReturnUrl.trim());
     }
 
     private String toZaloPayAmount(BigDecimal amount) {

@@ -6,8 +6,11 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.User;
 import com.evercare.repositories.UserRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
-import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -34,45 +37,50 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User findByUsername(String username) {
         Session session = this.factory.getObject().getCurrentSession();
-        Query<User> q = session.createQuery(
-            """
-            SELECT DISTINCT u
-            FROM User u
-            LEFT JOIN FETCH u.roleSet
-            LEFT JOIN FETCH u.patient
-            WHERE u.username = :username
-            """,
-                User.class
-        );
-        q.setParameter("username", username);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<User> cq = cb.createQuery(User.class);
+        Root<User> root = cq.from(User.class);
 
-        return q.uniqueResult();
+        root.fetch("roleSet", JoinType.LEFT);
+        root.fetch("patient", JoinType.LEFT);
+        root.fetch("employee", JoinType.LEFT);
+        root.fetch("doctor", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.equal(root.get("username"), username));
+
+        return session.createQuery(cq).uniqueResult();
     }
 
     @Override
     public User findById(Long id) {
         Session session = this.factory.getObject().getCurrentSession();
-        Query<User> q = session.createQuery(
-                """
-                SELECT DISTINCT u
-                FROM User u
-                LEFT JOIN FETCH u.roleSet
-                LEFT JOIN FETCH u.patient
-                WHERE u.id = :id
-                """,
-                User.class
-        );
-        q.setParameter("id", id);
-        return q.uniqueResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<User> cq = cb.createQuery(User.class);
+        Root<User> root = cq.from(User.class);
+
+        root.fetch("roleSet", JoinType.LEFT);
+        root.fetch("patient", JoinType.LEFT);
+        root.fetch("employee", JoinType.LEFT);
+        root.fetch("doctor", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.equal(root.get("id"), id));
+
+        return session.createQuery(cq).uniqueResult();
     }
 
     @Override
     public boolean existsByUsername(String username) {
         Session session = this.factory.getObject().getCurrentSession();
-        Long count = session.createQuery(
-                "SELECT COUNT(u.id) FROM User u WHERE u.username = :username",
-                Long.class
-        ).setParameter("username", username).uniqueResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<User> root = cq.from(User.class);
+
+        cq.select(cb.count(root));
+        cq.where(cb.equal(root.get("username"), username));
+
+        Long count = session.createQuery(cq).uniqueResult();
         return count != null && count > 0;
     }
 
@@ -83,10 +91,14 @@ public class UserRepositoryImpl implements UserRepository {
         }
 
         Session session = this.factory.getObject().getCurrentSession();
-        Long count = session.createQuery(
-                "SELECT COUNT(u.id) FROM User u WHERE LOWER(u.email) = LOWER(:email)",
-                Long.class
-        ).setParameter("email", email).uniqueResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<User> root = cq.from(User.class);
+
+        cq.select(cb.count(root));
+        cq.where(cb.equal(cb.lower(root.get("email")), email.trim().toLowerCase()));
+
+        Long count = session.createQuery(cq).uniqueResult();
         return count != null && count > 0;
     }
 
@@ -97,10 +109,14 @@ public class UserRepositoryImpl implements UserRepository {
         }
 
         Session session = this.factory.getObject().getCurrentSession();
-        Long count = session.createQuery(
-                "SELECT COUNT(u.id) FROM User u WHERE u.phone = :phone",
-                Long.class
-        ).setParameter("phone", phone).uniqueResult();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<User> root = cq.from(User.class);
+
+        cq.select(cb.count(root));
+        cq.where(cb.equal(root.get("phone"), phone));
+
+        Long count = session.createQuery(cq).uniqueResult();
         return count != null && count > 0;
     }
 

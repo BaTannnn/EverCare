@@ -4,18 +4,17 @@ import com.evercare.dtos.request.StartExaminationRequest;
 import com.evercare.dtos.response.DoctorAppointmentResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
 import com.evercare.enums.AppointmentStatus;
+import com.evercare.enums.InvoiceStatus;
 import com.evercare.mappers.AppointmentMapper;
 import com.evercare.mappers.MedicalRecordMapper;
 import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.MedicalRecord;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
-import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.MedicalRecordRepository;
 import com.evercare.services.DoctorAppointmentService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.List;
@@ -34,14 +33,11 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
     private MedicalRecordRepository medicalRecordRepo;
 
     @Autowired
-    private DoctorRepository doctorRepo;
-
-    @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<DoctorAppointmentResponse> getAppointmentsByDate(String username, LocalDate date) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
 
         return this.appointmentRepo
                 .getAppointmentsByDoctorAndDate(doctor.getId(), Date.valueOf(date))
@@ -52,7 +48,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
 
     @Override
     public DoctorAppointmentResponse getAppointmentById(String username, Long appointmentId) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Appointment appointment = this.appointmentRepo.getAppointmentByDoctorAndId(doctor.getId(), appointmentId);
 
         if (appointment == null) {
@@ -64,7 +60,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
 
     @Override
     public MedicalRecordResponse startExamination(String username, Long appointmentId, StartExaminationRequest request) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Appointment appointment = this.appointmentRepo.getAppointmentById(appointmentId);
 
         if (appointment == null) {
@@ -91,7 +87,7 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
             medicalRecord.setDoctorId(doctor);
             medicalRecord.setPatientId(appointment.getPatientId());
             medicalRecord.setVisitDate(now);
-            medicalRecord.setPaymentStatus("UNPAID");
+            medicalRecord.setPaymentStatus(InvoiceStatus.UNPAID.getCode());
             medicalRecord.setCreatedAt(now);
             medicalRecord.setActive(true);
             appointment.setMedicalRecord(medicalRecord);
@@ -109,36 +105,6 @@ public class DoctorAppointmentServiceImpl implements DoctorAppointmentService {
         this.appointmentRepo.updateAppointment(appointment);
 
         return MedicalRecordMapper.toResponse(medicalRecord);
-    }
-
-    private Doctor getCurrentDoctor(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
-
-        if (!hasRole(user, "DOCTOR")
-                || doctor == null
-                || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
     }
 
     private void applyStartExaminationRequest(MedicalRecord medicalRecord, StartExaminationRequest request) {

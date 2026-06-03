@@ -8,9 +8,9 @@ import com.evercare.enums.DoctorWorkStatus;
 import com.evercare.mappers.DoctorMapper;
 import com.evercare.pojo.Department;
 import com.evercare.pojo.Doctor;
-import com.evercare.repositories.DepartmentRepository;
 import com.evercare.repositories.DoctorRepository;
 import com.evercare.services.DoctorService;
+import com.evercare.utils.LookupSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,15 +26,14 @@ import java.util.logging.Logger;
 @Service
 @Transactional
 public class DoctorServiceImpl implements DoctorService {
-
     @Autowired
     private DoctorRepository doctorRepo;
 
     @Autowired
-    private DepartmentRepository departmentRepo;
+    private Cloudinary cloudinary;
 
     @Autowired
-    private Cloudinary cloudinary;
+    private LookupSupport lookupSupport;
 
     @Override
     public List<Doctor> getDoctors(Map<String, String> params) {
@@ -50,7 +49,7 @@ public class DoctorServiceImpl implements DoctorService {
     public Doctor createDoctor(DoctorRequest req) {
         validateDoctor(req);
 
-        Department department = loadValidDepartment(req.getDepartmentId());
+        Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
 
         Doctor doctor = DoctorMapper.toEntityForCreate(req, department);
 
@@ -83,7 +82,7 @@ public class DoctorServiceImpl implements DoctorService {
             throw new IllegalArgumentException("Bác sĩ đã bị xóa hoặc ngưng hoạt động");
         }
 
-        Department department = loadValidDepartment(req.getDepartmentId());
+        Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
 
         DoctorMapper.updateEntity(existing, req, department);
 
@@ -119,20 +118,6 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public long getTotalPages(Map<String, String> params) {
         return this.doctorRepo.getTotalPages(params);
-    }
-
-    private Department loadValidDepartment(Long departmentId) {
-        if (departmentId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn khoa");
-        }
-
-        Department department = this.departmentRepo.getDepartmentById(departmentId.intValue());
-
-        if (department == null || Boolean.FALSE.equals(department.getActive())) {
-            throw new IllegalArgumentException("Khoa không tồn tại hoặc đã ngưng hoạt động");
-        }
-
-        return department;
     }
 
     private void validateDoctor(DoctorRequest req) {

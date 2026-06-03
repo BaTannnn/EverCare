@@ -1,33 +1,13 @@
 import { Button, Card, Container } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import cookies from "react-cookies";
-
-const readSavedUser = () => {
-  const savedUser = cookies.load("user");
-
-  if (!savedUser) {
-    return null;
-  }
-
-  if (typeof savedUser === "object") {
-    return savedUser;
-  }
-
-  try {
-    return JSON.parse(savedUser);
-  } catch {
-    return null;
-  }
-};
+import { useAuth } from "../contexts/useAuth";
 
 function AdminDashboard() {
   const navigate = useNavigate();
-  const user = readSavedUser();
+  const { logout, user } = useAuth();
 
   const handleLogout = () => {
-    cookies.remove("token", { path: "/" });
-    cookies.remove("user", { path: "/" });
-    cookies.remove("role", { path: "/" });
+    logout();
     navigate("/login", { replace: true });
   };
 

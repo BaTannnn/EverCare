@@ -1,12 +1,12 @@
 package com.evercare.mappers;
 
+import com.evercare.dtos.response.AppointmentPatientResponse;
 import com.evercare.dtos.response.InvoiceDetailResponse;
 import com.evercare.dtos.response.InvoiceResponse;
 import com.evercare.dtos.response.MedicalRecordResponse;
-import com.evercare.dtos.response.PatientResponse;
 import com.evercare.dtos.response.PaymentResponse;
 import com.evercare.pojo.Invoice;
-import com.evercare.pojo.MedicalRecordService;
+import com.evercare.pojo.Patient;
 import com.evercare.pojo.Payment;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
@@ -20,23 +20,51 @@ public final class InvoiceMapper {
     }
 
     public static InvoiceResponse toResponse(Invoice invoice) {
+        return toResponse(invoice, BigDecimal.ZERO);
+    }
+
+    public static InvoiceResponse toResponse(Invoice invoice, BigDecimal totalTestAmount) {
         if (invoice == null) {
             return null;
         }
 
         InvoiceResponse res = new InvoiceResponse();
-        fillBase(invoice, res);
+        fillBase(invoice, res, totalTestAmount, true, false);
+        return res;
+    }
+
+    public static InvoiceResponse toReceptionistResponse(Invoice invoice) {
+        if (invoice == null) {
+            return null;
+        }
+
+        InvoiceResponse res = new InvoiceResponse();
+        fillBase(invoice, res, BigDecimal.ZERO, true, true);
+        return res;
+    }
+
+    public static InvoiceResponse toEmbeddedResponse(Invoice invoice, BigDecimal totalTestAmount) {
+        if (invoice == null) {
+            return null;
+        }
+
+        InvoiceResponse res = new InvoiceResponse();
+        fillBase(invoice, res, totalTestAmount, false, false);
         return res;
     }
 
     public static InvoiceDetailResponse toDetailResponse(Invoice invoice, List<Payment> payments) {
+        return toDetailResponse(invoice, payments, BigDecimal.ZERO);
+    }
+
+    public static InvoiceDetailResponse toDetailResponse(Invoice invoice, List<Payment> payments, BigDecimal totalTestAmount) {
         if (invoice == null) {
             return null;
         }
 
         InvoiceDetailResponse res = new InvoiceDetailResponse();
-        fillBase(invoice, res);
-        res.setPatient(invoice.getPatientId() != null ? PatientMapper.toResponse(invoice.getPatientId()) : null);
+        fillBase(invoice, res, totalTestAmount, true, true);
+        res.setPatient(toPatientResponse(invoice.getPatientId()));
         res.setMedicalRecord(invoice.getMedicalRecordId() != null ? MedicalRecordMapper.toResponse(invoice.getMedicalRecordId()) : null);
         List<PaymentResponse> paymentResponses = payments == null
                 ? Collections.emptyList()
@@ -45,13 +73,19 @@ public final class InvoiceMapper {
         return res;
     }
 
-    private static void fillBase(Invoice invoice, InvoiceResponse res) {
+    private static void fillBase(
+            Invoice invoice,
+            InvoiceResponse res,
+            BigDecimal totalTestAmount,
+            boolean includeMedicalRecord,
+            boolean includePatient
+    ) {
         res.setId(invoice.getId());
         res.setInvoiceCode(invoice.getInvoiceCode());
         res.setTotalServiceAmount(invoice.getTotalServiceAmount());
-        BigDecimal totalTestAmount = calculateTotalTestAmount(invoice);
-        res.setTotalTestAmount(totalTestAmount);
-        res.setTotalExamServiceAmount(calculateTotalExamServiceAmount(invoice, totalTestAmount));
+        BigDecimal normalizedTestAmount = totalTestAmount != null ? totalTestAmount : BigDecimal.ZERO;
+        res.setTotalTestAmount(normalizedTestAmount);
+        res.setTotalExamServiceAmount(calculateTotalExamServiceAmount(invoice, normalizedTestAmount));
         res.setTotalMedicineAmount(invoice.getTotalMedicineAmount());
         res.setDiscountAmount(invoice.getDiscountAmount());
         res.setTotalAmount(invoice.getTotalAmount());
@@ -62,33 +96,22 @@ public final class InvoiceMapper {
         res.setCreatedAt(format(invoice.getCreatedAt()));
         res.setUpdatedAt(format(invoice.getUpdatedAt()));
         res.setActive(invoice.getActive());
-        if (invoice.getPatientId() != null) {
+
+        if (includePatient && invoice.getPatientId() != null) {
+            res.setPatientId(invoice.getPatientId().getId());
             res.setPatientCode(invoice.getPatientId().getPatientCode());
             res.setPatientName(invoice.getPatientId().getFullName());
             res.setPatientPhone(invoice.getPatientId().getPhone());
         }
-        res.setMedicalRecordId(invoice.getMedicalRecordId() != null ? invoice.getMedicalRecordId().getId() : null);
-        res.setMedicalRecordCode(invoice.getMedicalRecordId() != null ? invoice.getMedicalRecordId().getRecordCode() : null);
-        res.setPatientId(invoice.getPatientId() != null ? invoice.getPatientId().getId() : null);
+
+        if (includeMedicalRecord && invoice.getMedicalRecordId() != null) {
+            res.setMedicalRecordId(invoice.getMedicalRecordId().getId());
+            res.setMedicalRecordCode(invoice.getMedicalRecordId().getRecordCode());
+        }
     }
 
     private static String format(java.util.Date date) {
         return date == null ? null : new SimpleDateFormat(DATETIME_PATTERN).format(date);
-    }
-
-    private static BigDecimal calculateTotalTestAmount(Invoice invoice) {
-        if (invoice.getMedicalRecordId() == null
-                || invoice.getMedicalRecordId().getMedicalRecordServiceSet() == null) {
-            return BigDecimal.ZERO;
-        }
-
-        return invoice.getMedicalRecordId()
-                .getMedicalRecordServiceSet()
-                .stream()
-                .filter(service -> !Boolean.FALSE.equals(service.getActive()))
-                .filter(InvoiceMapper::isTestService)
-                .map(InvoiceMapper::calculateServiceAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private static BigDecimal calculateTotalExamServiceAmount(Invoice invoice, BigDecimal totalTestAmount) {
@@ -100,18 +123,16 @@ public final class InvoiceMapper {
         return totalServiceAmount.subtract(normalizedTestAmount).max(BigDecimal.ZERO);
     }
 
-    private static boolean isTestService(MedicalRecordService recordService) {
-        if (recordService.getServiceId() == null || recordService.getServiceId().getServiceType() == null) {
-            return false;
+    private static AppointmentPatientResponse toPatientResponse(Patient patient) {
+        if (patient == null) {
+            return null;
         }
 
-        String serviceType = recordService.getServiceId().getServiceType().trim();
-        return "TEST".equalsIgnoreCase(serviceType) || "LAB_TEST".equalsIgnoreCase(serviceType);
-    }
-
-    private static BigDecimal calculateServiceAmount(MedicalRecordService recordService) {
-        BigDecimal unitPrice = recordService.getUnitPrice() != null ? recordService.getUnitPrice() : BigDecimal.ZERO;
-        int quantity = recordService.getQuantity() != null ? recordService.getQuantity() : 0;
-        return unitPrice.multiply(BigDecimal.valueOf(quantity));
+        AppointmentPatientResponse res = new AppointmentPatientResponse();
+        res.setId(patient.getId());
+        res.setPatientCode(patient.getPatientCode());
+        res.setFullName(patient.getFullName());
+        res.setPhone(patient.getPhone());
+        return res;
     }
 }

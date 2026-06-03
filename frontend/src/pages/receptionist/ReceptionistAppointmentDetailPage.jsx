@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Col, Row } from "react-bootstrap";
-import { BsArrowLeft, BsCalendarCheck, BsPencilSquare, BsPersonCheck } from "react-icons/bs";
+import { Alert, Button, Card } from "react-bootstrap";
+import { BsArrowLeft, BsPencilSquare, BsPersonCheck } from "react-icons/bs";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
+import PageHeader from "../../components/common/PageHeader";
 import StatusBadge from "../../components/common/StatusBadge";
 import { checkInReceptionistAppointment, getReceptionistAppointmentDetail } from "../../services/receptionist/receptionistAppointmentApi";
-import { appointmentStatusMeta, formatDate, formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
+import { appointmentStatusMeta, formatDate, formatDateTime, formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
 
 const InfoRow = ({ label, value }) => (
   <div className="receptionist-info-row">
@@ -85,27 +86,28 @@ function ReceptionistAppointmentDetailPage() {
   const meta = appointmentStatusMeta(appointment.status);
   const canCheckIn = appointment.status === "BOOKED" && appointment.appointmentDate === todayInputValue();
   const canEdit = ["BOOKED", "WAITING"].includes(appointment.status);
+  const updatedAt = appointment.updatedAt || appointment.createdAt;
 
   return (
     <>
-      <div className="page-header receptionist-page-header">
-        <div>
-          <div className="page-eyebrow">Lễ tân / Chi tiết lịch hẹn</div>
-          <h1>{appointment.appointmentCode}</h1>
-          <p>Thông tin đầy đủ của lịch hẹn, trạng thái hồ sơ bệnh nhân và thao tác nhanh tại quầy.</p>
-        </div>
-        <div className="page-header-actions">
-          <Button as={Link} to="/receptionist/appointments" type="button" variant="outline-primary">
-            <BsArrowLeft /> Về danh sách
-          </Button>
-          <Button as={Link} to={`/receptionist/appointments/${appointment.id}/edit`} type="button" variant="outline-primary" disabled={!canEdit}>
-            <BsPencilSquare /> Sửa lịch
-          </Button>
-          <Button type="button" onClick={handleCheckIn} disabled={!canCheckIn || actionLoading}>
-            <BsPersonCheck /> Check-in
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Lễ tân / Chi tiết lịch hẹn"
+        title={appointment.appointmentCode}
+        description="Thông tin đầy đủ của lịch hẹn, trạng thái hồ sơ bệnh nhân và thao tác nhanh tại quầy."
+        actions={(
+          <>
+            <Button as={Link} to="/receptionist/appointments" type="button" variant="outline-primary">
+              <BsArrowLeft /> Về danh sách
+            </Button>
+            <Button as={Link} to={`/receptionist/appointments/${appointment.id}/edit`} type="button" variant="outline-primary" disabled={!canEdit}>
+              <BsPencilSquare /> Sửa lịch
+            </Button>
+            <Button type="button" onClick={handleCheckIn} disabled={!canCheckIn || actionLoading}>
+              <BsPersonCheck /> Check-in
+            </Button>
+          </>
+        )}
+      />
 
       {notice && <Alert variant="success">{notice}</Alert>}
       {error && <Alert variant="danger">{error}</Alert>}
@@ -119,16 +121,18 @@ function ReceptionistAppointmentDetailPage() {
             <h2>Thông tin bệnh nhân</h2>
           </Card.Header>
           <Card.Body>
-            <InfoRow label="patientCode" value={patient.patientCode} />
-            <InfoRow label="fullName" value={patient.fullName} />
-            <InfoRow label="phone" value={patient.phone} />
-            <InfoRow label="gender" value={patient.gender} />
-            <InfoRow label="dateOfBirth" value={formatDate(patient.dateOfBirth)} />
-            <InfoRow label="profileComplete" value={String(patient.profileComplete)} />
-            <div className="receptionist-missing-fields">
-              <span>missingFields</span>
-              <strong>{Array.isArray(patient.missingFields) && patient.missingFields.length ? patient.missingFields.join(", ") : "--"}</strong>
-            </div>
+            <InfoRow label="Mã bệnh nhân" value={patient.patientCode} />
+            <InfoRow label="Họ và tên" value={patient.fullName} />
+            <InfoRow label="Số điện thoại" value={patient.phone} />
+            <InfoRow label="Giới tính" value={patient.gender} />
+            <InfoRow label="Ngày sinh" value={formatDate(patient.dateOfBirth)} />
+            <InfoRow label="Email" value={patient.email} />
+            <InfoRow label="CCCD / CMT" value={patient.citizenId} />
+            <InfoRow label="Hồ sơ đầy đủ" value={patient.profileComplete ? "Đầy đủ" : "Thiếu thông tin"} />
+            <InfoRow
+              label="Thiếu thông tin"
+              value={Array.isArray(patient.missingFields) && patient.missingFields.length ? patient.missingFields.join(", ") : "Không có"}
+            />
           </Card.Body>
         </Card>
 
@@ -138,15 +142,16 @@ function ReceptionistAppointmentDetailPage() {
             <StatusBadge status={appointment.status} label={meta.label} />
           </Card.Header>
           <Card.Body>
-            <InfoRow label="appointmentDate" value={formatDate(appointment.appointmentDate)} />
-            <InfoRow label="startTime" value={formatTime(appointment.startTime)} />
-            <InfoRow label="endTime" value={formatTime(appointment.endTime)} />
-            <InfoRow label="doctor" value={doctor.fullName} />
-            <InfoRow label="department" value={doctor.departmentName || appointment.departmentName} />
-            <InfoRow label="service" value={service.name} />
-            <InfoRow label="reason" value={appointment.reason} />
-            <InfoRow label="symptomNote" value={appointment.symptomNote} />
-            <InfoRow label="cancelReason" value={appointment.cancelReason} />
+            <InfoRow label="Ngày khám" value={formatDate(appointment.appointmentDate)} />
+            <InfoRow label="Giờ bắt đầu" value={formatTime(appointment.startTime)} />
+            <InfoRow label="Giờ kết thúc" value={formatTime(appointment.endTime)} />
+            <InfoRow label="Bác sĩ" value={doctor.fullName} />
+            <InfoRow label="Khoa" value={doctor.departmentName || appointment.departmentName} />
+            <InfoRow label="Dịch vụ" value={service.name} />
+            <InfoRow label="Lý do khám" value={appointment.reason} />
+            <InfoRow label="Triệu chứng" value={appointment.symptomNote} />
+            <InfoRow label="Lý do hủy" value={appointment.cancelReason} />
+            <InfoRow label="Cập nhật gần nhất" value={formatDateTime(updatedAt)} />
           </Card.Body>
         </Card>
       </section>

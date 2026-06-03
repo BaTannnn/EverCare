@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import cookies from "react-cookies";
+import { useAuth } from "../../../contexts/useAuth";
 
 const menuItems = [
   { to: "/receptionist/dashboard", icon: "▦", label: "Dashboard" },
@@ -10,11 +10,10 @@ const menuItems = [
 
 function ReceptionistSidebar() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
-    cookies.remove("token", { path: "/" });
-    cookies.remove("user", { path: "/" });
-    cookies.remove("role", { path: "/" });
+    logout();
     navigate("/login", { replace: true });
   };
 

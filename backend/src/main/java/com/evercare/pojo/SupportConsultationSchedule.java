@@ -2,6 +2,7 @@ package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -70,19 +71,19 @@ public class SupportConsultationSchedule implements Serializable {
     private Boolean active;
 
     @JoinColumn(name = "conversation_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private SupportConversation conversationId;
 
     @JoinColumn(name = "patient_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Patient patientId;
 
     @JoinColumn(name = "doctor_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Doctor doctorId;
 
     @JoinColumn(name = "staff_id", referencedColumnName = "id")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Employee staffId;
 
     public SupportConsultationSchedule() {

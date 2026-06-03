@@ -1,18 +1,18 @@
 package com.evercare.repositories.impl;
 
-import com.evercare.pojo.Invoice;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.pojo.*;
 import com.evercare.repositories.InvoiceRepository;
-import com.evercare.utils.PaginationUtils;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import com.evercare.utils.QueryPagingSupport;
+import jakarta.persistence.criteria.*;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,20 +40,18 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         Join<Invoice, com.evercare.pojo.MedicalRecord> recordJoin = root.join("medicalRecordId", JoinType.INNER);
 
         root.fetch("patientId", JoinType.INNER);
-        root.fetch("medicalRecordId", JoinType.INNER);
-        root.fetch("paymentSet", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, cb, root, patientJoin, recordJoin);
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
 
         Query<Invoice> query = session.createQuery(cq);
         int pageSize = resolvePageSize(params);
-        int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), countInvoicesForReceptionist(params), pageSize);
-        query.setFirstResult((page - 1) * pageSize);
-        query.setMaxResults(pageSize);
+        QueryPagingSupport.applyPaging(query, params, countInvoicesForReceptionist(params), pageSize);
 
         return query.getResultList();
     }
@@ -78,17 +76,23 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     public Invoice getInvoiceByMedicalRecordId(Long medicalRecordId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.medicalRecordId.id = :medicalRecordId
-                    AND i.active = true
-                """, Invoice.class)
-                .setParameter("medicalRecordId", medicalRecordId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
+
+        query.select(root);
+        query.where(
+                builder.equal(root.get("medicalRecordId").get("id"), medicalRecordId),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -98,15 +102,14 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaQuery<Invoice> cq = cb.createQuery(Invoice.class);
         Root<Invoice> root = cq.from(Invoice.class);
 
-        root.fetch("medicalRecordId", jakarta.persistence.criteria.JoinType.LEFT);
-        root.fetch("patientId");
+        root.fetch("medicalRecordId", JoinType.LEFT);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
         predicates.add(cb.equal(root.get("patientId").get("id"), patientId));
 
         if (paymentStatus != null && !paymentStatus.isBlank()) {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), paymentStatus.trim().toUpperCase()));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.normalize(paymentStatus)));
         }
 
         if (from != null) {
@@ -123,7 +126,7 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
             ));
         }
 
-        cq.select(root).distinct(true);
+        cq.select(root);
         cq.where(predicates.toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
 
@@ -131,56 +134,100 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     @Override
+    public Map<Long, BigDecimal> getTotalTestAmountsByMedicalRecordIds(List<Long> medicalRecordIds) {
+        Map<Long, BigDecimal> totals = new HashMap<>();
+        if (medicalRecordIds == null || medicalRecordIds.isEmpty()) {
+            return totals;
+        }
+
+        List<Long> ids = medicalRecordIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return totals;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Object[]> cq = cb.createQuery(Object[].class);
+        Root<MedicalRecordService> root = cq.from(MedicalRecordService.class);
+        Join<MedicalRecordService, MedicalService> serviceJoin = root.join("serviceId", JoinType.INNER);
+
+        Path<Long> recordIdPath = root.get("medicalRecordId").get("id");
+        CriteriaBuilder.Coalesce<BigDecimal> unitPrice = cb.coalesce();
+        unitPrice.value(root.get("unitPrice"));
+        unitPrice.value(BigDecimal.ZERO);
+
+        CriteriaBuilder.Coalesce<Integer> quantity = cb.coalesce();
+        quantity.value(root.get("quantity"));
+        quantity.value(0);
+
+        Expression<BigDecimal> amount = cb.prod(unitPrice, quantity.as(BigDecimal.class));
+        Expression<String> serviceType = cb.upper(cb.trim(serviceJoin.get("serviceType")));
+
+        cq.multiselect(recordIdPath, cb.sum(amount));
+        cq.where(
+                cb.isTrue(root.get("active")),
+                recordIdPath.in(ids),
+                serviceType.in("TEST", "LAB_TEST")
+        );
+        cq.groupBy(recordIdPath);
+
+        for (Object[] row : session.createQuery(cq).getResultList()) {
+            if (row[0] instanceof Long recordId && row[1] instanceof BigDecimal total) {
+                totals.put(recordId, total);
+            }
+        }
+
+        return totals;
+    }
+
+    @Override
     public Invoice getInvoiceByPatientIdAndId(Long patientId, Long invoiceId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND p.id = :patientId
-                    AND i.id = :invoiceId
-                """, Invoice.class)
-                .setParameter("patientId", patientId)
-                .setParameter("invoiceId", invoiceId)
-                .uniqueResult();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
+
+        query.select(root);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.equal(root.get("id"), invoiceId),
+                builder.equal(root.get("patientId").get("id"), patientId)
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
     public Invoice getInvoiceById(Long invoiceId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND i.id = :invoiceId
-                """, Invoice.class)
-                .setParameter("invoiceId", invoiceId)
-                .uniqueResult();
-    }
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
+        Root<Invoice> root = query.from(Invoice.class);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
-    @Override
-    public Invoice getInvoiceByAppointmentId(Long appointmentId) {
-        Session session = this.factory.getObject().getCurrentSession();
+        query.select(root);
+        query.where(
+                builder.isTrue(root.get("active")),
+                builder.equal(root.get("id"), invoiceId)
+        );
 
-        return session.createQuery("""
-                SELECT DISTINCT i
-                FROM Invoice i
-                JOIN FETCH i.medicalRecordId mr
-                JOIN FETCH i.patientId p
-                LEFT JOIN FETCH p.userId u
-                WHERE i.active = true
-                    AND mr.appointmentId.id = :appointmentId
-                """, Invoice.class)
-                .setParameter("appointmentId", appointmentId)
-                .uniqueResult();
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -208,9 +255,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
 
         String paymentStatus = params != null ? params.get("paymentStatus") : null;
         if (paymentStatus == null || paymentStatus.isBlank()) {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), "UNPAID"));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.UNPAID.getCode()));
         } else {
-            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), paymentStatus.trim().toUpperCase()));
+            predicates.add(cb.equal(cb.upper(root.get("paymentStatus")), InvoiceStatus.normalize(paymentStatus)));
         }
 
         if (params != null) {
@@ -247,21 +294,6 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     private int resolvePageSize(Map<String, String> params) {
-        int defaultPageSize = this.env.getProperty("invoice.pageSize", Integer.class, 10);
-        if (params == null) {
-            return defaultPageSize;
-        }
-
-        String sizeValue = params.get("size");
-        if (sizeValue == null || sizeValue.isBlank()) {
-            return defaultPageSize;
-        }
-
-        try {
-            int size = Integer.parseInt(sizeValue.trim());
-            return size > 0 ? size : defaultPageSize;
-        } catch (NumberFormatException ex) {
-            return defaultPageSize;
-        }
+        return QueryPagingSupport.resolvePageSize(this.env, "invoice.pageSize", params, 10);
     }
 }

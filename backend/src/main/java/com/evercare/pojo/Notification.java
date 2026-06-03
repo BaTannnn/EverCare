@@ -6,6 +6,7 @@ package com.evercare.pojo;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -74,7 +75,7 @@ public class Notification implements Serializable {
     @Column(name = "active")
     private Boolean active;
     @JoinColumn(name = "user_id", referencedColumnName = "id")
-    @ManyToOne(optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User userId;
 
     public Notification() {

@@ -15,9 +15,8 @@ public interface MedicineBatchRepository {
 
     Map<Long, Long> getAvailableNonExpiredQuantitiesByMedicineIds(List<Long> medicineIds, java.util.Date today);
 
-    List<MedicineBatch> getDispensableBatchesByMedicineId(Long medicineId, java.util.Date today);
-
     List<MedicineBatch> getDispensableBatchesByMedicineIdForUpdate(Long medicineId, java.util.Date today);
+    List<MedicineBatch> getDispensableBatchesByMedicineIdsForUpdate(List<Long> medicineIds, java.util.Date today);
 
     List<MedicineBatch> getNearExpiryBatches(java.util.Date toDate);
 

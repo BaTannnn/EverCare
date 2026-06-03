@@ -12,10 +12,10 @@ import com.evercare.services.UserService;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,19 +43,9 @@ public class ApiPharmacistMedicineBatchController {
             Principal principal,
             @RequestBody MedicineBatchImportRequest request
     ) {
-        ResponseEntity<?> authError = validatePharmacist(principal);
-        if (authError != null) {
-            return authError;
-        }
-
-        try {
-            MedicineBatchImportResponse result = this.medicineBatchService.importBatch(principal.getName(), request);
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        }
+        validatePharmacist(principal);
+        MedicineBatchImportResponse result = this.medicineBatchService.importBatch(principal.getName(), request);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @GetMapping("/medicine-batches")
@@ -63,10 +53,7 @@ public class ApiPharmacistMedicineBatchController {
             Principal principal,
             @RequestParam Map<String, String> params
     ) {
-        ResponseEntity<?> authError = validatePharmacist(principal);
-        if (authError != null) {
-            return authError;
-        }
+        validatePharmacist(principal);
 
         List<MedicineBatchResponse> result = this.medicineBatchService.getBatches(params);
         return ResponseEntity.ok(result);
@@ -77,25 +64,14 @@ public class ApiPharmacistMedicineBatchController {
             Principal principal,
             @RequestParam(value = "days", required = false) Integer days
     ) {
-        ResponseEntity<?> authError = validatePharmacist(principal);
-        if (authError != null) {
-            return authError;
-        }
-
-        try {
-            List<MedicineBatchResponse> result = this.medicineBatchService.getNearExpiryBatches(days);
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        }
+        validatePharmacist(principal);
+        List<MedicineBatchResponse> result = this.medicineBatchService.getNearExpiryBatches(days);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/medicine-batches/expired")
     public ResponseEntity<?> getExpiredBatches(Principal principal) {
-        ResponseEntity<?> authError = validatePharmacist(principal);
-        if (authError != null) {
-            return authError;
-        }
+        validatePharmacist(principal);
 
         List<MedicineBatchResponse> result = this.medicineBatchService.getExpiredBatches();
         return ResponseEntity.ok(result);
@@ -106,22 +82,14 @@ public class ApiPharmacistMedicineBatchController {
             Principal principal,
             @PathVariable("medicineId") Long medicineId
     ) {
-        ResponseEntity<?> authError = validatePharmacist(principal);
-        if (authError != null) {
-            return authError;
-        }
-
-        try {
-            List<MedicineBatchResponse> result = this.medicineBatchService.getBatchesByMedicineId(medicineId);
-            return ResponseEntity.ok(result);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        }
+        validatePharmacist(principal);
+        List<MedicineBatchResponse> result = this.medicineBatchService.getBatchesByMedicineId(medicineId);
+        return ResponseEntity.ok(result);
     }
 
-    private ResponseEntity<?> validatePharmacist(Principal principal) {
+    private void validatePharmacist(Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
         }
 
         User user = this.userService.getUserByUsername(principal.getName());
@@ -129,10 +97,8 @@ public class ApiPharmacistMedicineBatchController {
 
         if (!hasPharmacistRole(user)
                 || (employee != null && Boolean.FALSE.equals(employee.getActive()))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tài khoản hiện tại không phải dược sĩ"));
+            throw new AccessDeniedException("Tài khoản hiện tại không phải dược sĩ");
         }
-
-        return null;
     }
 
     private boolean hasPharmacistRole(User user) {

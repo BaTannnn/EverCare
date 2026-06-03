@@ -1,5 +1,6 @@
 package com.evercare.repositories.impl;
 
+import com.evercare.enums.PaymentStatus;
 import com.evercare.pojo.Payment;
 import com.evercare.repositories.PaymentRepository;
 import java.math.BigDecimal;
@@ -68,22 +69,6 @@ public class PaymentRepositoryImpl implements PaymentRepository {
                 .getResultList();
     }
 
-    @Override
-    public List<Payment> getSuccessPaymentsByInvoiceId(Long invoiceId) {
-        Session session = this.factory.getObject().getCurrentSession();
-
-        return session.createQuery("""
-                SELECT p
-                FROM Payment p
-                JOIN FETCH p.invoiceId i
-                WHERE p.active = true
-                    AND i.id = :invoiceId
-                    AND UPPER(p.paymentStatus) = 'SUCCESS'
-                ORDER BY p.createdAt ASC, p.id ASC
-                """, Payment.class)
-                .setParameter("invoiceId", invoiceId)
-                .getResultList();
-    }
 
     @Override
     public BigDecimal sumSuccessAmountByInvoiceId(Long invoiceId) {
@@ -94,9 +79,10 @@ public class PaymentRepositoryImpl implements PaymentRepository {
                 FROM Payment p
                 WHERE p.active = true
                     AND p.invoiceId.id = :invoiceId
-                    AND UPPER(p.paymentStatus) = 'SUCCESS'
+                    AND UPPER(p.paymentStatus) = :status
                 """, BigDecimal.class)
                 .setParameter("invoiceId", invoiceId)
+                .setParameter("status", PaymentStatus.SUCCESS.getCode())
                 .uniqueResult();
 
         return amount != null ? amount : BigDecimal.ZERO;

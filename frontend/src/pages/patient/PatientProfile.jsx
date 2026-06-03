@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Form, Modal } from "react-bootstrap";
 import { BsCalendar3, BsEnvelope, BsExclamationTriangle, BsFileMedical, BsGenderAmbiguous, BsGeoAlt, BsHeartPulse, BsPencil, BsPhone, BsShieldCheck } from "react-icons/bs";
-import { useOutletContext } from "react-router-dom";
+import { usePatientShell } from "../../contexts/usePatientShell";
 import { createPatientProfile, updatePatientProfile } from "../../services/patient/patientProfileApi";
 import { getAvatarSource } from "./patientPageUtils";
 
@@ -21,8 +21,24 @@ const profileTemplate = {
   emergencyContactPhone: "",
 };
 
+const BLOOD_TYPE_OPTIONS = [
+  { value: "", label: "Chọn nhóm máu" },
+  { value: "A", label: "A" },
+  { value: "A+", label: "A+" },
+  { value: "A-", label: "A-" },
+  { value: "B", label: "B" },
+  { value: "B+", label: "B+" },
+  { value: "B-", label: "B-" },
+  { value: "AB", label: "AB" },
+  { value: "AB+", label: "AB+" },
+  { value: "AB-", label: "AB-" },
+  { value: "O", label: "O" },
+  { value: "O+", label: "O+" },
+  { value: "O-", label: "O-" },
+];
+
 function PatientProfile() {
-  const { profile, setProfile: setShellProfile } = useOutletContext() || {};
+  const { profile, setProfile: setShellProfile } = usePatientShell();
   const [form, setForm] = useState(profileTemplate);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -296,7 +312,13 @@ function PatientProfile() {
               </Form.Group>
               <Form.Group className="patient-form-group">
                 <Form.Label>Nhóm máu</Form.Label>
-                <Form.Control name="bloodType" value={form.bloodType} onChange={handleChange} />
+                <Form.Select name="bloodType" value={form.bloodType} onChange={handleChange}>
+                  {BLOOD_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value || "empty"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
               <Form.Group className="patient-form-group">
                 <Form.Label>Số BHYT</Form.Label>

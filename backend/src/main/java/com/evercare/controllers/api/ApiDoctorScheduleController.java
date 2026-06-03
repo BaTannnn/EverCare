@@ -4,13 +4,11 @@ import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.services.DoctorScheduleService;
 import java.security.Principal;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import com.evercare.pojo.Doctor;
 import java.util.List;
 import java.util.Map;
 import com.evercare.services.DoctorService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,20 +40,9 @@ public class ApiDoctorScheduleController {
     }
 
     private ResponseEntity<?> currentDoctorSchedules(Principal principal, Map<String, String> params) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            List<DoctorScheduleResponse> result = this.scheduleService
-                    .getCurrentDoctorSchedules(principal.getName(), params);
-
-            return ResponseEntity.ok(result);
-        } catch (DateTimeParseException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ngày không hợp lệ, định dạng đúng là yyyy-MM-dd"));
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        }
+        List<DoctorScheduleResponse> result = this.scheduleService
+                .getCurrentDoctorSchedules(requireUsername(principal), params);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/doctors/{doctorId}/schedules")
@@ -67,32 +54,35 @@ public class ApiDoctorScheduleController {
         Doctor doctor = this.doctorService.getDoctorById(doctorId.intValue());
 
         if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Bác sĩ không tồn tại"));
+            throw new java.util.NoSuchElementException("Bác sĩ không tồn tại");
         }
 
         LocalDate fromDate = LocalDate.now();
         LocalDate toDate = fromDate.plusDays(7);
 
-        try {
-            if (from != null && !from.isBlank()) {
-                fromDate = LocalDate.parse(from);
-                toDate = fromDate.plusDays(7);
-            }
+        if (from != null && !from.isBlank()) {
+            fromDate = LocalDate.parse(from);
+            toDate = fromDate.plusDays(7);
+        }
 
-            if (to != null && !to.isBlank()) {
-                toDate = LocalDate.parse(to);
-            }
-        } catch (DateTimeParseException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ngày không hợp lệ, định dạng đúng là yyyy-MM-dd"));
+        if (to != null && !to.isBlank()) {
+            toDate = LocalDate.parse(to);
         }
 
         if (toDate.isBefore(fromDate)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu"));
+            throw new IllegalArgumentException("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
         }
 
         List<DoctorScheduleResponse> result = this.scheduleService
                 .listAvailableSchedulesByDoctorId(doctorId, fromDate, toDate);
 
         return ResponseEntity.ok(result);
+    }
+
+    private String requireUsername(Principal principal) {
+        if (principal == null) {
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
+        }
+        return principal.getName();
     }
 }

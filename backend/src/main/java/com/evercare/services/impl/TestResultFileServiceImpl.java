@@ -6,7 +6,6 @@ import com.evercare.pojo.Doctor;
 import com.evercare.pojo.Employee;
 import com.evercare.pojo.MedicalRecord;
 import com.evercare.pojo.Patient;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.TestResult;
 import com.evercare.pojo.User;
 import com.evercare.repositories.DoctorRepository;
@@ -14,7 +13,7 @@ import com.evercare.repositories.EmployeeRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.TestResultFileService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -42,11 +41,11 @@ public class TestResultFileServiceImpl implements TestResultFileService {
     private PatientRepository patientRepo;
 
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public TestResultFileResponse getFileForDoctor(String username, Long resultId) {
-        User user = getCurrentUser(username);
+        User user = this.authSupport.getCurrentUser(username);
         Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
         if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
             throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
@@ -65,7 +64,7 @@ public class TestResultFileServiceImpl implements TestResultFileService {
 
     @Override
     public TestResultFileResponse getFileForStaff(String username, Long resultId) {
-        User user = getCurrentUser(username);
+        User user = this.authSupport.getCurrentUser(username);
         Employee employee = this.employeeRepo.getEmployeeByUserId(user.getId());
         if (employee == null || Boolean.FALSE.equals(employee.getActive())) {
             throw new SecurityException("Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
@@ -73,7 +72,7 @@ public class TestResultFileServiceImpl implements TestResultFileService {
 
         TestResult testResult = loadTestResult(resultId);
         boolean owner = testResult.getPerformedBy() != null && employee.getId().equals(testResult.getPerformedBy().getId());
-        if (!owner && !hasRole(user, "LAB_TECH")) {
+        if (!owner && !this.authSupport.hasRole(user, "LAB_TECH")) {
             throw new SecurityException("Nhân viên y tế không có quyền xem file kết quả này");
         }
 
@@ -82,7 +81,7 @@ public class TestResultFileServiceImpl implements TestResultFileService {
 
     @Override
     public TestResultFileResponse getFileForPatient(String username, Long resultId) {
-        User user = getCurrentUser(username);
+        User user = this.authSupport.getCurrentUser(username);
         Patient patient = this.patientRepo.getPatientByUserId(user.getId());
         if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
             throw new SecurityException("Tài khoản hiện tại chưa có hồ sơ bệnh nhân");
@@ -110,19 +109,6 @@ public class TestResultFileServiceImpl implements TestResultFileService {
         }
 
         return testResult;
-    }
-
-    private User getCurrentUser(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        if (user == null || Boolean.FALSE.equals(user.getActive())) {
-            throw new SecurityException("Tài khoản không hợp lệ");
-        }
-
-        return user;
     }
 
     private TestResultFileResponse fetchPdf(TestResult testResult) {
@@ -209,16 +195,4 @@ public class TestResultFileServiceImpl implements TestResultFileService {
         return code.replaceAll("[^A-Za-z0-9_-]", "_") + ".pdf";
     }
 
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
-    }
 }

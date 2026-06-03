@@ -4,7 +4,6 @@ import com.evercare.dtos.request.PaymentRequest;
 import com.evercare.pojo.Invoice;
 import com.evercare.pojo.Payment;
 import com.evercare.dtos.response.PaymentGatewayResultResponse;
-import com.evercare.services.PaymentGatewayService;
 import com.evercare.utils.PaymentGatewaySupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.math.BigDecimal;
@@ -22,19 +21,14 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 @Service
-public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
+public class VnPayPaymentGatewayServiceImpl extends AbstractPaymentGatewayService {
     private static final String METHOD = "VNPAY";
 
     @Autowired
     private Environment env;
 
     @Override
-    public boolean supports(String paymentMethod) {
-        return paymentMethod != null && METHOD.equalsIgnoreCase(paymentMethod.trim());
-    }
-
-    @Override
-    public String getProvider() {
+    protected String getMethod() {
         return METHOD;
     }
 
@@ -43,7 +37,7 @@ public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
         String payUrl = PaymentGatewaySupport.requireProperty(this.env, "payment.vnpay.payUrl");
         String tmnCode = PaymentGatewaySupport.requireProperty(this.env, "payment.vnpay.tmnCode");
         String hashSecret = PaymentGatewaySupport.requireProperty(this.env, "payment.vnpay.hashSecret");
-        String returnUrl = buildBackendReturnUrl("payment.vnpay.returnUrl", request != null ? request.getReturnUrl() : null);
+        String returnUrl = buildBackendReturnUrl(this.env, "payment.vnpay.returnUrl", request != null ? request.getReturnUrl() : null);
         String bankCode = resolveBankCode(request);
         String createDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String expireDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date(System.currentTimeMillis() + 15 * 60 * 1000L));
@@ -131,15 +125,6 @@ public class VnPayPaymentGatewayServiceImpl implements PaymentGatewayService {
         result.setSuccess("00".equals(responseCode) && "00".equals(transactionStatus));
         result.setMessage(PaymentGatewaySupport.value(params, "vnp_Message", "message"));
         return result;
-    }
-
-    private String buildBackendReturnUrl(String propertyKey, String frontendReturnUrl) {
-        String backendUrl = PaymentGatewaySupport.requireProperty(this.env, propertyKey);
-        if (frontendReturnUrl == null || frontendReturnUrl.isBlank()) {
-            return backendUrl;
-        }
-
-        return PaymentGatewaySupport.appendQueryParam(backendUrl, "frontendReturnUrl", frontendReturnUrl.trim());
     }
 
     @Override

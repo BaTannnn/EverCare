@@ -5,6 +5,7 @@ import com.evercare.repositories.TestResultRepository;
 import com.evercare.utils.PaginationUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
@@ -15,14 +16,12 @@ import java.util.Map;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
-@PropertySource("classpath:configs.properties")
 @Transactional
 public class TestResultRepositoryImpl implements TestResultRepository {
     @Autowired
@@ -47,6 +46,14 @@ public class TestResultRepositoryImpl implements TestResultRepository {
         return predicates;
     }
 
+    private void fetchTestResultGraph(Root<TestResult> root) {
+        Fetch<TestResult, ?> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("serviceId", JoinType.LEFT);
+        root.fetch("performedBy", JoinType.LEFT);
+    }
+
     @Override
     public void addTestResult(TestResult testResult) {
         Session session = this.factory.getObject().getCurrentSession();
@@ -58,15 +65,19 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     public TestResult getTestResultById(Long id) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT tr FROM TestResult tr
-                JOIN FETCH tr.medicalRecordId mr
-                LEFT JOIN FETCH tr.serviceId s
-                LEFT JOIN FETCH tr.performedBy e
-                WHERE tr.id = :id
-                    AND tr.active = true
-                """, TestResult.class)
-                .setParameter("id", id)
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<TestResult> cq = cb.createQuery(TestResult.class);
+        Root<TestResult> root = cq.from(TestResult.class);
+
+        fetchTestResultGraph(root);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("id"), id),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq)
                 .uniqueResult();
     }
 
@@ -80,27 +91,22 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     public boolean existsByMedicalRecordIdAndServiceId(Long recordId, Long serviceId, Long excludeId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        String hql = """
-                SELECT COUNT(tr.id)
-                FROM TestResult tr
-                WHERE tr.active = true
-                    AND tr.medicalRecordId.id = :recordId
-                    AND tr.serviceId.id = :serviceId
-                """;
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<TestResult> root = cq.from(TestResult.class);
 
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+        predicates.add(cb.equal(root.get("medicalRecordId").get("id"), recordId));
+        predicates.add(cb.equal(root.get("serviceId").get("id"), serviceId));
         if (excludeId != null) {
-            hql += " AND tr.id <> :excludeId";
+            predicates.add(cb.notEqual(root.get("id"), excludeId));
         }
 
-        Query<Long> query = session.createQuery(hql, Long.class)
-                .setParameter("recordId", recordId)
-                .setParameter("serviceId", serviceId);
+        cq.select(cb.count(root));
+        cq.where(predicates.toArray(Predicate[]::new));
 
-        if (excludeId != null) {
-            query.setParameter("excludeId", excludeId);
-        }
-
-        Long count = query.uniqueResult();
+        Long count = session.createQuery(cq).uniqueResult();
         return count != null && count > 0;
     }
 
@@ -111,9 +117,7 @@ public class TestResultRepositoryImpl implements TestResultRepository {
         CriteriaQuery<TestResult> cq = cb.createQuery(TestResult.class);
         Root<TestResult> root = cq.from(TestResult.class);
 
-        root.fetch("medicalRecordId");
-        root.fetch("serviceId", JoinType.LEFT);
-        root.fetch("performedBy", JoinType.LEFT);
+        fetchTestResultGraph(root);
 
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -151,17 +155,20 @@ public class TestResultRepositoryImpl implements TestResultRepository {
     public List<TestResult> getTestResultsByMedicalRecordId(Long recordId) {
         Session session = this.factory.getObject().getCurrentSession();
 
-        return session.createQuery("""
-                SELECT tr FROM TestResult tr
-                JOIN FETCH tr.medicalRecordId mr
-                LEFT JOIN FETCH tr.serviceId s
-                LEFT JOIN FETCH tr.performedBy e
-                WHERE mr.id = :recordId
-                    AND tr.active = true
-                ORDER BY tr.resultDate ASC, tr.id ASC
-                """, TestResult.class)
-                .setParameter("recordId", recordId)
-                .getResultList();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<TestResult> cq = cb.createQuery(TestResult.class);
+        Root<TestResult> root = cq.from(TestResult.class);
+
+        fetchTestResultGraph(root);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("medicalRecordId").get("id"), recordId),
+                cb.isTrue(root.get("active"))
+        );
+        cq.orderBy(cb.asc(root.get("resultDate")), cb.asc(root.get("id")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
@@ -171,9 +178,7 @@ public class TestResultRepositoryImpl implements TestResultRepository {
         CriteriaQuery<TestResult> cq = cb.createQuery(TestResult.class);
         Root<TestResult> root = cq.from(TestResult.class);
 
-        root.fetch("medicalRecordId");
-        root.fetch("serviceId", jakarta.persistence.criteria.JoinType.LEFT);
-        root.fetch("performedBy", jakarta.persistence.criteria.JoinType.LEFT);
+        fetchTestResultGraph(root);
 
         cq.select(root).distinct(true);
         cq.where(getPatientPredicates(patientId, from, to, cb, root).toArray(Predicate[]::new));

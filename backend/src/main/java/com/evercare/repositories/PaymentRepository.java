@@ -9,6 +9,5 @@ public interface PaymentRepository {
     Payment updatePayment(Payment payment);
     Payment getPaymentByTransactionCode(String transactionCode);
     List<Payment> getPaymentsByInvoiceId(Long invoiceId);
-    List<Payment> getSuccessPaymentsByInvoiceId(Long invoiceId);
     BigDecimal sumSuccessAmountByInvoiceId(Long invoiceId);
 }

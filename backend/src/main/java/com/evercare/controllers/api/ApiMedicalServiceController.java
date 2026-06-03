@@ -30,8 +30,6 @@ public class ApiMedicalServiceController {
         if (params != null) {
             effectiveParams.putAll(params);
         }
-        effectiveParams.remove("serviceTypes");
-        effectiveParams.put("serviceType", MedicalServiceType.EXAMINATION.getCode());
 
         List<MedicalServiceResponse> result = new ArrayList<>();
         for (var service : this.medicalServiceService.getServices(effectiveParams)) {

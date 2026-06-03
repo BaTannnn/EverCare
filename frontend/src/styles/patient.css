@@ -521,9 +521,21 @@
 }
 
 .patient-next-appointment .card-body {
-  background: #ffffff;
-  color: #ffffff;
+  position: relative;
+  overflow: hidden;
   border-radius: 16px;
+  background: linear-gradient(135deg, #f2f8ff 0%, #effdfb 100%);
+  color: #0f172a;
+}
+
+.patient-next-appointment.has-appointment .card-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(10, 95, 213, 0.12), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(15, 118, 110, 0.11), transparent 30%);
+  pointer-events: none;
 }
 
 .patient-next-appointment-badge,
@@ -539,12 +551,19 @@
 }
 
 .patient-next-appointment-badge {
-  background: rgba(255, 255, 255, 0.18);
+  position: relative;
+  z-index: 1;
+  color: #0a5fd5;
+  background: rgba(10, 95, 213, 0.1);
 }
 
 .patient-next-appointment-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
   align-items: center;
   margin-top: 18px;
+  gap: 18px;
 }
 
 .patient-next-appointment-content img {
@@ -555,13 +574,18 @@
 }
 
 .patient-next-appointment-copy span {
-  color: rgba(255, 255, 255, 0.72);
+  color: #5f6f82;
 }
 
 .patient-next-appointment-copy h4 {
   margin: 6px 0 10px;
+  color: #103b36;
   font-size: 2rem;
   font-weight: 800;
+}
+
+.patient-next-appointment-copy p {
+  color: #4d5b71;
 }
 
 .patient-chip-row {
@@ -577,11 +601,15 @@
   min-height: 36px;
   padding: 0 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
+  color: #103b36;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(205, 235, 231, 0.9);
   font-weight: 700;
 }
 
 .patient-next-appointment-actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -599,8 +627,8 @@
 
 .patient-outline-strong {
   color: #0a5fd5;
-  background: rgba(255, 255, 255, 0.98);
-  border: 0;
+  background: #ffffff;
+  border: 1px solid rgba(10, 95, 213, 0.16);
 }
 
 .patient-outline-button {
@@ -614,10 +642,26 @@
 
 .patient-primary-soft {
   border: 0;
+  background: linear-gradient(135deg, #0a5fd5, #0f766e);
+  box-shadow: 0 10px 22px rgba(10, 95, 213, 0.16);
 }
 
 .patient-primary-soft svg {
   margin-right: 5px;
+}
+
+.patient-next-appointment.is-empty .card-body {
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+}
+
+.patient-next-appointment.is-empty .patient-next-appointment-badge {
+  color: #5d6878;
+  background: rgba(93, 104, 120, 0.08);
+}
+
+.patient-next-appointment.is-empty .patient-empty-state {
+  position: relative;
+  z-index: 1;
 }
 
 .patient-info-banner,
@@ -759,19 +803,35 @@
 }
 
 .patient-support-card .card-body {
-  color: #ffffff;
-  background: linear-gradient(135deg, #0057b9, #0f7af1);
-  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  color: #0f172a;
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+  border: 1px solid rgba(205, 235, 231, 0.8);
+  border-radius: 15px;
+}
+
+.patient-support-card .card-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(10, 95, 213, 0.08), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.08), transparent 30%);
+  pointer-events: none;
 }
 
 .patient-story-card .card-body {
   min-height: 320px;
-  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  color: #0f172a;
   background:
-    linear-gradient(180deg, rgba(17, 24, 39, 0.04), rgba(17, 24, 39, 0.58)),
-    radial-gradient(circle at top, rgba(41, 121, 255, 0.18), transparent 45%),
-    linear-gradient(135deg, #b98a56 0%, #4c3a2d 100%);
-  border-radius: 24px;
+    radial-gradient(circle at top right, rgba(10, 95, 213, 0.08), transparent 38%),
+    radial-gradient(circle at bottom left, rgba(15, 118, 110, 0.08), transparent 34%),
+    linear-gradient(180deg, #f7fbff 0%, #effdfb 100%);
+  border: 1px solid rgba(205, 235, 231, 0.8);
+  border-radius: 15px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -779,17 +839,30 @@
 
 .patient-story-tag {
   width: fit-content;
-  background: rgba(32, 201, 151, 0.28);
+  color: #0a5fd5;
+  background: rgba(10, 95, 213, 0.08);
   margin-bottom: 12px;
 }
 
 .patient-story-link {
   width: fit-content;
   padding: 0;
-  color: #ffffff !important;
+  color: #0a5fd5 !important;
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+}
+
+.patient-story-link:hover {
+  color: #0f766e !important;
+}
+
+.patient-support-title {
+  color: #103b36;
+}
+
+.patient-support-card .card-body p {
+  color: #4d5b71;
 }
 
 .patient-profile-grid {
@@ -2921,6 +2994,99 @@
   border-top: 1px solid #e2e8f0;
 }
 
+.support-message-form textarea {
+  resize: vertical;
+  min-height: 44px;
+}
+
+.support-ai-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.support-ai-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.support-ai-toolbar .btn,
+.support-ai-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.support-ai-error {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.support-ai-suggestion {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.support-ai-suggestion-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.support-ai-suggestion-header div {
+  display: grid;
+  gap: 2px;
+}
+
+.support-ai-suggestion-header strong {
+  color: #0f172a;
+}
+
+.support-ai-suggestion-header span,
+.support-ai-suggestion-header small {
+  color: #64748b;
+}
+
+.support-ai-suggestion-header span {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.support-ai-suggestion-header small {
+  text-align: right;
+  max-width: 360px;
+}
+
+.support-ai-suggestion p {
+  margin: 0;
+  color: #1e293b;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.support-ai-warning {
+  border-left: 3px solid #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.support-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .support-filter-form {
   display: grid;
 }
@@ -2947,6 +3113,60 @@
   margin-bottom: 14px;
 }
 
+.support-doctor-combobox {
+  position: relative;
+}
+
+.support-doctor-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  padding: 4px;
+}
+
+.support-doctor-option {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1e293b;
+  display: grid;
+  gap: 1px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.support-doctor-option:hover,
+.support-doctor-option:focus {
+  background: #ecfeff;
+  outline: none;
+}
+
+.support-doctor-option span,
+.support-doctor-option small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.support-doctor-option small,
+.support-doctor-empty {
+  color: #64748b;
+}
+
+.support-doctor-empty {
+  padding: 10px;
+  font-weight: 700;
+}
+
 @media (max-width: 1200px) {
   .support-chat-layout {
     grid-template-columns: 1fr;
@@ -2966,5 +3186,17 @@
 
   .support-message-form {
     grid-template-columns: 1fr;
+  }
+
+  .support-ai-toolbar,
+  .support-ai-actions,
+  .support-ai-suggestion-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .support-ai-suggestion-header small {
+    max-width: none;
+    text-align: left;
   }
 }

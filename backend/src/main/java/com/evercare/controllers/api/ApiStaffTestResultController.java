@@ -5,15 +5,12 @@ import com.evercare.dtos.response.StaffTestRequestDetailResponse;
 import com.evercare.dtos.response.StaffTestRequestSummaryResponse;
 import com.evercare.dtos.response.TestResultFileResponse;
 import com.evercare.dtos.response.TestResultResponse;
-import com.evercare.exceptions.CloudinaryUploadException;
 import com.evercare.services.StaffTestResultService;
 import com.evercare.services.TestResultFileService;
 import com.evercare.utils.PdfInlineResponseHelper;
 import java.security.Principal;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -40,18 +37,9 @@ public class ApiStaffTestResultController {
 
     @GetMapping("/test-requests")
     public ResponseEntity<?> getPendingRequests(Principal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            List<StaffTestRequestSummaryResponse> result = this.staffTestResultService
-                    .getPendingTestRequests(principal.getName());
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        }
+        List<StaffTestRequestSummaryResponse> result = this.staffTestResultService
+                .getPendingTestRequests(requireUsername(principal));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/test-requests/{recordId}")
@@ -59,20 +47,9 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("recordId") Long recordId
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            StaffTestRequestDetailResponse result = this.staffTestResultService
-                    .getTestRequestDetail(principal.getName(), recordId);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        }
+        StaffTestRequestDetailResponse result = this.staffTestResultService
+                .getTestRequestDetail(requireUsername(principal), recordId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/test-results")
@@ -80,20 +57,9 @@ public class ApiStaffTestResultController {
             Principal principal,
             @RequestParam Map<String, String> params
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            List<TestResultResponse> result = this.staffTestResultService
-                    .getTestResults(principal.getName(), params);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (DateTimeParseException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ngày không hợp lệ, định dạng đúng là yyyy-MM-dd"));
-        }
+        List<TestResultResponse> result = this.staffTestResultService
+                .getTestResults(requireUsername(principal), params);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/test-results/{id}")
@@ -101,20 +67,9 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            TestResultResponse result = this.staffTestResultService
-                    .getTestResultById(principal.getName(), id);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        }
+        TestResultResponse result = this.staffTestResultService
+                .getTestResultById(requireUsername(principal), id);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/test-results/{id}/file")
@@ -122,18 +77,8 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            TestResultFileResponse file = this.testResultFileService.getFileForStaff(principal.getName(), id);
-            return PdfInlineResponseHelper.inlinePdf(file);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        }
+        TestResultFileResponse file = this.testResultFileService.getFileForStaff(requireUsername(principal), id);
+        return PdfInlineResponseHelper.inlinePdf(file);
     }
 
     @PostMapping(
@@ -165,26 +110,9 @@ public class ApiStaffTestResultController {
             Long recordId,
             TestResultRequest request
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
-        }
-
-        try {
-            TestResultResponse result = this.staffTestResultService
-                    .createTestResult(principal.getName(), recordId, request);
-
-            return new ResponseEntity<>(result, HttpStatus.CREATED);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        } catch (CloudinaryUploadException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
-        }
+        TestResultResponse result = this.staffTestResultService
+                .createTestResult(requireUsername(principal), recordId, request);
+        return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
     @PutMapping(
@@ -216,25 +144,15 @@ public class ApiStaffTestResultController {
             Long id,
             TestResultRequest request
     ) {
+        TestResultResponse result = this.staffTestResultService
+                .updateTestResult(requireUsername(principal), id, request);
+        return ResponseEntity.ok(result);
+    }
+
+    private String requireUsername(Principal principal) {
         if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Vui lòng đăng nhập"));
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
         }
-
-        try {
-            TestResultResponse result = this.staffTestResultService
-                    .updateTestResult(principal.getName(), id, request);
-
-            return ResponseEntity.ok(result);
-        } catch (SecurityException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-        } catch (CloudinaryUploadException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", ex.getMessage()));
-        } catch (IllegalStateException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", ex.getMessage()));
-        }
+        return principal.getName();
     }
 }

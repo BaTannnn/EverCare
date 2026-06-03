@@ -7,6 +7,7 @@ package com.evercare.pojo;
 import jakarta.persistence.Basic;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -83,7 +84,7 @@ public class MedicalService implements Serializable {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "serviceId")
     private Set<MedicalRecordService> medicalRecordServiceSet;
     @JoinColumn(name = "department_id", referencedColumnName = "id")
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Department departmentId;
     @OneToMany(mappedBy = "serviceId")
     private Set<Appointment> appointmentSet;

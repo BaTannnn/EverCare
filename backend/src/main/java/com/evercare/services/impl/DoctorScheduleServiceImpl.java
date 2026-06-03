@@ -4,21 +4,21 @@ import com.evercare.dtos.request.DoctorScheduleRequest;
 import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
+import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
-import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
 import com.evercare.repositories.AppointmentRepository;
-import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.DoctorScheduleRepository;
 import com.evercare.services.DoctorScheduleService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
+import com.evercare.utils.LookupSupport;
+import com.evercare.utils.DateTimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
-import java.sql.Time;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,9 +33,10 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     private DoctorScheduleRepository scheduleRepo;
 
     @Autowired
-    private DoctorRepository doctorRepo;
+    private AuthSupport authSupport;
+
     @Autowired
-    private UserService userService;
+    private LookupSupport lookupSupport;
 
     @Autowired
     private AppointmentRepository appointmentRepo;
@@ -59,10 +60,17 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         }
 
         List<DoctorSchedule> schedules = this.scheduleRepo.getAvailableSchedulesByDoctorId(doctorId, startDate, endDate);
+        Map<LocalDate, List<Appointment>> bookedAppointmentsByDate = groupAppointmentsByDate(
+                this.appointmentRepo.getBookableAppointmentsByDoctorAndDateRange(
+                        doctorId,
+                        Date.valueOf(startDate),
+                        Date.valueOf(endDate)
+                )
+        );
         List<DoctorScheduleResponse> result = new ArrayList<>();
 
         for (DoctorSchedule schedule : schedules) {
-            int bookedCount = countBookedAppointments(schedule);
+            int bookedCount = countBookedAppointments(schedule, bookedAppointmentsByDate);
             result.add(DoctorScheduleMapper.toResponse(schedule, bookedCount));
         }
 
@@ -71,7 +79,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
     @Override
     public List<DoctorScheduleResponse> getCurrentDoctorSchedules(String username, Map<String, String> params) {
-        Doctor doctor = getCurrentDoctor(username);
+        Doctor doctor = this.authSupport.requireCurrentDoctor(username);
         Map<String, String> filters = params != null ? new HashMap<>(params) : new HashMap<>();
 
         String date = filters.get("date");
@@ -97,7 +105,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     public DoctorSchedule createSchedule(DoctorScheduleRequest req) {
         validateSchedule(req, null);
 
-        Doctor doctor = loadValidDoctor(req.getDoctorId());
+        Doctor doctor = this.lookupSupport.requireActiveDoctor(req.getDoctorId());
 
         DoctorSchedule schedule = DoctorScheduleMapper.toEntityForCreate(req, doctor);
 
@@ -120,7 +128,7 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
 
         validateSchedule(req, existing.getId());
 
-        Doctor doctor = loadValidDoctor(req.getDoctorId());
+        Doctor doctor = this.lookupSupport.requireActiveDoctor(req.getDoctorId());
 
         DoctorScheduleMapper.updateEntity(existing, req, doctor);
 
@@ -148,61 +156,36 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         return this.scheduleRepo.getTotalPages(params);
     }
 
-    private int countBookedAppointments(DoctorSchedule schedule) {
-        if (schedule == null || schedule.getDoctorId() == null || schedule.getWorkDate() == null) {
+    private int countBookedAppointments(DoctorSchedule schedule, Map<LocalDate, List<Appointment>> bookedAppointmentsByDate) {
+        if (schedule == null || schedule.getWorkDate() == null || schedule.getStartTime() == null || schedule.getEndTime() == null) {
             return 0;
         }
 
-        return (int) this.appointmentRepo.countBookedAppointmentsByDoctorAndDateAndWindow(
-                schedule.getDoctorId().getId(),
-                Date.valueOf(schedule.getWorkDate()),
-                Time.valueOf(schedule.getStartTime()),
-                Time.valueOf(schedule.getEndTime())
-        );
+        return (int) bookedAppointmentsByDate.getOrDefault(schedule.getWorkDate(), List.of())
+                .stream()
+                .map(appointment -> DateTimeUtils.toLocalTime(appointment.getStartTime()))
+                .filter(startTime -> startTime != null)
+                .filter(startTime -> !startTime.isBefore(schedule.getStartTime()))
+                .filter(startTime -> !startTime.isAfter(schedule.getEndTime()))
+                .count();
     }
 
-    private Doctor loadValidDoctor(Long doctorId) {
-        if (doctorId == null) {
-            throw new IllegalArgumentException("Vui lòng chọn bác sĩ");
+    private Map<LocalDate, List<Appointment>> groupAppointmentsByDate(List<Appointment> appointments) {
+        Map<LocalDate, List<Appointment>> grouped = new HashMap<>();
+        if (appointments == null || appointments.isEmpty()) {
+            return grouped;
         }
 
-        Doctor doctor = this.doctorRepo.getDoctorById(doctorId.intValue());
+        for (Appointment appointment : appointments) {
+            LocalDate appointmentDate = DateTimeUtils.toLocalDate(appointment.getAppointmentDate());
+            if (appointmentDate == null) {
+                continue;
+            }
 
-        if (doctor == null || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new IllegalArgumentException("Bác sĩ không tồn tại hoặc đã ngưng hoạt động");
+            grouped.computeIfAbsent(appointmentDate, ignored -> new ArrayList<>()).add(appointment);
         }
 
-        return doctor;
-    }
-
-    private Doctor getCurrentDoctor(String username) {
-        if (username == null || username.isBlank()) {
-            throw new SecurityException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(username);
-        Doctor doctor = this.doctorRepo.getDoctorByUserId(user.getId());
-
-        if (!hasRole(user, "DOCTOR")
-                || doctor == null
-                || Boolean.FALSE.equals(doctor.getActive())) {
-            throw new SecurityException("Tài khoản hiện tại không phải bác sĩ đang hoạt động");
-        }
-
-        return doctor;
-    }
-
-    private boolean hasRole(User user, String expectedRole) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        String normalizedExpectedRole = expectedRole.toUpperCase();
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> code.equals(normalizedExpectedRole) || code.equals("ROLE_" + normalizedExpectedRole));
+        return grouped;
     }
 
     private void validateSchedule(DoctorScheduleRequest req, Long excludeId) {

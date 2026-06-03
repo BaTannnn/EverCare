@@ -5,10 +5,20 @@ import { useNavigate } from "react-router-dom";
 import { cancelPatientAppointment, getPatientAppointments } from "../../services/patient/patientAppointmentApi";
 import { countByStatus, getPatientStatusMeta } from "./patientPageUtils";
 
+const statusOrder = {
+  IN_PROGRESS: 0,
+  WAITING: 1,
+  BOOKED: 2,
+  COMPLETED: 3,
+  CANCELLED: 4,
+  NO_SHOW: 5,
+};
+
 const tabs = [
   { key: "ALL", label: "Tất cả" },
-  { key: "BOOKED", label: "Chờ xác nhận" },
+  { key: "IN_PROGRESS", label: "Đang khám" },
   { key: "WAITING", label: "Đang chờ khám" },
+  { key: "BOOKED", label: "Chờ xác nhận" },
   { key: "COMPLETED", label: "Đã khám xong" },
   { key: "CANCELLED", label: "Đã hủy" },
   { key: "NO_SHOW", label: "Không đến" },
@@ -55,8 +65,22 @@ function PatientAppointments() {
   );
 
   const filteredAppointments = useMemo(() => {
-    if (activeTab === "ALL") return appointments;
-    return appointments.filter((appointment) => appointment.status === activeTab);
+    const visibleAppointments = activeTab === "ALL"
+      ? appointments
+      : appointments.filter((appointment) => appointment.status === activeTab);
+
+    return [...visibleAppointments].sort((left, right) => {
+      const leftOrder = statusOrder[left.status] ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = statusOrder[right.status] ?? Number.MAX_SAFE_INTEGER;
+
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+
+      const leftDate = `${left.appointmentDate || ""} ${left.startTime || ""}`;
+      const rightDate = `${right.appointmentDate || ""} ${right.startTime || ""}`;
+      return rightDate.localeCompare(leftDate);
+    });
   }, [appointments, activeTab]);
 
   const handleCancel = async (appointment) => {

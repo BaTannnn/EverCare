@@ -6,6 +6,7 @@ import com.evercare.repositories.SupportConversationRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Fetch;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -32,8 +33,7 @@ public class SupportConversationRepositoryImpl implements SupportConversationRep
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportConversation> query = builder.createQuery(SupportConversation.class);
         Root<SupportConversation> root = query.from(SupportConversation.class);
-        root.fetch("patientId", JoinType.INNER).fetch("userId", JoinType.LEFT);
-        root.fetch("staffId", JoinType.LEFT);
+        fetchConversationGraph(root);
 
         query.select(root).distinct(true);
         query.where(
@@ -50,8 +50,7 @@ public class SupportConversationRepositoryImpl implements SupportConversationRep
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportConversation> query = builder.createQuery(SupportConversation.class);
         Root<SupportConversation> root = query.from(SupportConversation.class);
-        root.fetch("patientId", JoinType.INNER).fetch("userId", JoinType.LEFT);
-        root.fetch("staffId", JoinType.LEFT);
+        fetchConversationGraph(root);
 
         query.select(root).distinct(true);
         query.where(
@@ -72,8 +71,7 @@ public class SupportConversationRepositoryImpl implements SupportConversationRep
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<SupportConversation> query = builder.createQuery(SupportConversation.class);
         Root<SupportConversation> root = query.from(SupportConversation.class);
-        root.fetch("patientId", JoinType.INNER).fetch("userId", JoinType.LEFT);
-        root.fetch("staffId", JoinType.LEFT);
+        fetchConversationGraph(root);
         Join<SupportConversation, Patient> patientJoin = root.join("patientId", JoinType.INNER);
 
         List<Predicate> predicates = new ArrayList<>();
@@ -111,6 +109,19 @@ public class SupportConversationRepositoryImpl implements SupportConversationRep
         );
 
         return session.createQuery(query).getResultList();
+    }
+
+    private void fetchConversationGraph(Root<SupportConversation> root) {
+        Fetch<?, ?> patientUserFetch = root.fetch("patientId", JoinType.INNER)
+                .fetch("userId", JoinType.LEFT);
+        fetchUserProfileGraph(patientUserFetch);
+        root.fetch("staffId", JoinType.LEFT);
+    }
+
+    private void fetchUserProfileGraph(Fetch<?, ?> userFetch) {
+        userFetch.fetch("patient", JoinType.LEFT);
+        userFetch.fetch("employee", JoinType.LEFT);
+        userFetch.fetch("doctor", JoinType.LEFT);
     }
 
     @Override

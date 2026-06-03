@@ -83,7 +83,7 @@ public class DoctorRepositoryImpl implements DoctorRepository {
 
         Query<Doctor> query = session.createQuery(cq);
 
-        if (params != null) {
+        if (params != null && !Boolean.parseBoolean(params.getOrDefault("all", "false"))) {
             int pageSize = this.env.getProperty("doctor.pageSize", Integer.class);
             int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countDoctors(params), pageSize);
             int start = (page - 1) * pageSize;

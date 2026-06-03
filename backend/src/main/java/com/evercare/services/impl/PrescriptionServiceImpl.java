@@ -1,6 +1,8 @@
 package com.evercare.services.impl;
 
 import com.evercare.dtos.response.PrescriptionResponse;
+import com.evercare.enums.InvoiceStatus;
+import com.evercare.enums.PrescriptionStatus;
 import com.evercare.mappers.PrescriptionMapper;
 import com.evercare.pojo.InventoryTransaction;
 import com.evercare.pojo.Medicine;
@@ -12,7 +14,7 @@ import com.evercare.repositories.InventoryTransactionRepository;
 import com.evercare.repositories.MedicineBatchRepository;
 import com.evercare.repositories.PrescriptionRepository;
 import com.evercare.services.PrescriptionService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -37,9 +39,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Autowired
     private InventoryTransactionRepository transactionRepo;
-
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
 
     @Override
     public List<PrescriptionResponse> getPrescriptions(Map<String, String> params) {
@@ -68,14 +69,19 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     @Override
     public PrescriptionResponse dispensePrescription(String username, Long id) {
-        User user = this.userService.getUserByUsername(username);
+        User user = this.authSupport.getCurrentUser(username);
+        return dispensePrescription(user, id);
+    }
+
+    @Override
+    public PrescriptionResponse dispensePrescription(User user, Long id) {
         Prescription prescription = this.prescriptionRepo.getPrescriptionByIdForUpdate(id);
 
         if (prescription == null) {
             throw new NoSuchElementException("Không tìm thấy đơn thuốc");
         }
 
-        if (!"PRESCRIBED".equalsIgnoreCase(prescription.getStatus())) {
+        if (!PrescriptionStatus.PRESCRIBED.getCode().equalsIgnoreCase(prescription.getStatus())) {
             throw new IllegalStateException("Chỉ có thể cấp phát đơn thuốc trạng thái PRESCRIBED");
         }
 
@@ -84,7 +90,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         }
 
         if (prescription.getMedicalRecordId() == null
-                || !"PAID".equalsIgnoreCase(prescription.getMedicalRecordId().getPaymentStatus())) {
+                || !InvoiceStatus.PAID.getCode().equalsIgnoreCase(prescription.getMedicalRecordId().getPaymentStatus())) {
             throw new IllegalStateException("Bệnh nhân chưa thanh toán, chưa thể cấp phát thuốc");
         }
 
@@ -101,23 +107,29 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             dispenseItem(item, user, now, lockedBatchesByMedicineId);
         }
 
-        prescription.setStatus("DISPENSED");
+        prescription.setStatus(PrescriptionStatus.DISPENSED.getCode());
         prescription.setUpdatedAt(now);
         this.prescriptionRepo.updatePrescription(prescription);
 
         return PrescriptionMapper.toResponse(
                 prescription,
-                getAvailableQuantities(List.of(prescription), today)
+                getAvailableQuantitiesFromLockedBatches(lockedBatchesByMedicineId)
         );
     }
 
     private Map<Long, List<MedicineBatch>> lockAndValidateDispensableBatches(Prescription prescription, Date today) {
         Map<Long, Long> requiredQuantityByMedicineId = getRequiredQuantitiesByMedicineId(prescription);
-        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = new HashMap<>();
+        Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId = this.batchRepo
+                .getDispensableBatchesByMedicineIdsForUpdate(
+                        requiredQuantityByMedicineId.keySet().stream().toList(),
+                        today
+                )
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(batch -> batch.getMedicineId().getId()));
 
         for (Map.Entry<Long, Long> entry : requiredQuantityByMedicineId.entrySet()) {
             Long medicineId = entry.getKey();
-            List<MedicineBatch> batches = this.batchRepo.getDispensableBatchesByMedicineIdForUpdate(medicineId, today);
+            List<MedicineBatch> batches = lockedBatchesByMedicineId.getOrDefault(medicineId, List.of());
             long availableQuantity = batches.stream()
                     .map(MedicineBatch::getRemainingQuantity)
                     .filter(Objects::nonNull)
@@ -127,8 +139,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             if (availableQuantity < entry.getValue()) {
                 throw new IllegalStateException("Không đủ tồn kho còn hạn cho thuốc " + getMedicineName(prescription, medicineId));
             }
-
-            lockedBatchesByMedicineId.put(medicineId, batches);
         }
 
         return lockedBatchesByMedicineId;
@@ -167,6 +177,22 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 .toList();
 
         return this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(medicineIds, today);
+    }
+
+    private Map<Long, Long> getAvailableQuantitiesFromLockedBatches(Map<Long, List<MedicineBatch>> lockedBatchesByMedicineId) {
+        Map<Long, Long> availableQuantityByMedicineId = new HashMap<>();
+
+        for (Map.Entry<Long, List<MedicineBatch>> entry : lockedBatchesByMedicineId.entrySet()) {
+            long total = entry.getValue()
+                    .stream()
+                    .map(MedicineBatch::getRemainingQuantity)
+                    .filter(Objects::nonNull)
+                    .mapToLong(Integer::longValue)
+                    .sum();
+            availableQuantityByMedicineId.put(entry.getKey(), total);
+        }
+
+        return availableQuantityByMedicineId;
     }
 
     private void dispenseItem(
