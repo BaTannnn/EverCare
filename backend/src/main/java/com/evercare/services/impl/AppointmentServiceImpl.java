@@ -599,11 +599,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void notifyPatientByAppointment(Patient patient, Appointment appointment, String title, String content) {
-        if (patient == null || patient.getUserId() == null || Boolean.FALSE.equals(patient.getUserId().getActive())) {
+        if (patient == null || Boolean.FALSE.equals(patient.getActive())) {
             return;
         }
 
-        createNotification(patient.getUserId(), title, content, appointment.getId(), TYPE_APPOINTMENT_REMINDER);
+        Long userId = this.patientRepo.getUserIdByPatientId(patient.getId());
+        if (userId == null) {
+            return;
+        }
+
+        createNotification(userId, title, content, appointment.getId(), TYPE_APPOINTMENT_REMINDER);
     }
 
     private String generatePatientCode() {
@@ -645,6 +650,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         } catch (Exception ex) {
             // Notification is best-effort only.
         }
+    }
+
+    private void createNotification(Long userId, String title, String content, Long relatedId, String notificationType) {
+        if (userId == null) {
+            return;
+        }
+
+        createNotification(new User(userId), title, content, relatedId, notificationType);
     }
 
     private void createNotification(User user, String title, String content, Long relatedId) {

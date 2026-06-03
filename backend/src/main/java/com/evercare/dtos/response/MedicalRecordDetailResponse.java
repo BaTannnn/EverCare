@@ -13,6 +13,7 @@ public class MedicalRecordDetailResponse extends MedicalRecordResponse {
     private List<MedicalRecordServiceResponse> services;
     private List<TestResultResponse> testResults;
     private PrescriptionResponse prescription;
+    private InvoiceResponse invoice;
 
     public String getAppointmentCode() {
         return appointmentCode;
@@ -92,5 +93,13 @@ public class MedicalRecordDetailResponse extends MedicalRecordResponse {
 
     public void setPrescription(PrescriptionResponse prescription) {
         this.prescription = prescription;
+    }
+
+    public InvoiceResponse getInvoice() {
+        return invoice;
+    }
+
+    public void setInvoice(InvoiceResponse invoice) {
+        this.invoice = invoice;
     }
 }

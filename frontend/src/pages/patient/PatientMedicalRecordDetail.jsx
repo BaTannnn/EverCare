@@ -14,9 +14,7 @@ import {
   BsPrinter,
 } from "react-icons/bs";
 import { useNavigate, useParams } from "react-router-dom";
-import { getPatientInvoices } from "../../services/patient/patientInvoiceApi";
 import { getPatientMedicalRecordById } from "../../services/patient/patientMedicalRecordApi";
-import { getPatientPrescriptionById } from "../../services/patient/patientPrescriptionApi";
 import { getPatientTestResultFile } from "../../services/patient/patientTestResultApi";
 import { formatCurrency, getPatientStatusMeta } from "./patientPageUtils";
 
@@ -52,33 +50,7 @@ function PatientMedicalRecordDetail() {
         if (mounted) {
           setRecord(nextRecord);
           setPrescription(nextRecord?.prescription || null);
-          setInvoice(null);
-        }
-
-        if (!nextRecord) return;
-
-        if (nextRecord.prescription?.id) {
-          try {
-            const prescriptionResponse = await getPatientPrescriptionById(nextRecord.prescription.id);
-            if (mounted) {
-              setPrescription(prescriptionResponse.data || nextRecord.prescription);
-            }
-          } catch (prescriptionError) {
-            console.error(prescriptionError);
-          }
-        }
-
-        try {
-          const invoiceResponse = await getPatientInvoices();
-          const relatedInvoice = (invoiceResponse.data || []).find(
-            (item) => String(item.medicalRecordId || "") === String(nextRecord.id || ""),
-          );
-
-          if (mounted) {
-            setInvoice(relatedInvoice || null);
-          }
-        } catch (invoiceError) {
-          console.error(invoiceError);
+          setInvoice(nextRecord?.invoice || null);
         }
       } catch (error) {
         console.error(error);

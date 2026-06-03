@@ -4,6 +4,7 @@ import com.evercare.dtos.request.DoctorScheduleRequest;
 import com.evercare.dtos.response.DoctorScheduleResponse;
 import com.evercare.enums.DoctorScheduleStatus;
 import com.evercare.mappers.DoctorScheduleMapper;
+import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.DoctorSchedule;
 import com.evercare.pojo.User;
@@ -17,8 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
-import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -59,10 +61,17 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         }
 
         List<DoctorSchedule> schedules = this.scheduleRepo.getAvailableSchedulesByDoctorId(doctorId, startDate, endDate);
+        Map<LocalDate, List<Appointment>> bookedAppointmentsByDate = groupAppointmentsByDate(
+                this.appointmentRepo.getBookableAppointmentsByDoctorAndDateRange(
+                        doctorId,
+                        Date.valueOf(startDate),
+                        Date.valueOf(endDate)
+                )
+        );
         List<DoctorScheduleResponse> result = new ArrayList<>();
 
         for (DoctorSchedule schedule : schedules) {
-            int bookedCount = countBookedAppointments(schedule);
+            int bookedCount = countBookedAppointments(schedule, bookedAppointmentsByDate);
             result.add(DoctorScheduleMapper.toResponse(schedule, bookedCount));
         }
 
@@ -148,17 +157,56 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
         return this.scheduleRepo.getTotalPages(params);
     }
 
-    private int countBookedAppointments(DoctorSchedule schedule) {
-        if (schedule == null || schedule.getDoctorId() == null || schedule.getWorkDate() == null) {
+    private int countBookedAppointments(DoctorSchedule schedule, Map<LocalDate, List<Appointment>> bookedAppointmentsByDate) {
+        if (schedule == null || schedule.getWorkDate() == null || schedule.getStartTime() == null || schedule.getEndTime() == null) {
             return 0;
         }
 
-        return (int) this.appointmentRepo.countBookedAppointmentsByDoctorAndDateAndWindow(
-                schedule.getDoctorId().getId(),
-                Date.valueOf(schedule.getWorkDate()),
-                Time.valueOf(schedule.getStartTime()),
-                Time.valueOf(schedule.getEndTime())
-        );
+        return (int) bookedAppointmentsByDate.getOrDefault(schedule.getWorkDate(), List.of())
+                .stream()
+                .map(appointment -> toLocalTime(appointment.getStartTime()))
+                .filter(startTime -> startTime != null)
+                .filter(startTime -> !startTime.isBefore(schedule.getStartTime()))
+                .filter(startTime -> !startTime.isAfter(schedule.getEndTime()))
+                .count();
+    }
+
+    private Map<LocalDate, List<Appointment>> groupAppointmentsByDate(List<Appointment> appointments) {
+        Map<LocalDate, List<Appointment>> grouped = new HashMap<>();
+        if (appointments == null || appointments.isEmpty()) {
+            return grouped;
+        }
+
+        for (Appointment appointment : appointments) {
+            LocalDate appointmentDate = toLocalDate(appointment.getAppointmentDate());
+            if (appointmentDate == null) {
+                continue;
+            }
+
+            grouped.computeIfAbsent(appointmentDate, ignored -> new ArrayList<>()).add(appointment);
+        }
+
+        return grouped;
+    }
+
+    private LocalDate toLocalDate(java.util.Date value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        return value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    private LocalTime toLocalTime(java.util.Date value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof java.sql.Time sqlTime) {
+            return sqlTime.toLocalTime();
+        }
+        return value.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
     }
 
     private void validateSchedule(DoctorScheduleRequest req, Long excludeId) {

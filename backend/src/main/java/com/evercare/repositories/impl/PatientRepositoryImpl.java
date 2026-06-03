@@ -41,6 +41,22 @@ public class PatientRepositoryImpl implements PatientRepository {
     }
 
     @Override
+    public Long getUserIdByPatientId(Long patientId) {
+        if (patientId == null) {
+            return null;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        return session.createQuery("""
+                SELECT p.userId.id
+                FROM Patient p
+                WHERE p.id = :patientId
+                """, Long.class)
+                .setParameter("patientId", patientId)
+                .uniqueResult();
+    }
+
+    @Override
     public Patient getPatientByPhone(String phone) {
         if (phone == null || phone.isBlank()) {
             return null;

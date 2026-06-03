@@ -237,6 +237,7 @@ export const mapMedicalRecordDetail = (rawRecord) => {
         medicineCount: prescriptionItems.length,
       };
     })() : null,
+    invoice: detail.invoice ? mapInvoice(detail.invoice) : null,
   };
 };
 

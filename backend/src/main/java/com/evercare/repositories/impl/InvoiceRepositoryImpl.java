@@ -1,16 +1,18 @@
 package com.evercare.repositories.impl;
 
 import com.evercare.enums.InvoiceStatus;
-import com.evercare.pojo.Invoice;
-import com.evercare.pojo.Patient;
+import com.evercare.pojo.*;
 import com.evercare.repositories.InvoiceRepository;
 import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.criteria.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +40,8 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         Join<Invoice, com.evercare.pojo.MedicalRecord> recordJoin = root.join("medicalRecordId", JoinType.INNER);
 
         root.fetch("patientId", JoinType.INNER);
-        root.fetch("medicalRecordId", JoinType.INNER);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         List<Predicate> predicates = buildReceptionistPredicates(params, cb, root, patientJoin, recordJoin);
 
@@ -76,10 +79,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
@@ -132,16 +134,65 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
     }
 
     @Override
+    public Map<Long, BigDecimal> getTotalTestAmountsByMedicalRecordIds(List<Long> medicalRecordIds) {
+        Map<Long, BigDecimal> totals = new HashMap<>();
+        if (medicalRecordIds == null || medicalRecordIds.isEmpty()) {
+            return totals;
+        }
+
+        List<Long> ids = medicalRecordIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return totals;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Object[]> cq = cb.createQuery(Object[].class);
+        Root<MedicalRecordService> root = cq.from(MedicalRecordService.class);
+        Join<MedicalRecordService, MedicalService> serviceJoin = root.join("serviceId", JoinType.INNER);
+
+        Path<Long> recordIdPath = root.get("medicalRecordId").get("id");
+        CriteriaBuilder.Coalesce<BigDecimal> unitPrice = cb.coalesce();
+        unitPrice.value(root.get("unitPrice"));
+        unitPrice.value(BigDecimal.ZERO);
+
+        CriteriaBuilder.Coalesce<Integer> quantity = cb.coalesce();
+        quantity.value(root.get("quantity"));
+        quantity.value(0);
+
+        Expression<BigDecimal> amount = cb.prod(unitPrice, quantity.as(BigDecimal.class));
+        Expression<String> serviceType = cb.upper(cb.trim(serviceJoin.get("serviceType")));
+
+        cq.multiselect(recordIdPath, cb.sum(amount));
+        cq.where(
+                cb.isTrue(root.get("active")),
+                recordIdPath.in(ids),
+                serviceType.in("TEST", "LAB_TEST")
+        );
+        cq.groupBy(recordIdPath);
+
+        for (Object[] row : session.createQuery(cq).getResultList()) {
+            if (row[0] instanceof Long recordId && row[1] instanceof BigDecimal total) {
+                totals.put(recordId, total);
+            }
+        }
+
+        return totals;
+    }
+
+    @Override
     public Invoice getInvoiceByPatientIdAndId(Long patientId, Long invoiceId) {
         Session session = this.factory.getObject().getCurrentSession();
 
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
@@ -163,10 +214,9 @@ public class InvoiceRepositoryImpl implements InvoiceRepository {
         CriteriaBuilder builder = session.getCriteriaBuilder();
         CriteriaQuery<Invoice> query = builder.createQuery(Invoice.class);
         Root<Invoice> root = query.from(Invoice.class);
-        root.fetch("medicalRecordId", JoinType.INNER);
-        Fetch<Invoice, Patient> patientFetch = root.fetch("patientId", JoinType.INNER);
-
-        patientFetch.fetch("userId", JoinType.LEFT);
+        Fetch<Invoice, MedicalRecord> medicalRecordFetch = root.fetch("medicalRecordId", JoinType.INNER);
+        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
 
         query.select(root);
         query.where(
