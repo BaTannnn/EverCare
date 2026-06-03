@@ -2,6 +2,7 @@ package com.evercare.services.impl;
 
 import com.evercare.dtos.request.PatientRequest;
 import com.evercare.dtos.response.PatientResponse;
+import com.evercare.enums.BloodType;
 import com.evercare.mappers.PatientMapper;
 import com.evercare.pojo.Patient;
 import com.evercare.pojo.User;
@@ -13,7 +14,6 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -23,10 +23,6 @@ import org.springframework.stereotype.Service;
 @Service
 @Transactional
 public class PatientServiceImpl implements PatientService {
-    private static final Set<String> BLOOD_TYPES = new HashSet<>(Set.of(
-            "A", "A+", "A-", "B", "B+", "B-", "AB", "AB+", "AB-", "O", "O+", "O-"
-    ));
-
     @Autowired
     private UserRepository userRepository;
 
@@ -245,9 +241,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private void validateBloodType(String bloodType) {
-        if (!BLOOD_TYPES.contains(bloodType.toUpperCase(Locale.ROOT))) {
-            throw new IllegalArgumentException("Blood type không hợp lệ");
-        }
+        BloodType.normalize(bloodType);
     }
 
     private Date parseDate(String value) {

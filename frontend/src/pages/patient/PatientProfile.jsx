@@ -21,6 +21,22 @@ const profileTemplate = {
   emergencyContactPhone: "",
 };
 
+const BLOOD_TYPE_OPTIONS = [
+  { value: "", label: "Chọn nhóm máu" },
+  { value: "A", label: "A" },
+  { value: "A+", label: "A+" },
+  { value: "A-", label: "A-" },
+  { value: "B", label: "B" },
+  { value: "B+", label: "B+" },
+  { value: "B-", label: "B-" },
+  { value: "AB", label: "AB" },
+  { value: "AB+", label: "AB+" },
+  { value: "AB-", label: "AB-" },
+  { value: "O", label: "O" },
+  { value: "O+", label: "O+" },
+  { value: "O-", label: "O-" },
+];
+
 function PatientProfile() {
   const { profile, setProfile: setShellProfile } = usePatientShell();
   const [form, setForm] = useState(profileTemplate);
@@ -296,7 +312,13 @@ function PatientProfile() {
               </Form.Group>
               <Form.Group className="patient-form-group">
                 <Form.Label>Nhóm máu</Form.Label>
-                <Form.Control name="bloodType" value={form.bloodType} onChange={handleChange} />
+                <Form.Select name="bloodType" value={form.bloodType} onChange={handleChange}>
+                  {BLOOD_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value || "empty"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
               <Form.Group className="patient-form-group">
                 <Form.Label>Số BHYT</Form.Label>
