@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Form, Modal } from "react-bootstrap";
 import { BsCalendar3, BsEnvelope, BsExclamationTriangle, BsFileMedical, BsGenderAmbiguous, BsGeoAlt, BsHeartPulse, BsPencil, BsPhone, BsShieldCheck } from "react-icons/bs";
+import { useAuth } from "../../contexts/useAuth";
 import { usePatientShell } from "../../contexts/usePatientShell";
 import { createPatientProfile, updatePatientProfile } from "../../services/patient/patientProfileApi";
 import { getAvatarSource } from "./patientPageUtils";
@@ -39,6 +40,7 @@ const BLOOD_TYPE_OPTIONS = [
 
 function PatientProfile() {
   const { profile, setProfile: setShellProfile } = usePatientShell();
+  const { user } = useAuth();
   const [form, setForm] = useState(profileTemplate);
   const [showEditModal, setShowEditModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -46,41 +48,29 @@ function PatientProfile() {
   const data = useMemo(() => profile || {}, [profile]);
   const avatarSource = getAvatarSource(data, data.fullName || "Bệnh nhân EverCare");
 
+  const buildInitialForm = () => ({
+    fullName: data.fullName || user?.fullName || "",
+    dateOfBirth: data.dateOfBirthRaw || data.dateOfBirth || "",
+    gender: data.gender && data.gender !== "Chưa cập nhật" ? data.gender : "",
+    phone: data.phone || user?.phone || "",
+    email: data.email && data.email !== "Chưa cập nhật" ? data.email : (user?.email || ""),
+    address: data.address && data.address !== "Chưa cập nhật" ? data.address : "",
+    citizenId: data.citizenId || "",
+    bloodType: data.bloodType && data.bloodType !== "Chưa cập nhật" ? data.bloodType : "",
+    allergyNote: data.allergyNote && data.allergyNote !== "Không ghi nhận" ? data.allergyNote : "",
+    medicalHistoryNote: data.medicalHistoryNote && data.medicalHistoryNote !== "Không ghi nhận" ? data.medicalHistoryNote : "",
+    healthInsuranceNo: data.healthInsuranceNo && data.healthInsuranceNo !== "Chưa cập nhật" ? data.healthInsuranceNo : "",
+    emergencyContactName: data.emergencyContactName && data.emergencyContactName !== "Chưa cập nhật" ? data.emergencyContactName : "",
+    emergencyContactPhone: data.emergencyContactPhone && data.emergencyContactPhone !== "Chưa cập nhật" ? data.emergencyContactPhone : "",
+  });
+
   useEffect(() => {
-    setForm({
-      fullName: data.fullName || "",
-      dateOfBirth: data.dateOfBirthRaw || data.dateOfBirth || "",
-      gender: data.gender || "",
-      phone: data.phone || "",
-      email: data.email || "",
-      address: data.address || "",
-      citizenId: data.citizenId || "",
-      bloodType: data.bloodType || "",
-      allergyNote: data.allergyNote || "",
-      medicalHistoryNote: data.medicalHistoryNote || "",
-      healthInsuranceNo: data.healthInsuranceNo || "",
-      emergencyContactName: data.emergencyContactName || "",
-      emergencyContactPhone: data.emergencyContactPhone || "",
-    });
-  }, [
-    data.address,
-    data.allergyNote,
-    data.bloodType,
-    data.citizenId,
-    data.dateOfBirth,
-    data.dateOfBirthRaw,
-    data.email,
-    data.emergencyContactName,
-    data.emergencyContactPhone,
-    data.gender,
-    data.healthInsuranceNo,
-    data.medicalHistoryNote,
-    data.phone,
-    data.fullName,
-  ]);
+    setForm(buildInitialForm());
+  }, [data, user]);
 
   const handleOpenModal = () => {
     setMessage("");
+    setForm(buildInitialForm());
     setShowEditModal(true);
   };
 
@@ -92,8 +82,33 @@ function PatientProfile() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.gender || !form.dateOfBirth) {
-      setMessage("Vui lòng chọn giới tính và ngày sinh trước khi lưu hồ sơ.");
+    if (!form.fullName.trim()) {
+      setMessage("Vui lòng nhập họ tên trước khi lưu hồ sơ.");
+      return;
+    }
+
+    if (!form.dateOfBirth) {
+      setMessage("Vui lòng chọn ngày sinh trước khi lưu hồ sơ.");
+      return;
+    }
+
+    if (!form.gender) {
+      setMessage("Vui lòng chọn giới tính trước khi lưu hồ sơ.");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setMessage("Vui lòng nhập số điện thoại trước khi lưu hồ sơ.");
+      return;
+    }
+
+    if (!form.citizenId.trim()) {
+      setMessage("Vui lòng nhập số định danh trước khi lưu hồ sơ.");
+      return;
+    }
+
+    if (!/^\d{9,15}$/.test(form.phone.trim())) {
+      setMessage("Số điện thoại phải gồm 9 đến 15 chữ số.");
       return;
     }
 
@@ -142,7 +157,7 @@ function PatientProfile() {
           <h2>Quản lý và cập nhật thông tin y tế cá nhân của bạn</h2>
         </div>
         <Button type="button" className="patient-primary-soft" onClick={handleOpenModal}>
-          <BsPencil /> {data?.id ? "Chỉnh sửa hồ sơ" : "Tạo hồ sơ"}
+          <BsPencil /> {data?.id ? "Chỉnh sửa hồ sơ" : "Thêm hồ sơ"}
         </Button>
       </div>
 
@@ -150,7 +165,7 @@ function PatientProfile() {
 
       {!data?.id && (
         <Alert variant="warning" className="patient-info-banner">
-          Bạn chưa có hồ sơ bệnh nhân. Hãy tạo hồ sơ trước khi đặt lịch để backend nhận diện đúng thông tin người dùng.
+          Bạn chưa có hồ sơ bệnh nhân. Hãy thêm hồ sơ trước khi đặt lịch để backend nhận diện đúng thông tin bệnh nhân.
         </Alert>
       )}
 
@@ -272,14 +287,22 @@ function PatientProfile() {
 
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered size="lg" animation={false}>
         <Modal.Header closeButton>
-          <Modal.Title>{data?.id ? "Chỉnh sửa hồ sơ" : "Tạo hồ sơ bệnh nhân"}</Modal.Title>
+          <Modal.Title>{data?.id ? "Chỉnh sửa hồ sơ" : "Thêm hồ sơ bệnh nhân"}</Modal.Title>
         </Modal.Header>
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} noValidate>
           <Modal.Body>
             <div className="patient-form-grid">
               <Form.Group className="patient-form-group">
                 <Form.Label>Họ tên</Form.Label>
                 <Form.Control name="fullName" value={form.fullName} onChange={handleChange} required />
+              </Form.Group>
+              <Form.Group className="patient-form-group">
+                <Form.Label>Số điện thoại</Form.Label>
+                <Form.Control name="phone" value={form.phone} onChange={handleChange} required />
+              </Form.Group>
+              <Form.Group className="patient-form-group">
+                <Form.Label>Email</Form.Label>
+                <Form.Control name="email" type="email" value={form.email} onChange={handleChange} />
               </Form.Group>
               <Form.Group className="patient-form-group">
                 <Form.Label>Ngày sinh</Form.Label>
@@ -295,16 +318,8 @@ function PatientProfile() {
                 </Form.Select>
               </Form.Group>
               <Form.Group className="patient-form-group">
-                <Form.Label>Số điện thoại</Form.Label>
-                <Form.Control name="phone" value={form.phone} onChange={handleChange} required />
-              </Form.Group>
-              <Form.Group className="patient-form-group">
-                <Form.Label>Email</Form.Label>
-                <Form.Control name="email" type="email" value={form.email} onChange={handleChange} />
-              </Form.Group>
-              <Form.Group className="patient-form-group">
                 <Form.Label>CCCD / Citizen ID</Form.Label>
-                <Form.Control name="citizenId" value={form.citizenId} onChange={handleChange} />
+                <Form.Control name="citizenId" value={form.citizenId} onChange={handleChange} required />
               </Form.Group>
               <Form.Group className="patient-form-group patient-form-wide">
                 <Form.Label>Địa chỉ</Form.Label>
