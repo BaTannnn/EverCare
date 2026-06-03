@@ -215,6 +215,7 @@ CREATE TABLE appointment (
     active BOOLEAN DEFAULT TRUE,
     CONSTRAINT chk_appointment_status CHECK (status IN ('BOOKED','WAITING','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW')),
     CONSTRAINT chk_appointment_time CHECK (end_time IS NULL OR start_time < end_time),
+    CONSTRAINT unique_appointment UNIQUE(start_time, end_time, patient_id, doctor_id),
     CONSTRAINT fk_appointment_patient
         FOREIGN KEY (patient_id) REFERENCES patient(id)
         ON DELETE CASCADE,

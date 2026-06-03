@@ -83,6 +83,39 @@ public class AppointmentServiceImpl implements AppointmentService {
         LocalTime startTime = requireStartTime(request.getStartTime());
         LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
         validateDateTime(appointmentDate, startTime, endTime);
+
+        Appointment existingAppointment = this.appointmentRepo.getAppointmentByPatientDoctorAndSlot(
+                currentPatient.getId(),
+                doctor.getId(),
+                java.sql.Date.valueOf(appointmentDate),
+                Time.valueOf(startTime),
+                Time.valueOf(endTime)
+        );
+
+        if (existingAppointment != null) {
+            if (!STATUS_CANCELLED.equalsIgnoreCase(existingAppointment.getStatus())) {
+                throw new IllegalStateException("Đặt lịch trùng");
+            }
+
+            validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, existingAppointment.getId());
+
+            existingAppointment.setStatus(STATUS_BOOKED);
+            existingAppointment.setCancelReason(null);
+            existingAppointment.setReason(trimToNull(request.getReason()));
+            existingAppointment.setSymptomNote(trimToNull(request.getSymptomNote()));
+            existingAppointment.setDoctorId(doctor);
+            existingAppointment.setPatientId(currentPatient);
+            existingAppointment.setServiceId(service);
+            existingAppointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
+            existingAppointment.setStartTime(Time.valueOf(startTime));
+            existingAppointment.setEndTime(Time.valueOf(endTime));
+            existingAppointment.setUpdatedAt(new Date());
+            this.appointmentRepo.updateAppointment(existingAppointment);
+
+            createNotification(currentUser, "Đặt lịch khám thành công", "Bạn đã đặt lịch khám thành công.", existingAppointment.getId());
+            return AppointmentMapper.toPatientResponse(existingAppointment);
+        }
+
         validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
         Appointment saved = createAndPersistAppointment(

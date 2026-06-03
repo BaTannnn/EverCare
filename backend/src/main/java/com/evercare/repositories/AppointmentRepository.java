@@ -16,6 +16,7 @@ public interface AppointmentRepository {
     List<Appointment> getBookableAppointmentsByDoctorAndDateRange(Long doctorId, Date fromDate, Date toDate);
     List<Appointment> getAppointmentsByPatientId(Long patientId, Map<String, String> params);
     Appointment getAppointmentByPatientIdAndId(Long patientId, Long appointmentId);
+    Appointment getAppointmentByPatientDoctorAndSlot(Long patientId, Long doctorId, Date appointmentDate, Time startTime, Time endTime);
     Appointment createAppointment(Appointment appointment);
 
     Appointment getAppointmentById(Long appointmentId);

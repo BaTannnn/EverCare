@@ -225,6 +225,34 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public Appointment getAppointmentByPatientDoctorAndSlot(Long patientId, Long doctorId, Date appointmentDate, Time startTime, Time endTime) {
+        Session session = this.factory.getObject().getCurrentSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Appointment> query = builder.createQuery(Appointment.class);
+        Root<Appointment> root = query.from(Appointment.class);
+        Fetch<Appointment, Doctor> doctorFetch = root.fetch("doctorId", JoinType.INNER);
+        doctorFetch.fetch("departmentId", JoinType.LEFT);
+        root.fetch("patientId", JoinType.INNER);
+        root.fetch("serviceId", JoinType.LEFT);
+
+        query.select(root).distinct(true);
+        query.where(
+                builder.equal(root.get("patientId").get("id"), patientId),
+                builder.equal(root.get("doctorId").get("id"), doctorId),
+                builder.equal(root.get("appointmentDate"), appointmentDate),
+                builder.equal(root.get("startTime"), startTime),
+                builder.equal(root.get("endTime"), endTime),
+                builder.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(query)
+                .getResultStream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
     public Appointment createAppointment(Appointment appointment) {
         Session session = this.factory.getObject().getCurrentSession();
         session.persist(appointment);
@@ -372,6 +400,8 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         predicates.add(builder.isTrue(root.get("active")));
         predicates.add(builder.equal(root.get("patientId").get("id"), patientId));
 
+        LocalDate defaultFrom = LocalDate.now();
+        String from = defaultFrom.toString();
         if (params != null) {
             String status = params.get("status");
             if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status.trim())) {
@@ -381,12 +411,9 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 ));
             }
 
-            String from = params.get("from");
-            if (from != null && !from.isBlank()) {
-                predicates.add(builder.greaterThanOrEqualTo(
-                        root.get("appointmentDate"),
-                        java.sql.Date.valueOf(LocalDate.parse(from.trim()))
-                ));
+            String fromParam = params.get("from");
+            if (fromParam != null && !fromParam.isBlank()) {
+                from = fromParam.trim();
             }
 
             String to = params.get("to");
@@ -413,6 +440,11 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
                 ));
             }
         }
+
+        predicates.add(builder.greaterThanOrEqualTo(
+                root.get("appointmentDate"),
+                java.sql.Date.valueOf(LocalDate.parse(from))
+        ));
         return predicates;
     }
 
