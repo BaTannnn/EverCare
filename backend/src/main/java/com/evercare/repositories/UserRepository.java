@@ -5,6 +5,7 @@
 package com.evercare.repositories;
 
 import com.evercare.pojo.User;
+import java.util.List;
 
 /**
  *
@@ -14,6 +15,7 @@ public interface UserRepository {
     User getUserByUsername(String username);
     User findByUsername(String username);
     User findById(Long id);
+    List<User> getActiveUsers();
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);

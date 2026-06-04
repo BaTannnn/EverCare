@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  *
  * @author cadic
@@ -68,6 +70,23 @@ public class UserRepositoryImpl implements UserRepository {
         cq.where(cb.equal(root.get("id"), id));
 
         return session.createQuery(cq).uniqueResult();
+    }
+
+    @Override
+    public List<User> getActiveUsers() {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<User> cq = cb.createQuery(User.class);
+        Root<User> root = cq.from(User.class);
+
+        root.fetch("roleSet", JoinType.LEFT);
+        root.fetch("employee", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.isTrue(root.get("active")));
+        cq.orderBy(cb.asc(root.get("fullName")), cb.asc(root.get("username")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override

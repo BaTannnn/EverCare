@@ -1,0 +1,124 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="${pageTitle}">Form nhân viên</title>
+    <th:block th:replace="~{base :: css}"></th:block>
+</head>
+<body>
+<div th:replace="~{base :: header}"></div>
+
+<section class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" th:text="${pageTitle}">Form nhân viên</h2>
+            <p class="text-muted mb-0">Nhập thông tin hồ sơ nhân viên.</p>
+        </div>
+
+        <a class="btn btn-outline-secondary" th:href="@{/admin/employees}">
+            Quay lại
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <div th:if="${err}" class="alert alert-danger" th:text="${err}"></div>
+
+            <div th:if="${!isEdit}" class="alert alert-info">
+                Mã nhân viên sẽ được hệ thống tự tạo khi lưu.
+            </div>
+
+            <form th:action="${isEdit}
+                    ? @{/admin/employees/{id}/edit(id=${employeeId})}
+                    : @{/admin/employees}"
+                  th:object="${employee}"
+                  method="post">
+
+                <div class="row">
+                    <div class="col-md-4 mb-3" th:if="${isEdit}">
+                        <label class="form-label">Mã nhân viên</label>
+                        <input class="form-control" type="text" th:field="*{employeeCode}" readonly>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="userId" class="form-label">
+                            Tài khoản liên kết <span class="text-danger">*</span>
+                        </label>
+                        <select id="userId"
+                                class="form-select"
+                                th:field="*{userId}">
+                            <option value="">-- Chọn tài khoản --</option>
+                            <option th:each="u : ${users}"
+                                    th:value="${u.id}"
+                                    th:text="${u.username + ' - ' + u.fullName}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="fullName" class="form-label">
+                            Họ tên <span class="text-danger">*</span>
+                        </label>
+                        <input id="fullName" class="form-control" type="text" th:field="*{fullName}" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="gender" class="form-label">Giới tính</label>
+                        <input id="gender" class="form-control" type="text" th:field="*{gender}" placeholder="Nam / Nữ / Khác">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="dateOfBirth" class="form-label">Ngày sinh</label>
+                        <input id="dateOfBirth" class="form-control" type="date" th:field="*{dateOfBirth}">
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="phone" class="form-label">
+                            Số điện thoại <span class="text-danger">*</span>
+                        </label>
+                        <input id="phone" class="form-control" type="text" th:field="*{phone}" required>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email" class="form-control" type="email" th:field="*{email}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="address" class="form-label">Địa chỉ</label>
+                    <input id="address" class="form-control" type="text" th:field="*{address}">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="position" class="form-label">
+                            Chức vụ <span class="text-danger">*</span>
+                        </label>
+                        <input id="position" class="form-control" type="text" th:field="*{position}" required>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="salary" class="form-label">Lương</label>
+                        <input id="salary" class="form-control" type="number" min="0" step="1000" th:field="*{salary}">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="hiredDate" class="form-label">Ngày vào làm</label>
+                        <input id="hiredDate" class="form-control" type="date" th:field="*{hiredDate}">
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit">Lưu</button>
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/employees}">Hủy</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<div th:replace="~{base :: footer}"></div>
+</body>
+</html>

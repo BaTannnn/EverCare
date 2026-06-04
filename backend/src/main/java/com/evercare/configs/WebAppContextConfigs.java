@@ -55,7 +55,7 @@ public class WebAppContextConfigs implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new ApiQueryLoggingInterceptor())
-                .addPathPatterns("/api/**", "/admin/statistics/api/**");
+                .addPathPatterns("/api/**", "/admin/**");
     }
 
     @Override
