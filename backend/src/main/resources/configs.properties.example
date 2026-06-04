@@ -1,7 +1,12 @@
 department.pageSize = 8
 medicalService.pageSize = 8
 doctor.pageSize = 8
-doctorSchedule.pageSize = 8
+doctorSchedule.pageSize = 10
+patientRecord.pageSize = 10
+appointment.pageSize = 10
+invoice.pageSize = 10
+employee.pageSize = 10
+account.pageSize = 10
 
 # MiMo/OpenAI-compatible chat completion settings. Keep the API key only on backend.
 mimo.chat-completions-url = https://api.openai.com/v1/chat/completions

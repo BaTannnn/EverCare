@@ -50,7 +50,6 @@
                         <th>ID</th>
                         <th>Mã NV</th>
                         <th>Nhân viên</th>
-                        <th>Tài khoản</th>
                         <th>Chức vụ</th>
                         <th>Liên hệ</th>
                         <th>Ngày vào làm</th>
@@ -71,7 +70,6 @@
                                 </span>
                             </div>
                         </td>
-                        <td th:text="${e.userId != null ? e.userId.username : '—'}"></td>
                         <td th:text="${e.position}"></td>
                         <td>
                             <div th:text="${e.phone}"></div>

@@ -49,7 +49,7 @@
                             <option value="">-- Chọn tài khoản --</option>
                             <option th:each="u : ${users}"
                                     th:value="${u.id}"
-                                    th:text="${u.username + ' - ' + u.fullName}">
+                                    th:text="${u.fullName}">
                             </option>
                         </select>
                     </div>

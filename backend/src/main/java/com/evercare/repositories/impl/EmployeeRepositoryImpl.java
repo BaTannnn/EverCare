@@ -63,7 +63,6 @@ public class EmployeeRepositoryImpl implements EmployeeRepository {
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Employee> cq = cb.createQuery(Employee.class);
         Root<Employee> root = cq.from(Employee.class);
-        root.fetch("userId", JoinType.LEFT);
 
         List<Predicate> predicates = buildPredicates(params, cb, root);
 

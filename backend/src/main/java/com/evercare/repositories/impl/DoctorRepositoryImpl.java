@@ -74,7 +74,6 @@ public class DoctorRepositoryImpl implements DoctorRepository {
         CriteriaQuery<Doctor> cq = cb.createQuery(Doctor.class);
         Root<Doctor> root = cq.from(Doctor.class);
         root.fetch("departmentId", JoinType.LEFT);
-        root.fetch("userId", JoinType.LEFT);
 
         List<Predicate> predicates = getPredicates(params, cb, root);
 
