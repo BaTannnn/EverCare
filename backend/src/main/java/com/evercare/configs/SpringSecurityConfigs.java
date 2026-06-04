@@ -70,7 +70,7 @@ public class SpringSecurityConfigs {
                                 "/js/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
+                        .requestMatchers("/", "/admin/**").hasAnyRole("ADMIN", "RECEPTIONIST")
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form

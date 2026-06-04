@@ -738,7 +738,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             notification.setCreatedAt(new Date());
             this.notificationRepo.createNotification(notification);
         } catch (Exception ex) {
-            // Notification is best-effort only.
+
         }
     }
 

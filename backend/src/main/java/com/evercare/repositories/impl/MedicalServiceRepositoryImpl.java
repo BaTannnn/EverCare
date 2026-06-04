@@ -100,7 +100,7 @@ public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
 
         Query<MedicalService> query = session.createQuery(cq);
 
-        if (params != null && !params.isEmpty() && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
+        if (params != null && params.containsKey("page") && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int pageSize = this.env.getProperty("medicalService.pageSize", Integer.class);
             int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countMedicalServices(params), pageSize);
             int start = (page - 1) * pageSize;

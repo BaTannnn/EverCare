@@ -7,9 +7,7 @@ import com.evercare.dtos.response.statistics.RevenueSeriesResponse;
 import com.evercare.dtos.response.statistics.RevenueStatisticsResponse;
 import com.evercare.dtos.response.statistics.ServiceUsageStatisticsResponse;
 import com.evercare.dtos.response.statistics.StatisticItemResponse;
-import com.evercare.enums.AppointmentStatus;
 import com.evercare.enums.InvoiceStatus;
-import com.evercare.pojo.Appointment;
 import com.evercare.pojo.Doctor;
 import com.evercare.pojo.Department;
 import com.evercare.pojo.Invoice;
@@ -27,11 +25,8 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
+
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
@@ -165,9 +160,8 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<StatisticItemResponse> cq = cb.createQuery(StatisticItemResponse.class);
-        Root<Appointment> root = cq.from(Appointment.class);
-        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        root.join("doctorId", JoinType.INNER);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
+        Join<MedicalRecord, Patient> patientJoin = root.join("patientId", JoinType.INNER);
 
         cq.select(cb.construct(
                 StatisticItemResponse.class,
@@ -176,15 +170,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         ));
         cq.where(
                 cb.isTrue(root.get("active")),
-                cb.isTrue(patientJoin.get("active")),
-                cb.or(
-                        cb.isNull(root.<String>get("status")),
-                        cb.not(root.<String>get("status").in(
-                                AppointmentStatus.CANCELLED.getCode(),
-                                AppointmentStatus.NO_SHOW.getCode()
-                        ))
-                ),
-                betweenDate(cb, root.<java.util.Date>get("appointmentDate"), fromDate, toDate)
+                betweenTimestamp(cb, root.<java.util.Date>get("visitDate"), fromDate, toDate)
         );
         cq.groupBy(patientJoin.get("gender"));
         cq.orderBy(cb.asc(patientJoin.get("gender")));
@@ -196,9 +182,9 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<StatisticItemResponse> cq = cb.createQuery(StatisticItemResponse.class);
-        Root<Appointment> root = cq.from(Appointment.class);
-        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        Join<Appointment, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
+        Join<MedicalRecord, Patient> patientJoin = root.join("patientId", JoinType.INNER);
+        Join<MedicalRecord, Doctor> doctorJoin = root.join("doctorId", JoinType.INNER);
         Join<Doctor, Department> departmentJoin = doctorJoin.join("departmentId", JoinType.LEFT);
         Expression<String> departmentName = cb.coalesce(departmentJoin.<String>get("name"), cb.literal("Chưa phân khoa"));
 
@@ -210,14 +196,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         cq.where(
                 cb.isTrue(root.get("active")),
                 cb.isTrue(patientJoin.get("active")),
-                cb.or(
-                        cb.isNull(root.<String>get("status")),
-                        cb.not(root.<String>get("status").in(
-                                AppointmentStatus.CANCELLED.getCode(),
-                                AppointmentStatus.NO_SHOW.getCode()
-                        ))
-                ),
-                betweenDate(cb, root.<java.util.Date>get("appointmentDate"), fromDate, toDate)
+                betweenTimestamp(cb, root.<java.util.Date>get("visitDate"), fromDate, toDate)
         );
         cq.groupBy(departmentJoin.get("id"), departmentJoin.get("name"));
         cq.orderBy(
@@ -346,25 +325,23 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Appointment> root = cq.from(Appointment.class);
-        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        root.join("doctorId", JoinType.INNER);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
+        Join<MedicalRecord, Patient> patientJoin = root.join("patientId", JoinType.INNER);
 
         cq.select(cb.countDistinct(patientJoin.get("id")));
         cq.where(
                 cb.isTrue(root.get("active")),
                 cb.isTrue(patientJoin.get("active")),
                 cb.isNotNull(patientJoin.get("dateOfBirth")),
-                cb.or(
-                        cb.isNull(root.<String>get("status")),
-                        cb.not(root.<String>get("status").in(
-                                AppointmentStatus.CANCELLED.getCode(),
-                                AppointmentStatus.NO_SHOW.getCode()
-                        ))
+                betweenTimestamp(cb, root.<Date>get("visitDate"), fromDate, toDate),
+                cb.greaterThanOrEqualTo(
+                        patientJoin.get("dateOfBirth"),
+                        java.sql.Date.valueOf(birthFrom)
                 ),
-                betweenDate(cb, root.<java.util.Date>get("appointmentDate"), fromDate, toDate),
-                cb.greaterThanOrEqualTo(patientJoin.get("dateOfBirth"), java.sql.Date.valueOf(birthFrom)),
-                cb.lessThanOrEqualTo(patientJoin.get("dateOfBirth"), java.sql.Date.valueOf(birthTo))
+                cb.lessThanOrEqualTo(
+                        patientJoin.get("dateOfBirth"),
+                        java.sql.Date.valueOf(birthTo)
+                )
         );
 
         Long count = session.createQuery(cq).uniqueResult();
@@ -375,23 +352,15 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Appointment> root = cq.from(Appointment.class);
-        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        root.join("doctorId", JoinType.INNER);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
+        Join<MedicalRecord, Patient> patientJoin = root.join("patientId", JoinType.INNER);
 
         cq.select(cb.countDistinct(patientJoin.get("id")));
         cq.where(
                 cb.isTrue(root.get("active")),
                 cb.isTrue(patientJoin.get("active")),
                 cb.isNotNull(patientJoin.get("dateOfBirth")),
-                cb.or(
-                        cb.isNull(root.<String>get("status")),
-                        cb.not(root.<String>get("status").in(
-                                AppointmentStatus.CANCELLED.getCode(),
-                                AppointmentStatus.NO_SHOW.getCode()
-                        ))
-                ),
-                betweenDate(cb, root.<java.util.Date>get("appointmentDate"), fromDate, toDate),
+                betweenTimestamp(cb, root.<java.util.Date>get("visitDate"), fromDate, toDate),
                 cb.lessThanOrEqualTo(patientJoin.get("dateOfBirth"), java.sql.Date.valueOf(birthTo))
         );
 
@@ -403,23 +372,15 @@ public class StatisticRepositoryImpl implements StatisticRepository {
         Session session = this.factory.getObject().getCurrentSession();
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Appointment> root = cq.from(Appointment.class);
-        Join<Appointment, Patient> patientJoin = root.join("patientId", JoinType.INNER);
-        root.join("doctorId", JoinType.INNER);
+        Root<MedicalRecord> root = cq.from(MedicalRecord.class);
+        Join<MedicalRecord, Patient> patientJoin = root.join("patientId", JoinType.INNER);
 
         cq.select(cb.countDistinct(patientJoin.get("id")));
         cq.where(
                 cb.isTrue(root.get("active")),
                 cb.isTrue(patientJoin.get("active")),
                 cb.isNull(patientJoin.get("dateOfBirth")),
-                cb.or(
-                        cb.isNull(root.<String>get("status")),
-                        cb.not(root.<String>get("status").in(
-                                AppointmentStatus.CANCELLED.getCode(),
-                                AppointmentStatus.NO_SHOW.getCode()
-                        ))
-                ),
-                betweenDate(cb, root.<java.util.Date>get("appointmentDate"), fromDate, toDate)
+                betweenTimestamp(cb, root.<java.util.Date>get("visitDate"), fromDate, toDate)
         );
 
         Long count = session.createQuery(cq).uniqueResult();

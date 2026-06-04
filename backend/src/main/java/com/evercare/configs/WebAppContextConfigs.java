@@ -46,13 +46,7 @@ public class WebAppContextConfigs implements WebMvcConfigurer {
     public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
         configurer.enable();
     }
-    
-//    @Override
-//    public void addFormatters(FormatterRegistry registry) {
-//        registry.addFormatter(new CategoryFormatter());
-//    }
-    
-    
+
     @Bean
     public StandardServletMultipartResolver multipartResolver() {
         return new StandardServletMultipartResolver();
@@ -60,7 +54,8 @@ public class WebAppContextConfigs implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new ApiQueryLoggingInterceptor()).addPathPatterns("/api/**");
+        registry.addInterceptor(new ApiQueryLoggingInterceptor())
+                .addPathPatterns("/api/**", "/admin/statistics/api/**");
     }
 
     @Override

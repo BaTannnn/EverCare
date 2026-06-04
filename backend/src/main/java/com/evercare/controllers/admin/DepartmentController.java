@@ -7,6 +7,7 @@ package com.evercare.controllers.admin;
 import com.evercare.dtos.request.DepartmentRequest;
 import com.evercare.pojo.Department;
 import com.evercare.services.DepartmentService;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -29,11 +30,14 @@ public class DepartmentController {
     
     @GetMapping("/departments")
     public String departmentView(Model model, @RequestParam Map<String, String> params) {
-        model.addAttribute("departments", departmentService.getDepartments(params));
-        model.addAttribute("kw", params.getOrDefault("kw", ""));
-        model.addAttribute("pages", this.departmentService.getTotalPages(params));
+        Map<String, String> listParams = new HashMap<>(params);
+        listParams.putIfAbsent("page", "1");
 
-        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        model.addAttribute("departments", departmentService.getDepartments(listParams));
+        model.addAttribute("kw", listParams.getOrDefault("kw", ""));
+        model.addAttribute("pages", this.departmentService.getTotalPages(listParams));
+
+        int page = Integer.parseInt(listParams.getOrDefault("page", "1"));
         model.addAttribute("page", page);
         return "departments/departments";
     }

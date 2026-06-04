@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
@@ -24,15 +25,18 @@ public class MedicalServiceController {
 
     @GetMapping
     public String index(@RequestParam Map<String, String> params, Model model) {
-        model.addAttribute("services", this.medicalServiceService.getServices(params));
+        Map<String, String> listParams = new HashMap<>(params);
+        listParams.putIfAbsent("page", "1");
+
+        model.addAttribute("services", this.medicalServiceService.getServices(listParams));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("serviceTypes", MedicalServiceType.values());
 
-        model.addAttribute("kw", params.getOrDefault("kw", ""));
-        model.addAttribute("departmentId", params.getOrDefault("departmentId", ""));
-        model.addAttribute("serviceType", params.getOrDefault("serviceType", ""));
-        model.addAttribute("pages", this.medicalServiceService.getTotalPages(params));
-        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        model.addAttribute("kw", listParams.getOrDefault("kw", ""));
+        model.addAttribute("departmentId", listParams.getOrDefault("departmentId", ""));
+        model.addAttribute("serviceType", listParams.getOrDefault("serviceType", ""));
+        model.addAttribute("pages", this.medicalServiceService.getTotalPages(listParams));
+        int page = Integer.parseInt(listParams.getOrDefault("page", "1"));
         model.addAttribute("page", page);
         return "services/services";
     }
