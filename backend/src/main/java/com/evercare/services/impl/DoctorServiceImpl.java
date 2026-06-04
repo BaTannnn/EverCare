@@ -8,20 +8,23 @@ import com.evercare.enums.DoctorWorkStatus;
 import com.evercare.mappers.DoctorMapper;
 import com.evercare.pojo.Department;
 import com.evercare.pojo.Doctor;
+import com.evercare.pojo.User;
 import com.evercare.repositories.DoctorRepository;
+import com.evercare.repositories.UserRepository;
 import com.evercare.services.DoctorService;
+import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import com.evercare.utils.LookupSupport;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -34,6 +37,15 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Autowired
     private LookupSupport lookupSupport;
+
+    @Autowired
+    private UserRepository userRepo;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AuthSupport authSupport;
 
     @Override
     public List<Doctor> getDoctors(Map<String, String> params) {
@@ -50,8 +62,10 @@ public class DoctorServiceImpl implements DoctorService {
         validateDoctor(req);
 
         Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
+        User user = requireDoctorAccount(req.getUserId(), null);
 
         Doctor doctor = DoctorMapper.toEntityForCreate(req, department);
+        doctor.setUserId(user);
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
             try {
@@ -83,8 +97,12 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         Department department = this.lookupSupport.requireActiveDepartment(req.getDepartmentId());
+        User user = requireDoctorAccount(req.getUserId(), existing);
 
         DoctorMapper.updateEntity(existing, req, department);
+        if (user != null) {
+            existing.setUserId(user);
+        }
 
         if (req.getAvatarFile() != null && !req.getAvatarFile().isEmpty()) {
             try {
@@ -118,6 +136,33 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public long getTotalPages(Map<String, String> params) {
         return this.doctorRepo.getTotalPages(params);
+    }
+
+    @Override
+    public List<User> getSelectableUsers(Long currentUserId) {
+        return this.userService.getDoctorLinkUsers(currentUserId);
+    }
+
+    private User requireDoctorAccount(Long userId, Doctor existing) {
+        if (userId == null) {
+            throw new IllegalArgumentException("Vui lòng chọn tài khoản bác sĩ");
+        }
+
+        User user = this.userRepo.findById(userId);
+        if (user == null || Boolean.FALSE.equals(user.getActive())) {
+            throw new IllegalArgumentException("Tài khoản liên kết không tồn tại hoặc đã ngưng hoạt động");
+        }
+
+        if (!this.authSupport.hasRole(user, "DOCTOR")) {
+            throw new IllegalArgumentException("Tài khoản phải có vai trò DOCTOR");
+        }
+
+        Doctor linked = user.getDoctor() != null ? user.getDoctor() : this.doctorRepo.getDoctorByUserId(user.getId());
+        if (linked != null && (existing == null || !existing.getId().equals(linked.getId()))) {
+            throw new IllegalArgumentException("Tài khoản này đã được gắn cho một bác sĩ khác");
+        }
+
+        return user;
     }
 
     private void validateDoctor(DoctorRequest req) {

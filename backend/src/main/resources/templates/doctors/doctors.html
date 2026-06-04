@@ -86,6 +86,7 @@
                         <th>ID</th>
                         <th>Mã</th>
                         <th>Bác sĩ</th>
+                        <th>Tài khoản</th>
                         <th>Khoa</th>
                         <th>Chuyên môn</th>
                         <th>Loại</th>
@@ -115,6 +116,7 @@
                             </div>
                         </td>
 
+                        <td th:text="${d.userId != null ? d.userId.username : '—'}"></td>
                         <td th:text="${d.departmentId != null ? d.departmentId.name : '—'}"></td>
                         <td th:text="${d.specialization} ?: '—'"></td>
 

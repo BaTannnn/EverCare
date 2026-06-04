@@ -48,6 +48,7 @@ public class DoctorController {
     @GetMapping("/create")
     public String createView(Model model) {
         model.addAttribute("doctor", new DoctorRequest());
+        model.addAttribute("users", this.doctorService.getSelectableUsers(null));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("doctorTypes", DoctorType.values());
         model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -67,6 +68,7 @@ public class DoctorController {
 
         DoctorRequest form = new DoctorRequest();
         form.setDepartmentId(doctor.getDepartmentId() != null ? doctor.getDepartmentId().getId() : null);
+        form.setUserId(doctor.getUserId() != null ? doctor.getUserId().getId() : null);
         form.setFullName(doctor.getFullName());
         form.setPhone(doctor.getPhone());
         form.setEmail(doctor.getEmail());
@@ -81,6 +83,7 @@ public class DoctorController {
         model.addAttribute("doctor", form);
         model.addAttribute("doctorId", id);
         model.addAttribute("currentAvatarUrl", doctor.getAvatarUrl());
+        model.addAttribute("users", this.doctorService.getSelectableUsers(form.getUserId()));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("doctorTypes", DoctorType.values());
         model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -98,6 +101,7 @@ public class DoctorController {
         } catch (IllegalArgumentException ex) {
             model.addAttribute("err", ex.getMessage());
             model.addAttribute("doctor", req);
+            model.addAttribute("users", this.doctorService.getSelectableUsers(req.getUserId()));
             model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
             model.addAttribute("doctorTypes", DoctorType.values());
             model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -121,6 +125,7 @@ public class DoctorController {
             model.addAttribute("err", ex.getMessage());
             model.addAttribute("doctor", req);
             model.addAttribute("doctorId", id);
+            model.addAttribute("users", this.doctorService.getSelectableUsers(req.getUserId()));
             model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
             model.addAttribute("doctorTypes", DoctorType.values());
             model.addAttribute("workStatuses", DoctorWorkStatus.values());

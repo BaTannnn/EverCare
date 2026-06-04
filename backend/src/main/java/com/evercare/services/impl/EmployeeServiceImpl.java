@@ -6,6 +6,7 @@ import com.evercare.pojo.User;
 import com.evercare.repositories.EmployeeRepository;
 import com.evercare.repositories.UserRepository;
 import com.evercare.services.EmployeeService;
+import com.evercare.utils.AuthSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,9 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
     private UserRepository userRepo;
+
+    @Autowired
+    private AuthSupport authSupport;
 
     @Override
     public List<Employee> getEmployees(Map<String, String> params) {
@@ -106,7 +110,10 @@ public class EmployeeServiceImpl implements EmployeeService {
                 continue;
             }
 
-            if (user.getEmployee() == null) {
+            if (user.getRoleSet() != null
+                    && !user.getRoleSet().isEmpty()
+                    && !this.authSupport.hasAnyRole(user, "DOCTOR", "PATIENT", "ADMIN")
+                    && user.getEmployee() == null) {
                 selectable.add(user);
             }
         }
@@ -194,4 +201,5 @@ public class EmployeeServiceImpl implements EmployeeService {
         String suffix = UUID.randomUUID().toString().substring(0, 4).toUpperCase(Locale.ROOT);
         return "EMP_" + ts + "_" + suffix;
     }
+
 }
