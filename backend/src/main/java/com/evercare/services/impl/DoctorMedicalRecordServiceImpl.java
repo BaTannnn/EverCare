@@ -29,6 +29,7 @@ import com.evercare.repositories.TestResultRepository;
 import com.evercare.services.DoctorMedicalRecordService;
 import com.evercare.utils.AuthSupport;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -36,36 +37,33 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordService {
+    private static final String INSURANCE_DISCOUNT_RATE_PROPERTY = "payment.insurance.discountRate";
+    private static final BigDecimal DEFAULT_INSURANCE_DISCOUNT_RATE = new BigDecimal("0.8");
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
-
     @Autowired
     private AppointmentRepository appointmentRepo;
-
     @Autowired
     private InvoiceRepository invoiceRepo;
-
     @Autowired
     private MedicalRecordServiceRepository medicalRecordServiceRepo;
-
     @Autowired
     private MedicalServiceRepository medicalServiceRepo;
-
     @Autowired
     private PrescriptionRepository prescriptionRepo;
-
     @Autowired
     private TestResultRepository testResultRepo;
-
     @Autowired
     private AuthSupport authSupport;
-
+    @Autowired
+    private Environment env;
     @Override
     public MedicalRecordResponse updateMedicalRecord(String username, Long recordId, UpdateMedicalRecordRequest request) {
         Doctor doctor = this.authSupport.requireCurrentDoctor(username);
@@ -207,54 +205,14 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
     }
 
     private void validateRequiredResultsCompleted(MedicalRecord medicalRecord) {
-        List<MedicalRecordService> orderedServices = this.medicalRecordServiceRepo
-                .getServicesByMedicalRecordId(medicalRecord.getId());
-
-        List<MedicalRecordService> requiredServices = orderedServices.stream()
-                .filter(service -> !Boolean.FALSE.equals(service.getActive()))
-                .filter(this::isRequiredResultService)
-                .toList();
-
-        if (requiredServices.isEmpty()) {
-            return;
-        }
-
-        var completedServiceIds = this.testResultRepo
-                .getTestResultsByMedicalRecordId(medicalRecord.getId())
-                .stream()
-                .filter(result -> !Boolean.FALSE.equals(result.getActive()))
-                .filter(result -> result.getServiceId() != null && result.getServiceId().getId() != null)
-                .map(result -> result.getServiceId().getId())
-                .collect(Collectors.toSet());
-
-        List<String> pendingServices = requiredServices.stream()
-                .filter(service -> service.getServiceId() == null
-                        || service.getServiceId().getId() == null
-                        || !completedServiceIds.contains(service.getServiceId().getId()))
-                .map(service -> service.getServiceId() != null && service.getServiceId().getName() != null
-                        ? service.getServiceId().getName()
-                        : "Dịch vụ #" + service.getId())
-                .distinct()
-                .toList();
-
+        List<String> pendingServices = this.medicalRecordServiceRepo
+                .getPendingResultServiceNames(medicalRecord.getId());
         if (!pendingServices.isEmpty()) {
             throw new IllegalStateException(
                     "Không thể hoàn tất bệnh án vì còn chỉ định chưa có kết quả: "
                             + String.join(", ", pendingServices)
             );
         }
-    }
-
-    private boolean isRequiredResultService(MedicalRecordService recordService) {
-        if (recordService == null
-                || recordService.getServiceId() == null
-                || recordService.getServiceId().getServiceType() == null) {
-            return false;
-        }
-
-        String serviceType = recordService.getServiceId().getServiceType().trim();
-        return MedicalServiceType.TEST.getCode().equalsIgnoreCase(serviceType)
-                || MedicalServiceType.IMAGING.getCode().equalsIgnoreCase(serviceType);
     }
 
     private boolean createOrUpdateUnpaidInvoice(MedicalRecord medicalRecord, Date now) {
@@ -266,9 +224,7 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
 
         BigDecimal serviceAmount = calculateServiceAmount(medicalRecord);
         BigDecimal medicineAmount = calculateMedicineAmount(medicalRecord.getId());
-        BigDecimal discountAmount = invoice != null && invoice.getDiscountAmount() != null
-                ? invoice.getDiscountAmount()
-                : BigDecimal.ZERO;
+        BigDecimal discountAmount = resolveInsuranceDiscountAmount(medicalRecord.getPatientId(), serviceAmount.add(medicineAmount));
         BigDecimal totalAmount = serviceAmount.add(medicineAmount).subtract(discountAmount);
 
         if (invoice == null) {
@@ -298,6 +254,49 @@ public class DoctorMedicalRecordServiceImpl implements DoctorMedicalRecordServic
         }
 
         return true;
+    }
+
+    private BigDecimal resolveInsuranceDiscountAmount(com.evercare.pojo.Patient patient, BigDecimal baseAmount) {
+        if (patient == null || patient.getHealthInsuranceNo() == null || patient.getHealthInsuranceNo().isBlank()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal normalizedBaseAmount = baseAmount != null ? baseAmount : BigDecimal.ZERO;
+        if (normalizedBaseAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discountRate = resolveInsuranceDiscountRate();
+        if (discountRate.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal discountAmount = normalizedBaseAmount.multiply(discountRate);
+        return discountAmount.min(normalizedBaseAmount).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal resolveInsuranceDiscountRate() {
+        if (this.env == null) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        String configuredValue = this.env.getProperty(INSURANCE_DISCOUNT_RATE_PROPERTY);
+        if (configuredValue == null || configuredValue.isBlank()) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
+
+        try {
+            BigDecimal parsed = new BigDecimal(configuredValue.trim());
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                return BigDecimal.ZERO;
+            }
+            if (parsed.compareTo(BigDecimal.ONE) > 0) {
+                return BigDecimal.ONE;
+            }
+            return parsed;
+        } catch (NumberFormatException ex) {
+            return DEFAULT_INSURANCE_DISCOUNT_RATE;
+        }
     }
 
     private BigDecimal calculateServiceAmount(MedicalRecord medicalRecord) {

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface StaffTestResultService {
-    List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username);
+    List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username, Map<String, String> params);
 
     StaffTestRequestDetailResponse getTestRequestDetail(String username, Long recordId);
 

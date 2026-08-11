@@ -43,28 +43,22 @@ import org.springframework.web.multipart.MultipartFile;
 public class StaffTestResultServiceImpl implements StaffTestResultService {
     @Autowired
     private TestResultRepository testResultRepo;
-
     @Autowired
     private MedicalRecordRepository medicalRecordRepo;
-
     @Autowired
     private MedicalServiceRepository medicalServiceRepo;
-
     @Autowired
     private MedicalRecordServiceRepository medicalRecordServiceRepo;
-
     @Autowired
     private Cloudinary cloudinary;
-
     @Autowired
     private AuthSupport authSupport;
-
     @Override
-    public List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username) {
+    public List<StaffTestRequestSummaryResponse> getPendingTestRequests(String username, Map<String, String> params) {
         this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên y tế đang hoạt động");
 
         Map<Long, StaffTestRequestSummaryResponse> result = new LinkedHashMap<>();
-        for (MedicalRecordService request : this.medicalRecordServiceRepo.getPendingTestRequests()) {
+        for (MedicalRecordService request : this.medicalRecordServiceRepo.getPendingTestRequests(params)) {
             MedicalRecord medicalRecord = request.getMedicalRecordId();
             if (medicalRecord == null) {
                 continue;
@@ -78,7 +72,7 @@ public class StaffTestResultServiceImpl implements StaffTestResultService {
             summary.getPendingServices().add(MedicalRecordServiceMapper.toSummaryResponse(request, Collections.emptyList()));
 
             String requestedAt = format(request.getCreatedAt());
-            if (summary.getRequestedAt() == null || requestedAt != null && requestedAt.compareTo(summary.getRequestedAt()) < 0) {
+            if (summary.getRequestedAt() == null || requestedAt != null && requestedAt.compareTo(summary.getRequestedAt()) > 0) {
                 summary.setRequestedAt(requestedAt);
             }
         }

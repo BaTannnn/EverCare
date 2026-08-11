@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Spinner, Table } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
-import { createStaffTestResult, getStaffTestRequestDetail } from "../../services/staff/staffTestResultApi";
+import { createStaffTestResult, getStaffTestRequestDetail, getStaffTestRequests } from "../../services/staff/staffTestResultApi";
 import { formatDateTime, getErrorMessage } from "./staffPageUtils";
 
 const emptyForm = {
@@ -13,6 +13,9 @@ const emptyForm = {
 };
 
 const MAX_RESULT_FILE_SIZE = 10 * 1024 * 1024;
+
+const normalizeRecordKey = (value) => String(value || "").trim().toLowerCase();
+const isNumericId = (value) => /^\d+$/.test(String(value || "").trim());
 
 const validatePdfFile = (file) => {
   if (!file) {
@@ -54,7 +57,26 @@ function StaffTestRequestDetailPage() {
       setError("");
 
       try {
-        const response = await getStaffTestRequestDetail(recordId);
+        let resolvedRecordId = recordId;
+
+        if (!isNumericId(resolvedRecordId)) {
+          const requestResponse = await getStaffTestRequests({ keyword: resolvedRecordId });
+          const normalizedKey = normalizeRecordKey(resolvedRecordId);
+          const matchedRequest = (requestResponse.data || []).find((request) => (
+            normalizeRecordKey(request.recordCode) === normalizedKey
+            || normalizeRecordKey(request.medicalRecordId) === normalizedKey
+            || normalizeRecordKey(`#${request.medicalRecordId}`) === normalizedKey
+          ));
+
+          if (!matchedRequest?.medicalRecordId) {
+            throw new Error("Không tìm thấy bệnh án đang chờ nhập kết quả với mã đã nhập.");
+          }
+
+          resolvedRecordId = matchedRequest.medicalRecordId;
+          navigate(`/staff/test-requests/${resolvedRecordId}`, { replace: true });
+        }
+
+        const response = await getStaffTestRequestDetail(resolvedRecordId);
         if (active) {
           const nextDetail = response.data;
           const pendingServices = (nextDetail?.services || []).filter((service) => !(service.testResults || []).length);
@@ -82,7 +104,7 @@ function StaffTestRequestDetailPage() {
     return () => {
       active = false;
     };
-  }, [recordId]);
+  }, [recordId, navigate]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -111,7 +133,12 @@ function StaffTestRequestDetailPage() {
     setError("");
 
     try {
-      await createStaffTestResult(recordId, {
+      const resolvedRecordId = detail?.medicalRecord?.id;
+      if (!resolvedRecordId) {
+        throw new Error("Không xác định được bệnh án để lưu kết quả.");
+      }
+
+      await createStaffTestResult(resolvedRecordId, {
         serviceId: Number(form.serviceId),
         resultTitle: form.resultTitle,
         resultContent: form.resultContent,
@@ -137,7 +164,9 @@ function StaffTestRequestDetailPage() {
           Nhân viên y tế <span>/</span> <strong>Nhập kết quả</strong>
         </div>
         <h1>Nhập kết quả</h1>
-        <p>Bệnh án #{recordId}. Chọn dịch vụ đã được bác sĩ chỉ định và nhập kết quả.</p>
+        <p>
+          Bệnh án {detail?.medicalRecord?.recordCode || `#${detail?.medicalRecord?.id || recordId}`}. Chọn dịch vụ đã được bác sĩ chỉ định và nhập kết quả.
+        </p>
       </div>
 
       {notice && <Alert variant={notice.startsWith("Đã") ? "success" : "warning"}>{notice}</Alert>}

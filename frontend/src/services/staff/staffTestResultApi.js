@@ -1,7 +1,7 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
-export const getStaffTestRequests = () => {
-  return authApis().get(endpoints["staff-test-requests"]);
+export const getStaffTestRequests = (params = {}) => {
+  return authApis().get(endpoints["staff-test-requests"], { params });
 };
 
 export const getStaffTestRequestDetail = (recordId) => {

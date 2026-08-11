@@ -21,6 +21,7 @@ const emptyForm = {
 };
 
 const MAX_RESULT_FILE_SIZE = 10 * 1024 * 1024;
+const PAGE_SIZE = 10;
 
 const validatePdfFile = (file) => {
   if (!file) {
@@ -46,6 +47,7 @@ function StaffTestResultsPage() {
   const [form, setForm] = useState(emptyForm);
   const [filters, setFilters] = useState({ recordId: "", serviceId: "", fromDate: "", toDate: "" });
   const [results, setResults] = useState([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -61,18 +63,25 @@ function StaffTestResultsPage() {
       const params = Object.fromEntries(
         Object.entries(filters).filter(([, value]) => String(value || "").trim())
       );
-      const response = await getStaffTestResults(params);
+      const response = await getStaffTestResults({ ...params, page, size: PAGE_SIZE });
       setResults(response.data || []);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, page]);
 
   useEffect(() => {
     loadResults();
   }, [loadResults]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  const canGoPrev = page > 1;
+  const canGoNext = results.length >= PAGE_SIZE;
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -156,7 +165,7 @@ function StaffTestResultsPage() {
           Nhân viên y tế <span>/</span> <strong>Lịch sử kết quả</strong>
         </div>
         <h1>Lịch sử kết quả</h1>
-      <p>Theo dõi các kết quả xét nghiệm và chẩn đoán hình ảnh đã nhập.</p>
+        <p>Theo dõi các kết quả xét nghiệm và chẩn đoán hình ảnh đã nhập.</p>
       </div>
 
       {notice && <Alert variant={notice.startsWith("Đã") ? "success" : "warning"}>{notice}</Alert>}
@@ -239,38 +248,51 @@ function StaffTestResultsPage() {
               description="Các kết quả đã nhập sẽ xuất hiện tại đây."
             />
           ) : (
-            <Table responsive hover className="doctor-table mb-0">
-              <thead>
-                <tr>
-                  <th>Mã kết quả</th>
-                  <th>Bệnh án</th>
-                  <th>Dịch vụ</th>
-                  <th>Tên kết quả</th>
-                  <th>Kết luận</th>
-                  <th>Ngày trả kết quả</th>
-                  <th>Thực hiện bởi</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((result) => (
-                  <tr key={result.id}>
-                    <td>{result.resultCode || `#${result.id}`}</td>
-                    <td>#{result.medicalRecordId || "--"}</td>
-                    <td>{result.serviceName || "--"}</td>
-                    <td>{result.resultTitle || "--"}</td>
-                    <td>{result.conclusion || "--"}</td>
-                    <td>{formatDateTime(result.resultDate)}</td>
-                    <td>{result.performedByName || "--"}</td>
-                    <td>
-                      <Button type="button" size="sm" variant="outline-primary" onClick={() => loadResultForEdit(result.id)}>
-                        Sửa
-                      </Button>
-                    </td>
+            <>
+              <Table responsive hover className="doctor-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Mã kết quả</th>
+                    <th>Bệnh án</th>
+                    <th>Dịch vụ</th>
+                    <th>Tên kết quả</th>
+                    <th>Kết luận</th>
+                    <th>Ngày trả kết quả</th>
+                    <th>Thực hiện bởi</th>
+                    <th>Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {results.map((result) => (
+                    <tr key={result.id}>
+                      <td>{result.resultCode || `#${result.id}`}</td>
+                      <td>#{result.medicalRecordId || "--"}</td>
+                      <td>{result.serviceName || "--"}</td>
+                      <td>{result.resultTitle || "--"}</td>
+                      <td>{result.conclusion || "--"}</td>
+                      <td>{formatDateTime(result.resultDate)}</td>
+                      <td>{result.performedByName || "--"}</td>
+                      <td>
+                        <Button type="button" size="sm" variant="outline-primary" onClick={() => loadResultForEdit(result.id)}>
+                          Sửa
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              {(canGoPrev || canGoNext) && (
+                <div className="pharmacist-pagination">
+                  <Button type="button" variant="outline-primary" disabled={!canGoPrev} onClick={() => setPage(page - 1)}>
+                    Trước
+                  </Button>
+                  <span>Trang {page}</span>
+                  <Button type="button" variant="outline-primary" disabled={!canGoNext} onClick={() => setPage(page + 1)}>
+                    Sau
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </Card.Body>
       </Card>
