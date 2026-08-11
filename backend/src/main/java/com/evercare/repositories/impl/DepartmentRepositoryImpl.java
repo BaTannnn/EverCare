@@ -32,10 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class DepartmentRepositoryImpl implements DepartmentRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
     @Autowired
     private Environment env;
-
     private List<Predicate> getPredicate(Map<String, String> params, Root root, CriteriaBuilder b) {
         List<Predicate> predicates = new ArrayList<>();
         if (params != null) {
@@ -64,7 +62,7 @@ public class DepartmentRepositoryImpl implements DepartmentRepository {
         
         Query<Department> query = session.createQuery(q);
 
-        if (params != null) {
+        if (params != null && params.containsKey("page") && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int page = PaginationUtils.getPage(params);
             int pageSize = this.env.getProperty("department.pageSize", Integer.class);
             int start = (page - 1) * pageSize;

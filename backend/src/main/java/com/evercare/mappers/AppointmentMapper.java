@@ -19,14 +19,29 @@ public final class AppointmentMapper {
     }
 
     public static DoctorAppointmentResponse toDoctorResponse(Appointment appointment) {
-        return toDoctorResponse(appointment, true, true);
+        DoctorAppointmentResponse res = toDoctorSummaryResponse(appointment);
+
+        MedicalRecord medicalRecord = appointment.getMedicalRecord();
+        if (medicalRecord != null) {
+            res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
+            if (medicalRecord.getPrescription() != null) {
+                res.setPrescription(PrescriptionMapper.toResponse(
+                        medicalRecord.getPrescription(),
+                        (java.util.function.Function<Long, Long>) null
+                ));
+            }
+        }
+
+        return res;
     }
 
     public static DoctorAppointmentResponse toDoctorSummaryResponse(Appointment appointment) {
-        return toDoctorResponse(appointment, false,false);
+        DoctorAppointmentResponse res = toDoctorBaseResponse(appointment);
+        res.setService(MedicalServiceMapper.toResponseWithoutDepartment(appointment.getServiceId()));
+        return res;
     }
 
-    private static DoctorAppointmentResponse toDoctorResponse(Appointment appointment, boolean includePrescription, boolean includeMedicalRecord) {
+    private static DoctorAppointmentResponse toDoctorBaseResponse(Appointment appointment) {
         DoctorAppointmentResponse res = new DoctorAppointmentResponse();
         res.setId(appointment.getId());
         res.setAppointmentCode(appointment.getAppointmentCode());
@@ -38,19 +53,6 @@ public final class AppointmentMapper {
         res.setStatus(appointment.getStatus());
         res.setStatusLabel(AppointmentStatus.labelOf(appointment.getStatus()));
         res.setPatient(toPatientResponse(appointment.getPatientId()));
-        res.setService(MedicalServiceMapper.toResponse(appointment.getServiceId()));
-
-        MedicalRecord medicalRecord = includeMedicalRecord ? appointment.getMedicalRecord() : null;
-        if (medicalRecord != null) {
-            res.setMedicalRecord(MedicalRecordMapper.toResponse(medicalRecord));
-            if (includePrescription && medicalRecord.getPrescription() != null) {
-                res.setPrescription(PrescriptionMapper.toResponse(
-                        medicalRecord.getPrescription(),
-                        (java.util.function.Function<Long, Long>) null
-                ));
-            }
-        }
-
         return res;
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { BsArrowLeft, BsCalendarCheck, BsSearch } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ import {
   getReceptionistMedicalServices,
 } from "../../services/receptionist/receptionistReferenceApi";
 import { getReceptionistDoctorSchedules } from "../../services/receptionist/receptionistDoctorScheduleApi";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import { formatTime, getErrorMessage, todayInputValue } from "./receptionistPageUtils";
 
 const emptyPatient = {
@@ -49,6 +50,29 @@ const emptyForm = {
   checkInNow: false,
 };
 
+const getEntityId = (value) => {
+  if (!value) return "";
+  if (typeof value === "object") {
+    return value.id || value.departmentId || value.serviceId || value.doctorId || "";
+  }
+  return value;
+};
+
+const getServiceDepartmentId = (service) => getEntityId(service?.departmentId);
+
+const getServiceDepartmentName = (service, departments) => {
+  if (!service) return "";
+
+  if (typeof service.departmentName === "string" && service.departmentName.trim()) {
+    return service.departmentName;
+  }
+
+  const departmentId = getServiceDepartmentId(service);
+  if (!departmentId) return "";
+
+  return departments.find((department) => String(department.id) === String(departmentId))?.name || "";
+};
+
 function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const navigate = useNavigate();
   const isEdit = mode === "edit";
@@ -68,19 +92,19 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const [patientSearchNotice, setPatientSearchNotice] = useState("");
   const [form, setForm] = useState(emptyForm);
 
-  const loadReferences = async () => {
+  const loadReferences = useCallback(async () => {
     const [departmentRes, doctorRes, serviceRes] = await Promise.all([
       getReceptionistDepartments(),
       getReceptionistDoctors(),
-      getReceptionistMedicalServices(),
+      getReceptionistMedicalServices({ serviceTypes: "EXAMINATION" }),
     ]);
 
     setDepartments(departmentRes.data || []);
     setDoctors(doctorRes.data || []);
     setServices(serviceRes.data || []);
-  };
+  }, []);
 
-  const loadAppointment = async () => {
+  const loadAppointment = useCallback(async () => {
     if (!isEdit) {
       return;
     }
@@ -94,7 +118,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
       setForm({
         patientId: "",
         patient: emptyPatient,
-        departmentId: detail.departmentId || detail.doctor?.departmentId || "",
+        departmentId: detail.service?.departmentId || detail.departmentId || detail.doctor?.departmentId || "",
         doctorId: detail.doctorId || detail.doctor?.id || "",
         serviceId: detail.serviceId || detail.service?.id || "",
         appointmentDate: detail.appointmentDate || todayInputValue(),
@@ -114,7 +138,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appointmentId, isEdit, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -139,18 +163,25 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadAppointment, loadReferences, navigate]);
+
+  const selectedService = useMemo(
+    () => services.find((service) => String(service.id) === String(form.serviceId)) || null,
+    [form.serviceId, services],
+  );
+
+  const selectedDepartmentId = getServiceDepartmentId(selectedService) || form.departmentId || "";
+  const selectedDepartmentName = getServiceDepartmentName(selectedService, departments);
 
   const filteredDoctors = useMemo(() => {
-    if (!form.departmentId) return doctors;
-    return doctors.filter((doctor) => String(doctor.departmentId) === String(form.departmentId));
-  }, [doctors, form.departmentId]);
+    if (!selectedDepartmentId) return doctors;
+    return doctors.filter((doctor) => String(doctor.departmentId) === String(selectedDepartmentId));
+  }, [doctors, selectedDepartmentId]);
 
-  const filteredServices = useMemo(() => {
-    if (!form.departmentId) return services;
-    return services.filter((service) => String(service.departmentId) === String(form.departmentId));
-  }, [form.departmentId, services]);
+  const filteredServices = useMemo(
+    () => services.filter((service) => String(service.serviceType).toUpperCase() === "EXAMINATION"),
+    [services],
+  );
 
   const selectedSchedule = useMemo(
     () => doctorSchedules.find((schedule) => String(schedule.id) === String(form.scheduleId)) || null,
@@ -170,18 +201,26 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   }, [filteredServices, form.serviceId]);
 
   useEffect(() => {
-    if (!form.doctorId || !form.appointmentDate) {
-      setDoctorSchedules([]);
-      return;
-    }
+    if (!selectedService) return;
 
-    loadDoctorSchedules(form.doctorId, form.appointmentDate, form.scheduleId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.doctorId, form.appointmentDate]);
+    setForm((current) => ({
+      ...current,
+      departmentId: getServiceDepartmentId(selectedService) ? String(getServiceDepartmentId(selectedService)) : "",
+    }));
+  }, [selectedService]);
 
   const updateField = (field, value) => {
     setForm((current) => {
       const next = { ...current, [field]: value };
+
+      if (field === "serviceId") {
+        const service = services.find((item) => String(item.id) === String(value)) || null;
+        next.departmentId = getServiceDepartmentId(service) ? String(getServiceDepartmentId(service)) : "";
+        next.doctorId = "";
+        next.scheduleId = "";
+        next.startTime = "";
+        next.endTime = "";
+      }
 
       if (field === "doctorId") {
         next.scheduleId = "";
@@ -267,7 +306,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     }
   };
 
-  const loadDoctorSchedules = async (doctorId, appointmentDate, preferredScheduleId = "") => {
+  const loadDoctorSchedules = useCallback(async (doctorId, appointmentDate, preferredScheduleId = "") => {
     if (!doctorId || !appointmentDate) {
       setDoctorSchedules([]);
       return;
@@ -327,12 +366,21 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     } finally {
       setScheduleLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!form.doctorId || !form.appointmentDate) {
+      setDoctorSchedules([]);
+      return;
+    }
+
+    loadDoctorSchedules(form.doctorId, form.appointmentDate, form.scheduleId);
+  }, [form.appointmentDate, form.doctorId, form.scheduleId, loadDoctorSchedules]);
 
   const validate = () => {
-    if (!form.departmentId) return "Vui lòng chọn chuyên khoa.";
-    if (!form.doctorId) return "Vui lòng chọn bác sĩ.";
     if (!form.serviceId) return "Vui lòng chọn dịch vụ.";
+    if (!selectedDepartmentId) return "Dịch vụ đã chọn chưa xác định được chuyên khoa.";
+    if (!form.doctorId) return "Vui lòng chọn bác sĩ.";
     if (!form.appointmentDate) return "Vui lòng chọn ngày khám.";
     if (!form.scheduleId) return "Vui lòng chọn ca khám của bác sĩ.";
 
@@ -348,8 +396,9 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
 
   const buildPayload = () => {
     const schedule = selectedSchedule;
+    const departmentId = Number(selectedDepartmentId || 0);
     const payload = {
-      departmentId: Number(form.departmentId),
+      departmentId,
       doctorId: Number(form.doctorId),
       serviceId: Number(form.serviceId),
       appointmentDate: schedule?.workDate || form.appointmentDate,
@@ -596,48 +645,48 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
               <h2>Thông tin lịch hẹn</h2>
               <Row className="g-3">
                 <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Chuyên khoa</Form.Label>
-                    <Form.Select value={form.departmentId} onChange={(e) => updateField("departmentId", e.target.value)}>
-                      <option value="">Chọn chuyên khoa</option>
-                      {departments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
+                  <SearchableSelect
+                    label="Dịch vụ"
+                    value={form.serviceId}
+                    options={filteredServices}
+                    onChange={(nextValue) => updateField("serviceId", nextValue)}
+                    placeholder="Chọn dịch vụ"
+                    searchPlaceholder="Tìm dịch vụ"
+                    emptyMessage="Không tìm thấy dịch vụ"
+                    getOptionValue={(service) => service.id}
+                    getOptionLabel={(service) => service.name || ""}
+                    getOptionDescription={(service) => service.departmentName || service.code || ""}
+                  />
                 </Col>
                 <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Bác sĩ</Form.Label>
-                    <Form.Select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)}>
-                      <option value="">Chọn bác sĩ</option>
-                      {filteredDoctors.map((doctor) => (
-                        <option key={doctor.id} value={doctor.id}>
-                          {doctor.fullName} {doctor.departmentName ? `- ${doctor.departmentName}` : ""}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Dịch vụ</Form.Label>
-                    <Form.Select value={form.serviceId} onChange={(e) => updateField("serviceId", e.target.value)}>
-                      <option value="">Chọn dịch vụ</option>
-                      {filteredServices.map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
+                  <SearchableSelect
+                    label="Bác sĩ"
+                    value={form.doctorId}
+                    options={filteredDoctors}
+                    onChange={(nextValue) => updateField("doctorId", nextValue)}
+                    placeholder="Chọn bác sĩ"
+                    searchPlaceholder="Tìm bác sĩ"
+                    emptyMessage="Không tìm thấy bác sĩ"
+                    disabled={!form.serviceId}
+                    getOptionValue={(doctor) => doctor.id}
+                    getOptionLabel={(doctor) => doctor.fullName || ""}
+                    getOptionDescription={(doctor) => doctor.departmentName || doctor.doctorCode || ""}
+                  />
                 </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Ngày khám</Form.Label>
                     <Form.Control type="date" value={form.appointmentDate} onChange={(e) => updateField("appointmentDate", e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Chuyên khoa</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={selectedDepartmentName || "Sẽ tự động xác định từ dịch vụ EXAMINATION"}
+                      readOnly
+                    />
                   </Form.Group>
                 </Col>
                 <Col md={4}>

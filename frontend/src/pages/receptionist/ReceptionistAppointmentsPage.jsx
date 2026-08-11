@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
 import { BsClipboardCheck, BsPlusCircle, BsSearch } from "react-icons/bs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
+import SearchableSelect from "../../components/common/SearchableSelect";
 import { checkInReceptionistAppointment, getReceptionistAppointments } from "../../services/receptionist/receptionistAppointmentApi";
 import { getReceptionistDepartments, getReceptionistDoctors } from "../../services/receptionist/receptionistReferenceApi";
 import {
@@ -38,7 +39,7 @@ function ReceptionistAppointmentsPage() {
   const [notice, setNotice] = useState("");
   const [actionId, setActionId] = useState(null);
 
-  const loadReferences = async () => {
+  const loadReferences = useCallback(async () => {
     const [departmentRes, doctorRes] = await Promise.all([
       getReceptionistDepartments(),
       getReceptionistDoctors(),
@@ -46,9 +47,9 @@ function ReceptionistAppointmentsPage() {
 
     setDepartments(departmentRes.data || []);
     setDoctors(doctorRes.data || []);
-  };
+  }, []);
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -77,7 +78,7 @@ function ReceptionistAppointmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, searchParams]);
 
   useEffect(() => {
     const ensureDefaults = new URLSearchParams(searchParams);
@@ -122,16 +123,14 @@ function ReceptionistAppointmentsPage() {
     };
 
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadReferences, navigate]);
 
   useEffect(() => {
     if (!searchParams.get("date")) {
       return;
     }
     loadAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [loadAppointments, searchParams]);
 
   const filteredDoctors = useMemo(() => {
     if (!form.departmentId) return doctors;
@@ -280,17 +279,18 @@ function ReceptionistAppointmentsPage() {
                 </Form.Group>
               </Col>
               <Col md={2}>
-                <Form.Group>
-                  <Form.Label>Bác sĩ</Form.Label>
-                  <Form.Select value={form.doctorId} onChange={(e) => updateField("doctorId", e.target.value)}>
-                    <option value="">Tất cả</option>
-                    {filteredDoctors.map((doctor) => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.fullName}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
+                <SearchableSelect
+                  label="Bác sĩ"
+                  value={form.doctorId}
+                  options={filteredDoctors}
+                  onChange={(nextValue) => updateField("doctorId", nextValue)}
+                  placeholder="Tất cả"
+                  searchPlaceholder="Tìm bác sĩ"
+                  emptyMessage="Không tìm thấy bác sĩ"
+                  getOptionValue={(doctor) => doctor.id}
+                  getOptionLabel={(doctor) => doctor.fullName || ""}
+                  getOptionDescription={(doctor) => doctor.departmentName || doctor.doctorCode || ""}
+                />
               </Col>
               <Col md={2}>
                 <Form.Group>

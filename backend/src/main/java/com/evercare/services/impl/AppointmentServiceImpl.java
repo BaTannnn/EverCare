@@ -56,27 +56,20 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final String STATUS_IN_PROGRESS = AppointmentStatus.IN_PROGRESS.getCode();
     private static final String STATUS_COMPLETED = AppointmentStatus.COMPLETED.getCode();
     private static final int DEFAULT_APPOINTMENT_MINUTES = 30;
-
     @Autowired
     private AppointmentRepository appointmentRepo;
     @Autowired
     private DoctorScheduleRepository scheduleRepo;
-
     @Autowired
     private PatientRepository patientRepo;
-
     @Autowired
     private NotificationRepository notificationRepo;
-
     @Autowired
     private AuthSupport authSupport;
-
     @Autowired
     private LookupSupport lookupSupport;
-
     @Autowired
     private EmailService emailService;
-
     @Override
     public AppointmentResponse bookAppointment(AppointmentRequest request) {
         validateBookingRequest(request);
@@ -240,6 +233,45 @@ public class AppointmentServiceImpl implements AppointmentService {
         LocalTime endTime = resolveAppointmentEndTime(startTime, request.getEndTime());
 
         validateDateTime(appointmentDate, startTime, endTime);
+
+        Appointment existingAppointment = this.appointmentRepo.getAppointmentByPatientDoctorAndSlot(
+                patient.getId(),
+                doctor.getId(),
+                java.sql.Date.valueOf(appointmentDate),
+                Time.valueOf(startTime),
+                Time.valueOf(endTime)
+        );
+
+        if (existingAppointment != null) {
+            if (!STATUS_CANCELLED.equalsIgnoreCase(existingAppointment.getStatus())) {
+                throw new IllegalStateException("Đặt lịch trùng");
+            }
+
+            validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, existingAppointment.getId());
+
+            existingAppointment.setStatus(STATUS_BOOKED);
+            existingAppointment.setCancelReason(null);
+            existingAppointment.setReason(trimToNull(request.getReason()));
+            existingAppointment.setSymptomNote(trimToNull(request.getSymptomNote()));
+            existingAppointment.setDoctorId(doctor);
+            existingAppointment.setPatientId(patient);
+            existingAppointment.setServiceId(service);
+            existingAppointment.setAppointmentDate(java.sql.Date.valueOf(appointmentDate));
+            existingAppointment.setStartTime(Time.valueOf(startTime));
+            existingAppointment.setEndTime(Time.valueOf(endTime));
+            existingAppointment.setUpdatedAt(new Date());
+            this.appointmentRepo.updateAppointment(existingAppointment);
+
+            notifyPatientByAppointment(
+                    patient,
+                    existingAppointment,
+                    "Đặt lịch khám thành công",
+                    "Bạn đã đặt lịch khám thành công."
+            );
+
+            return AppointmentMapper.toReceptionistResponse(existingAppointment);
+        }
+
         validateDoctorScheduleAndCapacity(doctor.getId(), appointmentDate, startTime, endTime, null);
 
         boolean checkInNow = Boolean.TRUE.equals(request.getCheckInNow()) && appointmentDate.equals(LocalDate.now());
@@ -600,7 +632,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         LocalDate today = LocalDate.now();
         if (appointmentDate.isBefore(today)
-                || (appointmentDate.isEqual(today) && startTime.isBefore(LocalTime.now()))) {
+                || (appointmentDate.isEqual(today) && endTime.isBefore(LocalTime.now()))) {
             throw new IllegalStateException("Không thể đặt lịch trong quá khứ");
         }
     }
@@ -699,7 +731,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             notification.setCreatedAt(new Date());
             this.notificationRepo.createNotification(notification);
         } catch (Exception ex) {
-            // Notification is best-effort only.
+
         }
     }
 

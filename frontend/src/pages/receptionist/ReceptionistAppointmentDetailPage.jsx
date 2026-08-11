@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card } from "react-bootstrap";
 import { BsArrowLeft, BsPencilSquare, BsPersonCheck } from "react-icons/bs";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -26,7 +26,7 @@ function ReceptionistAppointmentDetailPage() {
   const [notice, setNotice] = useState(location.state?.notice || "");
   const [actionLoading, setActionLoading] = useState(false);
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -42,12 +42,11 @@ function ReceptionistAppointmentDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appointmentId, navigate]);
 
   useEffect(() => {
     loadDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appointmentId]);
+  }, [loadDetail]);
 
   const handleCheckIn = async () => {
     setActionLoading(true);

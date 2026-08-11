@@ -6,8 +6,10 @@ import com.evercare.pojo.Department;
 import com.evercare.pojo.MedicalService;
 
 public class MedicalServiceMapper {
-
-    public static MedicalServiceResponse toResponse(MedicalService s) {
+    public static MedicalServiceResponse toResponseWithoutDepartment(MedicalService s){
+        return toResponse(s, false);
+    }
+    public static MedicalServiceResponse toResponse(MedicalService s, boolean includeDepartment) {
         if (s == null) {
             return null;
         }
@@ -24,7 +26,7 @@ public class MedicalServiceMapper {
         res.setCreatedAt(s.getCreatedAt());
         res.setUpdatedAt(s.getUpdatedAt());
 
-        if (s.getDepartmentId() != null) {
+        if (includeDepartment && s.getDepartmentId() != null) {
             res.setDepartmentId(s.getDepartmentId().getId());
             res.setDepartmentName(s.getDepartmentId().getName());
         }

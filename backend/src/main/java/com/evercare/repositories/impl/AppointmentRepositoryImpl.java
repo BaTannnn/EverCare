@@ -37,10 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AppointmentRepositoryImpl implements AppointmentRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
     @Autowired
     private Environment env;
-
     @Override
     public List<Appointment> getAppointmentsForReceptionist(Map<String, String> params) {
         Session session = this.factory.getObject().getCurrentSession();
@@ -100,9 +98,6 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
         root.fetch("patientId", JoinType.INNER);
         root.fetch("serviceId", JoinType.LEFT);
-        Fetch<Appointment, ?> medicalRecordFetch = root.fetch("medicalRecord", JoinType.LEFT);
-        medicalRecordFetch.fetch("invoice", JoinType.LEFT);
-        medicalRecordFetch.fetch("prescription", JoinType.LEFT);
 
         query.select(root).distinct(true);
         query.where(

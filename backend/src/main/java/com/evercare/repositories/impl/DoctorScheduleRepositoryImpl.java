@@ -24,10 +24,8 @@ import java.util.Map;
 public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
     @Autowired
     private Environment env;
-
     @Autowired
     private LocalSessionFactoryBean factory;
-
     private List<Predicate> getPredicates(Map<String, String> params, CriteriaBuilder cb, Root root) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -97,7 +95,7 @@ public class DoctorScheduleRepositoryImpl implements DoctorScheduleRepository {
 
         Query<DoctorSchedule> query = session.createQuery(cq);
 
-        if (params != null && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
+        if (params != null && params.containsKey("page") && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int pageSize = this.env.getProperty("doctorSchedule.pageSize", Integer.class);
             int page = PaginationUtils.normalizePage(PaginationUtils.getPage(params), this.countDoctorSchedules(params), pageSize);
             int start = (page - 1) * pageSize;
