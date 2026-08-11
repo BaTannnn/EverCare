@@ -215,7 +215,7 @@ CREATE TABLE appointment (
     active BOOLEAN DEFAULT TRUE,
     CONSTRAINT chk_appointment_status CHECK (status IN ('BOOKED','WAITING','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW')),
     CONSTRAINT chk_appointment_time CHECK (end_time IS NULL OR start_time < end_time),
-    CONSTRAINT unique_appointment UNIQUE(start_time, end_time, patient_id, doctor_id),
+    CONSTRAINT unique_appointment UNIQUE(appointment_date, start_time, end_time, patient_id, doctor_id),
     CONSTRAINT fk_appointment_patient
         FOREIGN KEY (patient_id) REFERENCES patient(id)
         ON DELETE CASCADE,
@@ -510,7 +510,7 @@ CREATE TABLE invoice (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     active BOOLEAN DEFAULT TRUE,
     CONSTRAINT chk_invoice_amount CHECK (total_service_amount >= 0 AND total_medicine_amount >= 0 AND discount_amount >= 0 AND total_amount >= 0),
-    CONSTRAINT chk_invoice_payment_method CHECK (payment_method IS NULL OR payment_method IN ('CASH','BANK_TRANSFER','VIETQR','MOMO','VNPAY','PAYPAL')),
+    CONSTRAINT chk_invoice_payment_method CHECK (payment_method IS NULL OR payment_method IN ('CASH','BANK_TRANSFER','VIETQR','MOMO','ZALOPAY','VNPAY','PAYPAL')),
     CONSTRAINT chk_invoice_payment_status CHECK (payment_status IN ('UNPAID','PAID','REFUNDED')),
     CONSTRAINT fk_invoice_medical_record
         FOREIGN KEY (medical_record_id) REFERENCES medical_record(id)
@@ -528,7 +528,7 @@ CREATE TABLE payment (
     invoice_id BIGINT NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
     payment_method VARCHAR(40) DEFAULT 'CASH',
-    transaction_code VARCHAR(100),
+    transaction_code VARCHAR(100) UNIQUE,
     payment_provider VARCHAR(80),
     payment_status VARCHAR(30) DEFAULT 'PENDING',
     paid_at DATETIME,
@@ -536,7 +536,7 @@ CREATE TABLE payment (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     active BOOLEAN DEFAULT TRUE,
     CONSTRAINT chk_payment_amount CHECK (amount > 0),
-    CONSTRAINT chk_payment_method CHECK (payment_method IN ('CASH','BANK_TRANSFER','VIETQR','MOMO','VNPAY','PAYPAL')),
+    CONSTRAINT chk_payment_method CHECK (payment_method IN ('CASH','BANK_TRANSFER','VIETQR','MOMO','ZALOPAY','VNPAY','PAYPAL')),
     CONSTRAINT chk_payment_status CHECK (payment_status IN ('PENDING','SUCCESS','FAILED','REFUNDED')),
     CONSTRAINT fk_payment_invoice
         FOREIGN KEY (invoice_id) REFERENCES invoice(id)
@@ -2768,6 +2768,232 @@ INSERT INTO notification (id, user_id, title, content, notification_type, relate
 (9002, 1202, 'Lich tu van Google Meet', 'Le tan da tao lich tu van truc tuyen cho ban.', 'APPOINTMENT_REMINDER', 9001, NULL, TRUE),
 (9003, 1207, 'Thanh toan that bai', 'Hoa don cua ban chua duoc thanh toan thanh cong.', 'PAYMENT', 9002, NULL, TRUE),
 (9004, 1215, 'Hoa don da hoan tien', 'Hoa don cua ban da duoc hoan tien.', 'PAYMENT', 9009, '2026-06-06 08:40:00', TRUE);
+
+-- 12. BO SUNG DU LIEU DAY NGAY 2026-06-05
+-- 60 lich hen moi: 20 COMPLETED, 10 WAITING, 20 BOOKED, 5 CANCELLED, 5 NO_SHOW.
+INSERT INTO appointment (id, appointment_code, patient_id, doctor_id, service_id, appointment_date, start_time, end_time, status, reason, symptom_note, cancel_reason, created_by, active)
+SELECT
+    9100 + n,
+    CONCAT('APT-20260605-BULK-', LPAD(n, 3, '0')),
+    MOD(n - 1, 250) + 1,
+    MOD(n - 1, 10) + 1,
+    MOD(n + FLOOR((n - 1) / 10) - 1, 10) + 1,
+    '2026-06-05',
+    CASE FLOOR((n - 1) / 10)
+        WHEN 0 THEN '09:00:00'
+        WHEN 1 THEN '09:30:00'
+        WHEN 2 THEN '10:00:00'
+        WHEN 3 THEN '10:30:00'
+        WHEN 4 THEN '13:00:00'
+        ELSE '13:30:00'
+    END,
+    CASE FLOOR((n - 1) / 10)
+        WHEN 0 THEN '09:30:00'
+        WHEN 1 THEN '10:00:00'
+        WHEN 2 THEN '10:30:00'
+        WHEN 3 THEN '11:00:00'
+        WHEN 4 THEN '13:30:00'
+        ELSE '14:00:00'
+    END,
+    CASE
+        WHEN n <= 20 THEN 'COMPLETED'
+        WHEN n <= 30 THEN 'WAITING'
+        WHEN n <= 50 THEN 'BOOKED'
+        WHEN n <= 55 THEN 'CANCELLED'
+        ELSE 'NO_SHOW'
+    END,
+    CASE MOD(n - 1, 10)
+        WHEN 0 THEN 'Kham tong quat'
+        WHEN 1 THEN 'Tu van suc khoe'
+        WHEN 2 THEN 'Kiem tra huyet ap'
+        WHEN 3 THEN 'Dau dau'
+        WHEN 4 THEN 'Ho sot'
+        WHEN 5 THEN 'Dau bung'
+        WHEN 6 THEN 'Kham da lieu'
+        WHEN 7 THEN 'Kham mat'
+        WHEN 8 THEN 'Dau rang'
+        ELSE 'Kham nhi'
+    END,
+    'Du lieu bo sung ngay 05/06 de demo tai phong kham.',
+    CASE WHEN n BETWEEN 51 AND 55 THEN 'Benh nhan yeu cau doi lich' ELSE NULL END,
+    201,
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+    UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23 UNION ALL SELECT 24 UNION ALL SELECT 25
+    UNION ALL SELECT 26 UNION ALL SELECT 27 UNION ALL SELECT 28 UNION ALL SELECT 29 UNION ALL SELECT 30
+    UNION ALL SELECT 31 UNION ALL SELECT 32 UNION ALL SELECT 33 UNION ALL SELECT 34 UNION ALL SELECT 35
+    UNION ALL SELECT 36 UNION ALL SELECT 37 UNION ALL SELECT 38 UNION ALL SELECT 39 UNION ALL SELECT 40
+    UNION ALL SELECT 41 UNION ALL SELECT 42 UNION ALL SELECT 43 UNION ALL SELECT 44 UNION ALL SELECT 45
+    UNION ALL SELECT 46 UNION ALL SELECT 47 UNION ALL SELECT 48 UNION ALL SELECT 49 UNION ALL SELECT 50
+    UNION ALL SELECT 51 UNION ALL SELECT 52 UNION ALL SELECT 53 UNION ALL SELECT 54 UNION ALL SELECT 55
+    UNION ALL SELECT 56 UNION ALL SELECT 57 UNION ALL SELECT 58 UNION ALL SELECT 59 UNION ALL SELECT 60
+) nums;
+
+-- 20 benh an hoan tat/chua thanh toan cho cac lich hen COMPLETED ngay 2026-06-05.
+INSERT INTO medical_record (id, record_code, appointment_id, patient_id, doctor_id, visit_date, chief_complaint, diagnosis, treatment_plan, doctor_note, payment_status, active)
+SELECT
+    9100 + n,
+    CONCAT('MR-20260605-BULK-', LPAD(n, 3, '0')),
+    9100 + n,
+    n,
+    MOD(n - 1, 10) + 1,
+    TIMESTAMP('2026-06-05 09:05:00') + INTERVAL (FLOOR((n - 1) / 10) * 30) MINUTE,
+    CASE MOD(n - 1, 10)
+        WHEN 0 THEN 'Kham tong quat'
+        WHEN 1 THEN 'Tu van suc khoe'
+        WHEN 2 THEN 'Kiem tra huyet ap'
+        WHEN 3 THEN 'Dau dau'
+        WHEN 4 THEN 'Ho sot'
+        WHEN 5 THEN 'Dau bung'
+        WHEN 6 THEN 'Kham da lieu'
+        WHEN 7 THEN 'Kham mat'
+        WHEN 8 THEN 'Dau rang'
+        ELSE 'Kham nhi'
+    END,
+    CONCAT('Chan doan bo sung ngay 05/06 #', LPAD(n, 2, '0')),
+    'Dieu tri theo huong dan bac si va tai kham khi can.',
+    'Benh an demo ngay 05/06.',
+    CASE WHEN n <= 12 THEN 'PAID' ELSE 'UNPAID' END,
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) nums;
+
+INSERT INTO medical_record_service (id, medical_record_id, service_id, quantity, unit_price, result_summary, active)
+SELECT
+    9100 + n,
+    9100 + n,
+    MOD(n - 1, 10) + 1,
+    1,
+    150000 + MOD(n, 5) * 20000,
+    'Da thuc hien dich vu ngay 05/06.',
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) nums;
+
+INSERT INTO prescription (id, prescription_code, medical_record_id, doctor_id, patient_id, prescribed_at, status, note, active)
+SELECT
+    9100 + n,
+    CONCAT('RX-20260605-BULK-', LPAD(n, 3, '0')),
+    9100 + n,
+    MOD(n - 1, 10) + 1,
+    n,
+    TIMESTAMP('2026-06-05 10:00:00') + INTERVAL n MINUTE,
+    'PRESCRIBED',
+    'Don thuoc bo sung ngay 05/06.',
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) nums;
+
+INSERT INTO prescription_item (id, prescription_id, medicine_id, quantity, unit_price, dosage, frequency, duration, instruction, active)
+SELECT
+    9200 + (n - 1) * 2 + item_no,
+    9100 + n,
+    MOD(n + item_no - 2, 10) + 1,
+    CASE WHEN item_no = 1 THEN 6 ELSE 4 END,
+    CASE WHEN item_no = 1 THEN 1500 + (MOD(n + item_no - 2, 10) + 1) * 500 ELSE 2000 + (MOD(n + item_no - 2, 10) + 1) * 700 END,
+    '1 vien/lan',
+    CASE WHEN item_no = 1 THEN '2 lan/ngay' ELSE '1 lan/ngay' END,
+    CASE WHEN item_no = 1 THEN '3 ngay' ELSE '4 ngay' END,
+    CASE WHEN item_no = 1 THEN 'Uong sau an.' ELSE 'Dung theo huong dan.' END,
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) nums
+CROSS JOIN (SELECT 1 item_no UNION ALL SELECT 2) items;
+
+INSERT INTO invoice (id, invoice_code, medical_record_id, patient_id, cashier_id, total_service_amount, total_medicine_amount, discount_amount, total_amount, payment_method, payment_status, paid_at, note, active)
+SELECT
+    9100 + n,
+    CONCAT('INV-20260605-BULK-', LPAD(n, 3, '0')),
+    9100 + n,
+    n,
+    202,
+    service_amount,
+    medicine_amount,
+    0,
+    service_amount + medicine_amount,
+    CASE WHEN n <= 12 THEN 'CASH' ELSE NULL END,
+    CASE WHEN n <= 12 THEN 'PAID' ELSE 'UNPAID' END,
+    CASE WHEN n <= 12 THEN TIMESTAMP('2026-06-05 16:00:00') + INTERVAL n MINUTE ELSE NULL END,
+    CASE WHEN n <= 12 THEN 'Da thanh toan trong ngay 05/06.' ELSE 'Chua thanh toan ngay 05/06.' END,
+    TRUE
+FROM (
+    SELECT
+        n,
+        150000 + MOD(n, 5) * 20000 AS service_amount,
+        (
+            6 * (1500 + (MOD(n - 1, 10) + 1) * 500)
+            + 4 * (2000 + (MOD(n, 10) + 1) * 700)
+        ) AS medicine_amount
+    FROM (
+        SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+        UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+        UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+        UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+    ) nums
+) invoice_amounts;
+
+INSERT INTO payment (id, invoice_id, amount, payment_method, transaction_code, payment_provider, payment_status, paid_at, active)
+SELECT
+    9100 + n,
+    9100 + n,
+    service_amount + medicine_amount,
+    'CASH',
+    CONCAT('PAY-20260605-BULK-', LPAD(n, 3, '0')),
+    'COUNTER',
+    'SUCCESS',
+    TIMESTAMP('2026-06-05 16:00:00') + INTERVAL n MINUTE,
+    TRUE
+FROM (
+    SELECT
+        n,
+        150000 + MOD(n, 5) * 20000 AS service_amount,
+        (
+            6 * (1500 + (MOD(n - 1, 10) + 1) * 500)
+            + 4 * (2000 + (MOD(n, 10) + 1) * 700)
+        ) AS medicine_amount
+    FROM (
+        SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+        UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+        UNION ALL SELECT 11 UNION ALL SELECT 12
+    ) nums
+) payment_amounts;
+
+INSERT INTO notification (id, user_id, title, content, notification_type, related_id, read_at, active)
+SELECT
+    9100 + n,
+    1000 + n,
+    'Cap nhat lich hen 05/06',
+    CONCAT('Lich hen APT-20260605-BULK-', LPAD(n, 3, '0'), ' da duoc cap nhat.'),
+    'APPOINTMENT_REMINDER',
+    9100 + n,
+    NULL,
+    TRUE
+FROM (
+    SELECT 1 n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5
+    UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10
+    UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+    UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) nums;
 
 -- KIEM TRA NHANH SAU KHI IMPORT:
 -- SELECT COUNT(*) FROM patient; -- 250
