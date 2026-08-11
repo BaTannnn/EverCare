@@ -1,6 +1,3 @@
-backend/src/main/resources/database.properties
-backend/src/main/resources/configs.properties
-backend/src/main/resources/payments.properties
 *.env
 .env
 
@@ -42,3 +39,8 @@ logs/
 hs_err_pid*
 replay_pid*
 /backend/target/
+
+**/configs.properties
+**/database.properties
+**/payments.properties
+.env
