@@ -9,7 +9,7 @@ import com.evercare.dtos.request.UserProfileUpdateRequest;
 import com.evercare.dtos.request.LoginRequest;
 import com.evercare.dtos.response.UserRegisterResponse;
 import com.evercare.services.UserService;
-import com.evercare.utils.JwtUtils;
+import com.evercare.utils.JwtService;
 import java.security.Principal;
 import java.util.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +35,9 @@ public class ApiUserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private JwtService jwtService;
+
     @PostMapping(path = {"/users", "/auth/register"})
     public ResponseEntity<UserRegisterResponse> create(@ModelAttribute UserRegisterRequest request) {
         UserRegisterResponse response = this.userService.registerUser(request);
@@ -47,7 +50,7 @@ public class ApiUserController {
             throw new com.evercare.exceptions.AuthenticationRequiredException("Sai thông tin đăng nhập");
         }
 
-        String token = JwtUtils.generateToken(request.getUsername());
+        String token = jwtService.generateToken(request.getUsername());
         return ResponseEntity.ok().body(Collections.singletonMap("token", token));
     }
 

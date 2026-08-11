@@ -9,6 +9,7 @@ import com.evercare.repositories.DoctorRepository;
 import com.evercare.repositories.EmployeeRepository;
 import com.evercare.repositories.PatientRepository;
 import com.evercare.services.UserService;
+import java.security.Principal;
 import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,16 +20,12 @@ import org.springframework.stereotype.Component;
 public class AuthSupport {
     @Autowired
     private UserService userService;
-
     @Autowired
     private PatientRepository patientRepo;
-
     @Autowired
     private DoctorRepository doctorRepo;
-
     @Autowired
     private EmployeeRepository employeeRepo;
-
     public User getCurrentUser() {
         String username = SecurityContextHolder.getContext().getAuthentication() != null
                 ? SecurityContextHolder.getContext().getAuthentication().getName()
@@ -62,6 +59,14 @@ public class AuthSupport {
         }
 
         return user;
+    }
+
+    public String requireUsername(Principal principal) {
+        if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
+            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
+        }
+
+        return principal.getName();
     }
 
     public Patient getCurrentPatientOrNull() {
