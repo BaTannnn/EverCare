@@ -1,0 +1,139 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Quản lý tài khoản</title>
+    <th:block th:replace="~{base :: css}"></th:block>
+</head>
+<body>
+<div th:replace="~{base :: header}"></div>
+
+<section class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Quản lý tài khoản</h2>
+            <p class="text-muted mb-0">Tạo và theo dõi tài khoản người dùng trong hệ thống.</p>
+        </div>
+
+        <a class="btn btn-primary" th:href="@{/admin/accounts/create}">
+            + Thêm tài khoản
+        </a>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success">
+        <div th:text="${successMessage}"></div>
+        <div th:if="${generatedUsername != null}" class="mt-2">
+            <strong>Username:</strong> <span th:text="${generatedUsername}"></span>
+            <span th:if="${generatedPassword != null}" class="ms-3">
+                <strong>Password:</strong> <span th:text="${generatedPassword}"></span>
+            </span>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form class="row g-2 mb-3" th:action="@{/admin/accounts}" method="get">
+                <div class="col-md-5">
+                    <input class="form-control"
+                           type="text"
+                           name="kw"
+                           placeholder="Tìm username, tên, email, số điện thoại..."
+                           th:value="${kw}">
+                </div>
+
+                <div class="col-md-3">
+                    <select class="form-select" name="roleCode">
+                        <option value="">-- Tất cả vai trò --</option>
+                        <option th:each="r : ${roles}"
+                                th:value="${r.code}"
+                                th:text="${r.name}"
+                                th:selected="${roleCode == r.code}">
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" type="submit">Tìm kiếm</button>
+                </div>
+
+                <div class="col-auto">
+                    <a class="btn btn-outline-secondary" th:href="@{/admin/accounts}">Reset</a>
+                </div>
+            </form>
+
+            <div th:if="${#lists.isEmpty(accounts)}" class="text-center text-muted py-5">
+                Chưa có tài khoản nào.
+            </div>
+
+            <div class="table-responsive" th:if="${!#lists.isEmpty(accounts)}">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Họ tên</th>
+                        <th>Vai trò</th>
+                        <th>Liên hệ</th>
+                        <th>Trạng thái</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    <tr th:each="u : ${accounts}">
+                        <td th:text="${u.id}"></td>
+                        <td th:text="${u.username}"></td>
+                        <td th:text="${u.fullName}"></td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge text-bg-secondary" th:each="r : ${u.roleSet}" th:text="${r.code}"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <div th:text="${u.email} ?: '—'"></div>
+                            <div class="text-muted small" th:text="${u.phone} ?: '—'"></div>
+                        </td>
+                        <td>
+                            <span class="badge text-bg-success" th:if="${u.active}">Active</span>
+                            <span class="badge text-bg-secondary" th:unless="${u.active}">Inactive</span>
+                        </td>
+                        <td class="text-end">
+                            <form th:if="${u.active}"
+                                  th:action="@{/admin/accounts/{id}/delete(id=${u.id})}"
+                                  method="post"
+                                  onsubmit="return confirm('Bạn có chắc muốn vô hiệu hóa tài khoản này?');">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">
+                                    Vô hiệu hóa
+                                </button>
+                            </form>
+                            <span th:unless="${u.active}" class="text-muted small">Đã vô hiệu hóa</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <nav th:if="${pages > 1}" class="mt-3">
+        <ul class="pagination justify-content-end">
+            <li class="page-item" th:classappend="${page <= 1} ? 'disabled'">
+                <a class="page-link" th:href="${page > 1} ? @{/admin/accounts(page=${page - 1}, kw=${kw}, roleCode=${roleCode})} : '#'">Trước</a>
+            </li>
+            <li class="page-item"
+                th:each="p : ${#numbers.sequence(1, pages)}"
+                th:classappend="${p == page} ? 'active'">
+                <a class="page-link"
+                   th:text="${p}"
+                   th:href="@{/admin/accounts(page=${p}, kw=${kw}, roleCode=${roleCode})}">
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${page >= pages} ? 'disabled'">
+                <a class="page-link" th:href="${page < pages} ? @{/admin/accounts(page=${page + 1}, kw=${kw}, roleCode=${roleCode})} : '#'">Sau</a>
+            </li>
+        </ul>
+    </nav>
+</section>
+
+<div th:replace="~{base :: footer}"></div>
+</body>
+</html>

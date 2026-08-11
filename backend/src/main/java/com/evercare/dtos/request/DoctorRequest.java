@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 public class DoctorRequest {
 
     private Long departmentId;
+    private Long userId;
     private String fullName;
     private String phone;
     private String email;
@@ -22,10 +23,11 @@ public class DoctorRequest {
     public DoctorRequest() {
     }
 
-    public DoctorRequest(Long departmentId, String fullName, String phone, String email, String qualification, String specialization,
+    public DoctorRequest(Long departmentId, Long userId, String fullName, String phone, String email, String qualification, String specialization,
                          MultipartFile avatarFile, String doctorType, String workStatus, BigDecimal baseSalary,
                          BigDecimal hourlyRate, String bio) {
         this.departmentId = departmentId;
+        this.userId = userId;
         this.fullName = fullName;
         this.phone = phone;
         this.email = email;
@@ -45,6 +47,14 @@ public class DoctorRequest {
 
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getFullName() {

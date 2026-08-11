@@ -6,6 +6,9 @@ package com.evercare.repositories.impl;
 
 import com.evercare.pojo.Role;
 import com.evercare.repositories.RoleRepository;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Root;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoleRepositoryImpl implements RoleRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
     @Override
     public Role findByCode(String code) {
         Session session = this.factory.getObject().getCurrentSession();
@@ -30,6 +32,20 @@ public class RoleRepositoryImpl implements RoleRepository {
         q.setParameter("code", code);
 
         return q.uniqueResult();
+    }
+
+    @Override
+    public java.util.List<Role> getActiveRoles() {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Role> cq = cb.createQuery(Role.class);
+        Root<Role> root = cq.from(Role.class);
+
+        cq.select(root);
+        cq.where(cb.isTrue(root.get("active")));
+        cq.orderBy(cb.asc(root.get("name")));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override

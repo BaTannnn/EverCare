@@ -5,6 +5,7 @@
 package com.evercare.repositories;
 
 import com.evercare.pojo.Role;
+import java.util.List;
 
 /**
  *
@@ -12,5 +13,6 @@ import com.evercare.pojo.Role;
  */
 public interface RoleRepository {
     Role findByCode(String code);
+    List<Role> getActiveRoles();
     Role save(Role role);
 }

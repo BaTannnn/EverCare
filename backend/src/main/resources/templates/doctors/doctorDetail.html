@@ -64,6 +64,27 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
+                        <label for="userId" class="form-label">
+                            Tài khoản liên kết <span class="text-danger">*</span>
+                        </label>
+                        <select id="userId"
+                                class="form-select"
+                                th:field="*{userId}"
+                                required>
+                            <option value="">-- Chọn tài khoản bác sĩ --</option>
+                            <option th:each="u : ${users}"
+                                    th:value="${u.id}"
+                                    th:text="${u.username + ' - ' + u.fullName}">
+                            </option>
+                        </select>
+                        <div class="form-text">
+                            Chỉ hiển thị tài khoản có vai trò bác sĩ.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
                         <label for="phone" class="form-label">Số điện thoại</label>
                         <input id="phone"
                                class="form-control"
