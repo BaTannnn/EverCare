@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Table } from "react-bootstrap";
 import { BsArrowLeft, BsArrowRepeat } from "react-icons/bs";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -36,7 +36,7 @@ function ReceptionistInvoiceDetailPage() {
   const [paymentMethod, setPaymentMethod] = useState(counterMethod);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -52,12 +52,11 @@ function ReceptionistInvoiceDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [invoiceId, navigate]);
 
   useEffect(() => {
     loadInvoice();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceId]);
+  }, [loadInvoice]);
 
   useEffect(() => {
     if (!invoice) return;
@@ -69,8 +68,7 @@ function ReceptionistInvoiceDetailPage() {
     }, 10000);
 
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice?.paymentStatus, result?.paymentUrl, invoiceId]);
+  }, [invoice?.paymentStatus, result?.paymentUrl, loadInvoice]);
 
   useEffect(() => {
     if (paymentMode === "counter") {
