@@ -23,8 +23,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -36,7 +34,6 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "medical_service")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "MedicalService.findAll", query = "SELECT m FROM MedicalService m"),
     @NamedQuery(name = "MedicalService.findById", query = "SELECT m FROM MedicalService m WHERE m.id = :id"),
@@ -176,7 +173,6 @@ public class MedicalService implements Serializable {
         this.active = active;
     }
 
-    @XmlTransient
     public Set<MedicalRecordService> getMedicalRecordServiceSet() {
         return medicalRecordServiceSet;
     }
@@ -193,7 +189,6 @@ public class MedicalService implements Serializable {
         this.departmentId = departmentId;
     }
 
-    @XmlTransient
     public Set<Appointment> getAppointmentSet() {
         return appointmentSet;
     }
@@ -202,7 +197,6 @@ public class MedicalService implements Serializable {
         this.appointmentSet = appointmentSet;
     }
 
-    @XmlTransient
     public Set<TestResult> getTestResultSet() {
         return testResultSet;
     }
