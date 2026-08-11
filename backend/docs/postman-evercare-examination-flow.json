@@ -1,0 +1,514 @@
+{
+  "info": {
+    "_postman_id": "5e8efc7d-3f17-4ef4-8d14-evercare-flow",
+    "name": "EverCare - Doctor Examination Flow",
+    "description": "Import collection nay vao Postman de test cac luong API: bac si xem lich hen, bat dau kham, cap nhat benh an, chi dinh dich vu, nhan vien nhap ket qua xet nghiem, bac si xem ket qua.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/backend"
+    },
+    {
+      "key": "doctorUsername",
+      "value": "doctor08"
+    },
+    {
+      "key": "doctorPassword",
+      "value": "123456"
+    },
+    {
+      "key": "staffUsername",
+      "value": "labtech01"
+    },
+    {
+      "key": "staffPassword",
+      "value": "123456"
+    },
+    {
+      "key": "appointmentDate",
+      "value": "2026-06-02"
+    },
+    {
+      "key": "appointmentId",
+      "value": ""
+    },
+    {
+      "key": "recordId",
+      "value": ""
+    },
+    {
+      "key": "serviceId",
+      "value": "4"
+    },
+    {
+      "key": "testResultId",
+      "value": ""
+    },
+    {
+      "key": "doctorToken",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Login doctor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Doctor login thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('doctorToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{doctorUsername}}\",\n  \"password\": \"{{doctorPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Staff login thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('staffToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{staffUsername}}\",\n  \"password\": \"{{staffPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Doctor appointments",
+      "item": [
+        {
+          "name": "Get today appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/appointments/today",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "appointments",
+                "today"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get appointments by date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lay danh sach lich hen theo ngay thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "    pm.collectionVariables.set('appointmentId', json[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/appointments?date={{appointmentDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "{{appointmentDate}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get appointment detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Examination",
+      "item": [
+        {
+          "name": "Start examination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Bat dau kham thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('recordId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chiefComplaint\": \"Dau hong, sot nhe\",\n  \"initialNote\": \"Benh nhan co trieu chung 2 ngay\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/appointments/{{appointmentId}}/start-examination",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "appointments",
+                "{{appointmentId}}",
+                "start-examination"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update medical record",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chiefComplaint\": \"Dau hong, ho, sot nhe\",\n  \"diagnosis\": \"Viem hong cap\",\n  \"treatmentPlan\": \"Uong thuoc, nghi ngoi, tai kham neu sot cao\",\n  \"doctorNote\": \"Khong co dau hieu nguy hiem\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/medical-records/{{recordId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "medical-records",
+                "{{recordId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Doctor service orders",
+      "item": [
+        {
+          "name": "Add service order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": {{serviceId}},\n  \"quantity\": 1,\n  \"resultSummary\": \"Chi dinh xet nghiem cong thuc mau\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/medical-records/{{recordId}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "medical-records",
+                "{{recordId}}",
+                "services"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get ordered services and test results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/medical-records/{{recordId}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "medical-records",
+                "{{recordId}}",
+                "services"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Staff test results",
+      "item": [
+        {
+          "name": "Create test result",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tao ket qua xet nghiem thanh cong', function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('testResultId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": {{serviceId}},\n  \"resultTitle\": \"Ket qua cong thuc mau\",\n  \"resultContent\": \"WBC: 8.0 G/L, RBC: 4.8 T/L, HGB: 145 g/L\",\n  \"fileUrl\": \"https://example.com/results/cbc.pdf\",\n  \"conclusion\": \"Chi so trong gioi han chap nhan duoc\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/staff/medical-records/{{recordId}}/test-results",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "medical-records",
+                "{{recordId}}",
+                "test-results"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update test result",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staffToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceId\": {{serviceId}},\n  \"resultTitle\": \"Ket qua cong thuc mau - cap nhat\",\n  \"resultContent\": \"WBC: 8.0 G/L, RBC: 4.8 T/L, HGB: 145 g/L\",\n  \"fileUrl\": \"https://example.com/results/cbc-updated.pdf\",\n  \"conclusion\": \"Khong ghi nhan bat thuong nghiem trong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/staff/test-results/{{testResultId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "staff",
+                "test-results",
+                "{{testResultId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Verify doctor can see result",
+      "item": [
+        {
+          "name": "Doctor gets ordered services with results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{doctorToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctor/medical-records/{{recordId}}/services",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctor",
+                "medical-records",
+                "{{recordId}}",
+                "services"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
