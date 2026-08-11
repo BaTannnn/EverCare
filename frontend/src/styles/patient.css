@@ -3117,6 +3117,10 @@
   position: relative;
 }
 
+.searchable-select-input {
+  padding-right: 2.5rem;
+}
+
 .support-doctor-menu {
   position: absolute;
   z-index: 20;
@@ -3165,6 +3169,27 @@
 .support-doctor-empty {
   padding: 10px;
   font-weight: 700;
+}
+
+.support-doctor-clear {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  z-index: 21;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  color: #64748b;
+  background: #edf2f7;
+  transform: translateY(-50%);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.support-doctor-clear:hover {
+  color: #0f172a;
+  background: #e2e8f0;
 }
 
 @media (max-width: 1200px) {

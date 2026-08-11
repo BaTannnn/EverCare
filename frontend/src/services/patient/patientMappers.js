@@ -43,7 +43,6 @@ const normalizeAppointmentStatus = (status) => {
 
   if (!normalized) return "BOOKED";
   if (normalized === "PENDING" || normalized === "CONFIRMED") return "BOOKED";
-  if (normalized === "IN_PROGRESS") return "WAITING";
 
   return normalized;
 };
@@ -54,6 +53,8 @@ const deriveAppointmentStatusLabel = (status) => {
       return "Chờ xác nhận";
     case "WAITING":
       return "Đang chờ khám";
+    case "IN_PROGRESS":
+      return "Đang khám";
     case "COMPLETED":
       return "Đã khám xong";
     case "CANCELLED":

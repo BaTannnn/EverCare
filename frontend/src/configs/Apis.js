@@ -1,7 +1,8 @@
 import axios from "axios";
 import cookies from "react-cookies";
 
-const BASE_URL = "http://localhost:8080/backend/api/";
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/backend/api/";
+const BASE_URL = configuredBaseUrl.endsWith("/") ? configuredBaseUrl : `${configuredBaseUrl}/`;
 
 export const endpoints = {
   login: "/login",
@@ -40,18 +41,20 @@ export const endpoints = {
   "receptionist-support-schedules": (id) => `/secure/receptionist/support/conversations/${id}/consultation-schedules`,
   "receptionist-support-close": (id) => `/secure/receptionist/support/conversations/${id}/close`,
   "ai-suggest-reply": (id) => `/ai/conversations/${id}/suggest-reply`,
-  "departments": "/departments",
-  "doctors": "/doctors",
+  departments: "/departments",
+  doctors: "/doctors",
   "medical-services": "/medical-services",
   "pharmacist-prescriptions": "/pharmacist/prescriptions",
   "pharmacist-prescription-detail": (id) => `/pharmacist/prescriptions/${id}`,
   "pharmacist-prescription-dispense": (id) => `/pharmacist/prescriptions/${id}/dispense`,
+  "pharmacist-medicines": "/pharmacist/medicines",
   "pharmacist-low-stock": "/pharmacist/medicines/low-stock",
   "pharmacist-medicine-create": "/pharmacist/medicines",
   "pharmacist-medicine-update": (id) => `/pharmacist/medicines/${id}`,
   "pharmacist-medicine-status": (id) => `/pharmacist/medicines/${id}/status`,
   "pharmacist-medicine-batches": "/pharmacist/medicine-batches",
   "pharmacist-medicine-batches-import": "/pharmacist/medicine-batches/import",
+  "pharmacist-medicine-batch": (id) => `/pharmacist/medicine-batches/${id}`,
   "pharmacist-medicine-batches-by-medicine": (medicineId) => `/pharmacist/medicines/${medicineId}/batches`,
   "pharmacist-near-expiry": "/pharmacist/medicine-batches/near-expiry",
   "pharmacist-expired-batches": "/pharmacist/medicine-batches/expired",
@@ -76,19 +79,18 @@ export const endpoints = {
   "medicine-detail": (id) => `/medicines/${id}`,
 };
 
-export const authApis = () => {
+const publicApi = axios.create({ baseURL: BASE_URL });
+const authenticatedApi = axios.create({ baseURL: BASE_URL });
+
+authenticatedApi.interceptors.request.use((config) => {
   const token = cookies.load("token");
-
-  return axios.create({
-    baseURL: BASE_URL,
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {},
-  });
-};
-
-export default axios.create({
-  baseURL: BASE_URL,
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else if (config.headers?.Authorization) {
+    delete config.headers.Authorization;
+  }
+  return config;
 });
+
+export const authApis = () => authenticatedApi;
+export default publicApi;

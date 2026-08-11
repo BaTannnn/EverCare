@@ -174,21 +174,6 @@ function LoginPage() {
             </Button>
           </Form>
 
-          <div className="auth-divider">
-            <span />
-            <p>Hoặc đăng nhập bằng</p>
-            <span />
-          </div>
-
-          <div className="social-buttons">
-            <Button type="button" variant="outline-secondary">
-              Google
-            </Button>
-            <Button type="button" variant="primary">
-              Facebook
-            </Button>
-          </div>
-
           <div className="auth-switch">
             Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
           </div>
