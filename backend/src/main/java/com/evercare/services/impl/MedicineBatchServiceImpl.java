@@ -29,15 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class MedicineBatchServiceImpl implements MedicineBatchService {
     @Autowired
     private MedicineBatchRepository batchRepo;
-
     @Autowired
     private InventoryTransactionRepository transactionRepo;
-
     @Autowired
     private MedicineRepository medicineRepo;
     @Autowired
     private AuthSupport authSupport;
-
     @Override
     public MedicineBatchImportResponse importBatch(String username, MedicineBatchImportRequest request) {
         User user = this.authSupport.getCurrentUser(username);
@@ -111,6 +108,16 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
     }
 
     @Override
+    public MedicineBatchResponse getBatchById(Long id) {
+        MedicineBatch batch = this.batchRepo.getBatchById(id);
+        if (batch == null) {
+            throw new NoSuchElementException("Không tìm thấy lô thuốc");
+        }
+
+        return MedicineBatchMapper.toResponse(batch);
+    }
+
+    @Override
     public List<MedicineBatchResponse> getNearExpiryBatches(Integer days) {
         int normalizedDays = days != null ? days : 30;
         if (normalizedDays < 0) {
@@ -133,7 +140,73 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
                 .toList();
     }
 
+    @Override
+    public MedicineBatchResponse updateBatch(Long id, MedicineBatchImportRequest request) {
+        validateRequest(request, id);
+
+        MedicineBatch batch = this.batchRepo.getBatchById(id);
+        if (batch == null) {
+            throw new NoSuchElementException("Không tìm thấy lô thuốc");
+        }
+
+        Medicine medicine = this.medicineRepo.getMedicineById(request.getMedicineId());
+        if (medicine == null || Boolean.FALSE.equals(medicine.getActive())) {
+            throw new NoSuchElementException("Không tìm thấy thuốc hoặc thuốc đã ngưng sử dụng");
+        }
+
+        LocalDate importDate = parseDate(request.getImportDate(), "Ngày nhập không hợp lệ");
+        LocalDate expiryDate = parseDate(request.getExpiryDate(), "Hạn sử dụng không hợp lệ");
+
+        if (!expiryDate.isAfter(importDate)) {
+            throw new IllegalArgumentException("Hạn sử dụng phải lớn hơn ngày nhập");
+        }
+
+        int currentQuantity = batch.getQuantity() != null ? batch.getQuantity() : 0;
+        int currentRemaining = batch.getRemainingQuantity() != null ? batch.getRemainingQuantity() : 0;
+        int usedQuantity = Math.max(0, currentQuantity - currentRemaining);
+
+        if (request.getQuantity() < usedQuantity) {
+            throw new IllegalArgumentException("Số lượng mới không được nhỏ hơn số lượng đã xuất");
+        }
+
+        batch.setMedicineId(medicine);
+        batch.setBatchCode(request.getBatchCode().trim().toUpperCase());
+        batch.setImportDate(Date.valueOf(importDate));
+        batch.setExpiryDate(Date.valueOf(expiryDate));
+        batch.setQuantity(request.getQuantity());
+        batch.setRemainingQuantity(request.getQuantity() - usedQuantity);
+        batch.setImportPrice(request.getImportPrice());
+        batch.setSupplierName(request.getSupplierName() != null ? request.getSupplierName().trim() : null);
+        batch.setUpdatedAt(new java.util.Date());
+
+        this.batchRepo.updateBatch(batch);
+
+        return MedicineBatchMapper.toResponse(batch);
+    }
+
+    @Override
+    public void deleteBatch(Long id) {
+        MedicineBatch batch = this.batchRepo.getBatchById(id);
+        if (batch == null) {
+            throw new NoSuchElementException("Không tìm thấy lô thuốc");
+        }
+
+        int currentQuantity = batch.getQuantity() != null ? batch.getQuantity() : 0;
+        int currentRemaining = batch.getRemainingQuantity() != null ? batch.getRemainingQuantity() : 0;
+        if (currentRemaining < currentQuantity) {
+            throw new IllegalStateException("Lô thuốc đã có giao dịch xuất, không thể xóa");
+        }
+
+        batch.setActive(false);
+        batch.setUpdatedAt(new java.util.Date());
+        this.batchRepo.updateBatch(batch);
+    }
+
     private void validateRequest(MedicineBatchImportRequest request) {
+        validateRequest(request, null);
+    }
+
+    private void validateRequest(MedicineBatchImportRequest request, Long excludeId) {
         if (request == null) {
             throw new IllegalArgumentException("Dữ liệu nhập kho không hợp lệ");
         }
@@ -147,7 +220,8 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
         }
 
         request.setBatchCode(request.getBatchCode().trim().toUpperCase());
-        if (this.batchRepo.existsByBatchCode(request.getBatchCode())) {
+        MedicineBatch existingBatch = this.batchRepo.getBatchByCode(request.getBatchCode());
+        if (existingBatch != null && (excludeId == null || !excludeId.equals(existingBatch.getId()))) {
             throw new IllegalArgumentException("Mã lô đã tồn tại");
         }
 
@@ -175,4 +249,5 @@ public class MedicineBatchServiceImpl implements MedicineBatchService {
             throw new IllegalArgumentException(message + ", định dạng đúng là yyyy-MM-dd");
         }
     }
+
 }

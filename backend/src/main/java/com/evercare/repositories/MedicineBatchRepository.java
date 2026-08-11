@@ -9,6 +9,10 @@ public interface MedicineBatchRepository {
 
     List<MedicineBatch> getBatchesByMedicineId(Long medicineId);
 
+    MedicineBatch getBatchById(Long id);
+
+    MedicineBatch getBatchByCode(String batchCode);
+
     Long getAvailableQuantityByMedicineId(Long medicineId);
 
     Long getAvailableNonExpiredQuantityByMedicineId(Long medicineId, java.util.Date today);

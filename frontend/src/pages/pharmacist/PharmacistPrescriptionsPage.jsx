@@ -1,15 +1,38 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Form, Row, Col, Table } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { dispensePrescription, getPharmacistPrescriptions } from "../../services/pharmacist/pharmacistPrescriptionApi";
-import { formatDate, getErrorMessage, getPrescriptionStockStatus, normalizeText } from "./pharmacistPageUtils";
+import { formatDate, getErrorMessage, getPrescriptionStockStatus } from "./pharmacistPageUtils";
 
 const statusOptions = ["PRESCRIBED", "DISPENSED", "CANCELLED"];
 const paymentOptions = ["ALL", "PAID", "UNPAID"];
+const PAGE_SIZE = 10;
+
+function PharmacistPagination({ page, pageSize, itemCount, onPageChange }) {
+  const canGoPrev = page > 1;
+  const canGoNext = itemCount >= pageSize;
+
+  if (!canGoPrev && !canGoNext) {
+    return null;
+  }
+
+  return (
+    <div className="pharmacist-pagination">
+      <Button type="button" variant="outline-primary" disabled={!canGoPrev} onClick={() => onPageChange(page - 1)}>
+        Trước
+      </Button>
+      <span>Trang {page}</span>
+      <Button type="button" variant="outline-primary" disabled={!canGoNext} onClick={() => onPageChange(page + 1)}>
+        Sau
+      </Button>
+    </div>
+  );
+}
 
 function PharmacistPrescriptionsPage() {
   const navigate = useNavigate();
@@ -18,17 +41,25 @@ function PharmacistPrescriptionsPage() {
   const [payment, setPayment] = useState("ALL");
   const [keyword, setKeyword] = useState(location.state?.search || "");
   const [prescriptions, setPrescriptions] = useState([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const debouncedKeyword = useDebouncedValue(keyword, 600);
 
   const loadPrescriptions = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const response = await getPharmacistPrescriptions({ status });
+      const response = await getPharmacistPrescriptions({
+        status,
+        payment,
+        keyword: debouncedKeyword.trim(),
+        page,
+        size: PAGE_SIZE,
+      });
       setPrescriptions(response.data || []);
     } catch (err) {
       if (err.response?.status === 401) {
@@ -40,27 +71,15 @@ function PharmacistPrescriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [navigate, status]);
+  }, [debouncedKeyword, navigate, page, payment, status]);
 
   useEffect(() => {
     loadPrescriptions();
   }, [loadPrescriptions]);
 
-  const filteredPrescriptions = useMemo(() => {
-    const normalizedKeyword = normalizeText(keyword);
-
-    return prescriptions.filter((prescription) => {
-      const paymentMatch = payment === "ALL" || prescription.paymentStatus === payment;
-      const text = normalizeText([
-        prescription.prescriptionCode,
-        prescription.patientName,
-        prescription.doctorName,
-        prescription.patientPhone,
-      ].join(" "));
-
-      return paymentMatch && (!normalizedKeyword || text.includes(normalizedKeyword));
-    });
-  }, [keyword, payment, prescriptions]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedKeyword, payment, status]);
 
   const handleQuickDispense = async (prescription) => {
     setActionId(prescription.id);
@@ -141,7 +160,7 @@ function PharmacistPrescriptionsPage() {
           <Button type="button" variant="link" onClick={loadPrescriptions}>Tải lại</Button>
         </Card.Header>
         <Card.Body className="p-0">
-          {filteredPrescriptions.length === 0 ? (
+          {prescriptions.length === 0 ? (
             <EmptyState title="Không có đơn thuốc phù hợp" />
           ) : (
             <Table responsive hover className="doctor-table mb-0">
@@ -159,7 +178,7 @@ function PharmacistPrescriptionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPrescriptions.map((prescription) => {
+                {prescriptions.map((prescription) => {
                   const stockStatus = getPrescriptionStockStatus(prescription);
                   const canDispense = prescription.status === "PRESCRIBED"
                     && prescription.paymentStatus === "PAID"
@@ -202,6 +221,7 @@ function PharmacistPrescriptionsPage() {
               </tbody>
             </Table>
           )}
+          <PharmacistPagination page={page} pageSize={PAGE_SIZE} itemCount={prescriptions.length} onPageChange={setPage} />
         </Card.Body>
       </Card>
     </>

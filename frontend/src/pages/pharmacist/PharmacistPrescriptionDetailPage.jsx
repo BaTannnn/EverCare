@@ -112,7 +112,7 @@ function PharmacistPrescriptionDetailPage() {
       {notice && <Alert variant={notice.startsWith("Đã") ? "success" : "warning"}>{notice}</Alert>}
       {!paymentKnown && (
         <Alert variant="warning">
-          Chưa có API/field kiểm tra thanh toán. Theo nghiệp vụ Cách A, cần thanh toán trước khi cấp phát.
+          Chưa có API/field kiểm tra thanh toán.
         </Alert>
       )}
 
@@ -214,8 +214,6 @@ function PharmacistPrescriptionDetailPage() {
             <li>Đơn thuốc đang PRESCRIBED: {prescription.status === "PRESCRIBED" ? "Đạt" : "Không đạt"}</li>
             <li>Bệnh nhân đã thanh toán PAID: {prescription.paymentStatus === "PAID" ? "Đạt" : "Không đạt"}</li>
             <li>Tất cả thuốc đủ tồn kho: {stockItems.every((item) => item.enoughStock) ? "Đạt" : "Không đạt"}</li>
-            <li>Không dùng lô hết hạn: backend dispense lọc lô còn hạn</li>
-            <li>Backend sẽ trừ kho theo FEFO</li>
           </ul>
           <Button type="button" disabled={!canDispense || dispensing} onClick={() => setConfirmOpen(true)}>
             {dispensing ? "Đang cấp phát..." : "Xác nhận cấp phát"}

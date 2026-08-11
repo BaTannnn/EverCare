@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Col, Row, Table } from "react-bootstrap";
+import { Button, Card, Col, Row, Table } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
-import { getExpiredBatches, getNearExpiryBatches } from "../../services/pharmacist/pharmacistBatchApi";
+import { getMedicineBatches } from "../../services/pharmacist/pharmacistBatchApi";
 import { getLowStockMedicines } from "../../services/pharmacist/pharmacistMedicineApi";
 import { getPharmacistPrescriptions } from "../../services/pharmacist/pharmacistPrescriptionApi";
 import { formatDate, getErrorMessage, getPrescriptionStockStatus } from "./pharmacistPageUtils";
+
+const DASHBOARD_PAGE_SIZE = 5;
 
 function PharmacistDashboardPage() {
   const navigate = useNavigate();
@@ -32,11 +34,11 @@ function PharmacistDashboardPage() {
         nearExpiryResponse,
         expiredResponse,
       ] = await Promise.all([
-        getPharmacistPrescriptions({ status: "PRESCRIBED" }),
-        getPharmacistPrescriptions({ status: "DISPENSED" }),
+        getPharmacistPrescriptions({ status: "PRESCRIBED", page: 1, size: DASHBOARD_PAGE_SIZE }),
+        getPharmacistPrescriptions({ status: "DISPENSED", page: 1, size: 1000 }),
         getLowStockMedicines(),
-        getNearExpiryBatches(30),
-        getExpiredBatches(),
+        getMedicineBatches({ status: "NEAR_EXPIRY", page: 1, size: DASHBOARD_PAGE_SIZE }),
+        getMedicineBatches({ status: "EXPIRED", page: 1, size: DASHBOARD_PAGE_SIZE }),
       ]);
 
       setPrescriptions(prescriptionResponse.data || []);
@@ -84,10 +86,6 @@ function PharmacistDashboardPage() {
         <p>Theo dõi đơn thuốc chờ cấp phát, tồn kho và hạn dùng thuốc.</p>
       </div>
 
-      <Alert variant="info">
-        Theo nghiệp vụ Cách A, chỉ cấp phát thuốc khi đơn đã thanh toán.
-      </Alert>
-
       <Row className="g-3 mb-3">
         {summaryCards.map((card) => (
           <Col md={card.label.length > 16 ? 3 : 2} key={card.label}>
@@ -123,7 +121,7 @@ function PharmacistDashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {prescriptions.slice(0, 5).map((prescription) => (
+                    {prescriptions.map((prescription) => (
                       <tr key={prescription.id}>
                         <td>{prescription.prescriptionCode}</td>
                         <td>{prescription.patientName || "--"}</td>
@@ -152,7 +150,7 @@ function PharmacistDashboardPage() {
               ) : (
                 <Table responsive className="doctor-table mb-0">
                   <tbody>
-                    {lowStock.slice(0, 5).map((medicine) => (
+                    {lowStock.slice(0, DASHBOARD_PAGE_SIZE).map((medicine) => (
                       <tr key={medicine.id}>
                         <td>{medicine.name}</td>
                         <td>{medicine.totalRemainingQuantity}/{medicine.minStockQuantity}</td>
@@ -172,7 +170,7 @@ function PharmacistDashboardPage() {
               ) : (
                 <Table responsive className="doctor-table mb-0">
                   <tbody>
-                    {nearExpiry.slice(0, 5).map((batch) => (
+                    {nearExpiry.map((batch) => (
                       <tr key={batch.id}>
                         <td>{batch.batchCode}</td>
                         <td>{batch.medicineName}</td>

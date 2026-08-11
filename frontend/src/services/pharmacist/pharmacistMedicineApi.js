@@ -1,7 +1,7 @@
 import Apis, { authApis, endpoints } from "../../configs/Apis";
 
 export const getPharmacistMedicines = (params = {}) => {
-  return authApis().get(endpoints.medicines, { params });
+  return authApis().get(endpoints["pharmacist-medicines"], { params });
 };
 
 export const getPharmacistMedicineDetail = (id) => {

@@ -16,25 +16,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import com.evercare.utils.QueryPagingSupport;
 
 @Repository
 @Transactional
 public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
-    @Override
-    public List<MedicineBatch> getBatches(Map<String, String> params) {
-        Session session = this.factory.getObject().getCurrentSession();
-        CriteriaBuilder cb = session.getCriteriaBuilder();
-        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
-        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
-        root.fetch("medicineId", JoinType.INNER);
-
+    @Autowired
+    private Environment env;
+    private List<Predicate> getBatchPredicates(Map<String, String> params, CriteriaBuilder cb, Root<MedicineBatch> root, Join<MedicineBatch, ?> medicineJoin) {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
 
@@ -45,15 +42,70 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
             }
 
             String kw = params.get("kw");
+            if ((kw == null || kw.isBlank()) && params.get("keyword") != null) {
+                kw = params.get("keyword");
+            }
+
             if (kw != null && !kw.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("batchCode")), "%" + kw.trim().toLowerCase() + "%"));
+                String keyword = "%" + kw.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("batchCode")), keyword),
+                        cb.like(cb.lower(medicineJoin.get("name")), keyword)
+                ));
+            }
+
+            String status = params.get("status");
+            if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+                Date today = java.sql.Date.valueOf(java.time.LocalDate.now());
+                Date nearExpiryDate = java.sql.Date.valueOf(java.time.LocalDate.now().plusDays(30));
+
+                if ("EXPIRED".equalsIgnoreCase(status)) {
+                    predicates.add(cb.lessThan(root.<Date>get("expiryDate"), today));
+                } else if ("NEAR_EXPIRY".equalsIgnoreCase(status)) {
+                    predicates.add(cb.greaterThanOrEqualTo(root.<Date>get("expiryDate"), today));
+                    predicates.add(cb.lessThanOrEqualTo(root.<Date>get("expiryDate"), nearExpiryDate));
+                } else if ("VALID".equalsIgnoreCase(status) || "ENOUGH".equalsIgnoreCase(status)) {
+                    predicates.add(cb.greaterThan(root.<Date>get("expiryDate"), nearExpiryDate));
+                }
             }
         }
 
-        cq.where(predicates.toArray(Predicate[]::new));
+        return predicates;
+    }
+
+    @Override
+    public List<MedicineBatch> getBatches(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        Join<MedicineBatch, ?> medicineJoin = root.join("medicineId", JoinType.INNER);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(getBatchPredicates(params, cb, root, medicineJoin).toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("importDate")), cb.desc(root.get("id")));
 
-        return session.createQuery(cq).getResultList();
+        Query<MedicineBatch> query = session.createQuery(cq);
+        if (params != null && params.containsKey("page")) {
+            int pageSize = QueryPagingSupport.resolvePageSize(this.env, "pharmacistMedicineBatch.pageSize", params, 10);
+            QueryPagingSupport.applyPaging(query, params, countBatches(params), pageSize);
+        }
+
+        return query.getResultList();
+    }
+
+    private long countBatches(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        Join<MedicineBatch, ?> medicineJoin = root.join("medicineId", JoinType.INNER);
+
+        cq.select(cb.countDistinct(root));
+        cq.where(getBatchPredicates(params, cb, root, medicineJoin).toArray(Predicate[]::new));
+
+        return session.createQuery(cq).getSingleResult();
     }
 
     @Override
@@ -73,6 +125,41 @@ public class MedicineBatchRepositoryImpl implements MedicineBatchRepository {
         cq.orderBy(cb.asc(root.get("expiryDate")), cb.asc(root.get("id")));
 
         return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    public MedicineBatch getBatchById(Long id) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(
+                cb.equal(root.get("id"), id),
+                cb.isTrue(root.get("active"))
+        );
+
+        return session.createQuery(cq).uniqueResult();
+    }
+
+    @Override
+    public MedicineBatch getBatchByCode(String batchCode) {
+        if (batchCode == null || batchCode.isBlank()) {
+            return null;
+        }
+
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<MedicineBatch> cq = cb.createQuery(MedicineBatch.class);
+        Root<MedicineBatch> root = cq.from(MedicineBatch.class);
+        root.fetch("medicineId", JoinType.INNER);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.equal(cb.lower(root.get("batchCode")), batchCode.trim().toLowerCase()));
+
+        return session.createQuery(cq).uniqueResult();
     }
 
     @Override
