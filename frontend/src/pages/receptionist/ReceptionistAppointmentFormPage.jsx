@@ -173,6 +173,14 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const selectedDepartmentId = getServiceDepartmentId(selectedService) || form.departmentId || "";
   const selectedDepartmentName = getServiceDepartmentName(selectedService, departments);
 
+  const selectedService = useMemo(
+    () => services.find((service) => String(service.id) === String(form.serviceId)) || null,
+    [form.serviceId, services],
+  );
+
+  const selectedDepartmentId = getServiceDepartmentId(selectedService) || form.departmentId || "";
+  const selectedDepartmentName = getServiceDepartmentName(selectedService, departments);
+
   const filteredDoctors = useMemo(() => {
     if (!selectedDepartmentId) return doctors;
     return doctors.filter((doctor) => String(doctor.departmentId) === String(selectedDepartmentId));
@@ -202,6 +210,18 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
 
   useEffect(() => {
     if (!selectedService) return;
+
+    setForm((current) => ({
+      ...current,
+      departmentId: getServiceDepartmentId(selectedService) ? String(getServiceDepartmentId(selectedService)) : "",
+    }));
+  }, [selectedService]);
+
+  useEffect(() => {
+    if (!form.doctorId || !form.appointmentDate) {
+      setDoctorSchedules([]);
+      return;
+    }
 
     setForm((current) => ({
       ...current,

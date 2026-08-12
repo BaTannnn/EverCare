@@ -62,7 +62,7 @@ public class DepartmentRepositoryImpl implements DepartmentRepository {
         
         Query<Department> query = session.createQuery(q);
 
-        if (params != null && params.containsKey("page") && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
+        if (params != null && !params.isEmpty() && !Boolean.parseBoolean(params.getOrDefault("noPaging", "false"))) {
             int page = PaginationUtils.getPage(params);
             int pageSize = this.env.getProperty("department.pageSize", Integer.class);
             int start = (page - 1) * pageSize;
