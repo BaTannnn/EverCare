@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row } from "react-bootstrap";
 import { BsArrowLeft, BsCalendarCheck, BsSearch } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
@@ -92,7 +92,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
   const [patientSearchNotice, setPatientSearchNotice] = useState("");
   const [form, setForm] = useState(emptyForm);
 
-  const loadReferences = async () => {
+  const loadReferences = useCallback(async () => {
     const [departmentRes, doctorRes, serviceRes] = await Promise.all([
       getReceptionistDepartments(),
       getReceptionistDoctors(),
@@ -102,9 +102,9 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     setDepartments(departmentRes.data || []);
     setDoctors(doctorRes.data || []);
     setServices(serviceRes.data || []);
-  };
+  }, []);
 
-  const loadAppointment = async () => {
+  const loadAppointment = useCallback(async () => {
     if (!isEdit) {
       return;
     }
@@ -138,7 +138,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appointmentId, isEdit, navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -163,8 +163,15 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadAppointment, loadReferences, navigate]);
+
+  const selectedService = useMemo(
+    () => services.find((service) => String(service.id) === String(form.serviceId)) || null,
+    [form.serviceId, services],
+  );
+
+  const selectedDepartmentId = getServiceDepartmentId(selectedService) || form.departmentId || "";
+  const selectedDepartmentName = getServiceDepartmentName(selectedService, departments);
 
   const selectedService = useMemo(
     () => services.find((service) => String(service.id) === String(form.serviceId)) || null,
@@ -216,9 +223,11 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
       return;
     }
 
-    loadDoctorSchedules(form.doctorId, form.appointmentDate, form.scheduleId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.doctorId, form.appointmentDate]);
+    setForm((current) => ({
+      ...current,
+      departmentId: getServiceDepartmentId(selectedService) ? String(getServiceDepartmentId(selectedService)) : "",
+    }));
+  }, [selectedService]);
 
   const updateField = (field, value) => {
     setForm((current) => {
@@ -317,7 +326,7 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     }
   };
 
-  const loadDoctorSchedules = async (doctorId, appointmentDate, preferredScheduleId = "") => {
+  const loadDoctorSchedules = useCallback(async (doctorId, appointmentDate, preferredScheduleId = "") => {
     if (!doctorId || !appointmentDate) {
       setDoctorSchedules([]);
       return;
@@ -377,7 +386,16 @@ function ReceptionistAppointmentFormPage({ mode = "create", appointmentId }) {
     } finally {
       setScheduleLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!form.doctorId || !form.appointmentDate) {
+      setDoctorSchedules([]);
+      return;
+    }
+
+    loadDoctorSchedules(form.doctorId, form.appointmentDate, form.scheduleId);
+  }, [form.appointmentDate, form.doctorId, form.scheduleId, loadDoctorSchedules]);
 
   const validate = () => {
     if (!form.serviceId) return "Vui lòng chọn dịch vụ.";

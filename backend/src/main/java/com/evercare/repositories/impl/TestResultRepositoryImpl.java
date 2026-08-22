@@ -3,6 +3,7 @@ package com.evercare.repositories.impl;
 import com.evercare.pojo.TestResult;
 import com.evercare.repositories.TestResultRepository;
 import com.evercare.utils.PaginationUtils;
+import com.evercare.utils.QueryPagingSupport;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Fetch;
@@ -26,10 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class TestResultRepositoryImpl implements TestResultRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
     @Autowired
     private Environment env;
-
     private List<Predicate> getPatientPredicates(Long patientId, LocalDate from, LocalDate to, CriteriaBuilder cb, Root<TestResult> root) {
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.isTrue(root.get("active")));
@@ -52,6 +51,44 @@ public class TestResultRepositoryImpl implements TestResultRepository {
         medicalRecordFetch.fetch("prescription", JoinType.LEFT);
         root.fetch("serviceId", JoinType.LEFT);
         root.fetch("performedBy", JoinType.LEFT);
+    }
+
+    private List<Predicate> getStaffResultPredicates(Map<String, String> params, CriteriaBuilder cb, Root<TestResult> root) {
+        List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.isTrue(root.get("active")));
+
+        if (params != null) {
+            String recordId = params.get("recordId");
+            if (recordId != null && !recordId.isBlank()) {
+                String normalizedRecordId = recordId.trim();
+                if (normalizedRecordId.startsWith("#")) {
+                    normalizedRecordId = normalizedRecordId.substring(1);
+                }
+
+                if (normalizedRecordId.matches("\\d+")) {
+                    predicates.add(cb.equal(root.get("medicalRecordId").get("id"), Long.parseLong(normalizedRecordId)));
+                } else {
+                    predicates.add(cb.like(cb.lower(root.get("medicalRecordId").get("recordCode")), "%" + normalizedRecordId.toLowerCase() + "%"));
+                }
+            }
+
+            String serviceId = params.get("serviceId");
+            if (serviceId != null && !serviceId.isBlank()) {
+                predicates.add(cb.equal(root.get("serviceId").get("id"), Long.parseLong(serviceId)));
+            }
+
+            String fromDate = params.get("fromDate");
+            if (fromDate != null && !fromDate.isBlank()) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(fromDate).atStartOfDay())));
+            }
+
+            String toDate = params.get("toDate");
+            if (toDate != null && !toDate.isBlank()) {
+                predicates.add(cb.lessThan(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(toDate).plusDays(1).atStartOfDay())));
+            }
+        }
+
+        return predicates;
     }
 
     @Override
@@ -119,36 +156,29 @@ public class TestResultRepositoryImpl implements TestResultRepository {
 
         fetchTestResultGraph(root);
 
-        List<Predicate> predicates = new ArrayList<>();
-        predicates.add(cb.isTrue(root.get("active")));
-
-        if (params != null) {
-            String recordId = params.get("recordId");
-            if (recordId != null && !recordId.isBlank()) {
-                predicates.add(cb.equal(root.get("medicalRecordId").get("id"), Long.parseLong(recordId)));
-            }
-
-            String serviceId = params.get("serviceId");
-            if (serviceId != null && !serviceId.isBlank()) {
-                predicates.add(cb.equal(root.get("serviceId").get("id"), Long.parseLong(serviceId)));
-            }
-
-            String fromDate = params.get("fromDate");
-            if (fromDate != null && !fromDate.isBlank()) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(fromDate).atStartOfDay())));
-            }
-
-            String toDate = params.get("toDate");
-            if (toDate != null && !toDate.isBlank()) {
-                predicates.add(cb.lessThan(root.get("resultDate"), java.sql.Timestamp.valueOf(LocalDate.parse(toDate).plusDays(1).atStartOfDay())));
-            }
-        }
-
         cq.select(root).distinct(true);
-        cq.where(predicates.toArray(Predicate[]::new));
+        cq.where(getStaffResultPredicates(params, cb, root).toArray(Predicate[]::new));
         cq.orderBy(cb.desc(root.get("resultDate")), cb.desc(root.get("id")));
 
-        return session.createQuery(cq).getResultList();
+        Query<TestResult> query = session.createQuery(cq);
+        if (params != null && params.containsKey("page")) {
+            int pageSize = QueryPagingSupport.resolvePageSize(this.env, "staffTestResult.pageSize", params, 10);
+            QueryPagingSupport.applyPaging(query, params, countStaffTestResults(params), pageSize);
+        }
+
+        return query.getResultList();
+    }
+
+    private long countStaffTestResults(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<TestResult> root = cq.from(TestResult.class);
+
+        cq.select(cb.countDistinct(root));
+        cq.where(getStaffResultPredicates(params, cb, root).toArray(Predicate[]::new));
+
+        return session.createQuery(cq).getSingleResult();
     }
 
     @Override

@@ -6,7 +6,6 @@ const menuItems = [
   { to: "/pharmacist/prescriptions", icon: "Rx", label: "Đơn chờ cấp phát" },
   { to: "/pharmacist/medicines", icon: "□", label: "Thuốc" },
   { to: "/pharmacist/batches", icon: "▤", label: "Lô thuốc" },
-  { to: "/pharmacist/inventory", icon: "↕", label: "Nhập / xuất kho" },
 ];
 
 function PharmacistSidebar() {

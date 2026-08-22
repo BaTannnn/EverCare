@@ -2,6 +2,7 @@ package com.evercare.services;
 
 import com.evercare.dtos.request.DoctorRequest;
 import com.evercare.pojo.Doctor;
+import com.evercare.pojo.User;
 
 import java.util.List;
 import java.util.Map;
@@ -19,4 +20,6 @@ public interface DoctorService {
     void softDelete(int id);
 
     long getTotalPages(Map<String, String> params);
+
+    List<User> getSelectableUsers(Long currentUserId);
 }

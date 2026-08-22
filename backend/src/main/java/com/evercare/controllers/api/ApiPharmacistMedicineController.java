@@ -4,26 +4,24 @@ import com.evercare.dtos.request.MedicineRequest;
 import com.evercare.dtos.request.MedicineStatusRequest;
 import com.evercare.dtos.response.MedicineLowStockResponse;
 import com.evercare.dtos.response.MedicineResponse;
-import com.evercare.pojo.Employee;
-import com.evercare.pojo.Role;
-import com.evercare.pojo.User;
-import com.evercare.repositories.EmployeeRepository;
 import com.evercare.services.MedicineService;
-import com.evercare.services.UserService;
+import com.evercare.utils.AuthSupport;
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,16 +30,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiPharmacistMedicineController {
     @Autowired
     private MedicineService medicineService;
-
     @Autowired
-    private UserService userService;
+    private AuthSupport authSupport;
+    @GetMapping
+    public ResponseEntity<?> list(
+            Principal principal,
+            @RequestParam Map<String, String> params
+    ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
+        return ResponseEntity.ok(this.medicineService.getMedicines(params));
+    }
 
-    @Autowired
-    private EmployeeRepository employeeRepo;
-
-    @org.springframework.web.bind.annotation.GetMapping("/low-stock")
+    @GetMapping("/low-stock")
     public ResponseEntity<?> getLowStockMedicines(Principal principal) {
-        validatePharmacist(principal);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
 
         List<MedicineLowStockResponse> result = this.medicineService.getLowStockMedicines();
         return ResponseEntity.ok(result);
@@ -52,7 +56,8 @@ public class ApiPharmacistMedicineController {
             Principal principal,
             @RequestBody MedicineRequest request
     ) {
-        validatePharmacist(principal);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
         MedicineResponse result = this.medicineService.createMedicine(request);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
@@ -63,7 +68,8 @@ public class ApiPharmacistMedicineController {
             @PathVariable("id") Long id,
             @RequestBody MedicineRequest request
     ) {
-        validatePharmacist(principal);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
         return ResponseEntity.ok(this.medicineService.updateMedicine(id, request));
     }
 
@@ -73,7 +79,8 @@ public class ApiPharmacistMedicineController {
             @PathVariable("id") Long id,
             @RequestBody MedicineStatusRequest request
     ) {
-        validatePharmacist(principal);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
         return ResponseEntity.ok(this.medicineService.updateStatus(id, request != null ? request.getActive() : null));
     }
 
@@ -82,34 +89,9 @@ public class ApiPharmacistMedicineController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
-        validatePharmacist(principal);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "PHARMACIST", "Tài khoản hiện tại không phải dược sĩ đang hoạt động");
         this.medicineService.softDelete(id);
         return ResponseEntity.noContent().build();
-    }
-
-    private void validatePharmacist(Principal principal) {
-        if (principal == null) {
-            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
-        }
-
-        User user = this.userService.getUserByUsername(principal.getName());
-        Employee employee = user != null ? this.employeeRepo.getEmployeeByUserId(user.getId()) : null;
-
-        if (!hasPharmacistRole(user)
-                || (employee != null && Boolean.FALSE.equals(employee.getActive()))) {
-            throw new AccessDeniedException("Tài khoản hiện tại không phải dược sĩ");
-        }
-    }
-
-    private boolean hasPharmacistRole(User user) {
-        if (user == null || user.getRoleSet() == null) {
-            return false;
-        }
-
-        return user.getRoleSet().stream()
-                .map(Role::getCode)
-                .filter(code -> code != null)
-                .map(code -> code.trim().toUpperCase())
-                .anyMatch(code -> "PHARMACIST".equals(code) || "ROLE_PHARMACIST".equals(code));
     }
 }

@@ -20,7 +20,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -32,7 +31,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "doctor_schedule")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "DoctorSchedule.findAll", query = "SELECT d FROM DoctorSchedule d"),
     @NamedQuery(name = "DoctorSchedule.findById", query = "SELECT d FROM DoctorSchedule d WHERE d.id = :id"),

@@ -33,13 +33,10 @@ public class ApiPaymentController {
     private static final String PROVIDER_MOMO = "MOMO";
     private static final String PROVIDER_ZALOPAY = "ZALOPAY";
     private static final String PROVIDER_VNPAY = "VNPAY";
-
     @Autowired
     private PaymentService paymentService;
-
     @Autowired
     private Environment env;
-
     @PostMapping("/momo/ipn")
     public ResponseEntity<PaymentResponse> momo(
             @RequestBody(required = false) Map<String, Object> body,
@@ -54,7 +51,7 @@ public class ApiPaymentController {
             @RequestParam Map<String, String> params
     ) {
         Map<String, String> callbackParams = mergeParams(body, params);
-        logger.debug("ZaloPay callback endpoint params: {}", callbackParams);
+        logger.debug("ZaloPay callback received; fields={}", callbackParams.keySet());
         return ResponseEntity.ok(this.paymentService.handleGatewayCallback("ZALOPAY", callbackParams));
     }
 
@@ -113,7 +110,7 @@ public class ApiPaymentController {
     }
 
     private ResponseEntity<?> handleResult(String provider, Map<String, String> params, HttpServletRequest request) {
-        logger.debug("{} result endpoint params: {}", provider, params);
+        logger.debug("{} result received; fields={}", provider, params.keySet());
         Map<String, String> callbackParams = new LinkedHashMap<>(params);
         callbackParams.remove("frontendReturnUrl");
         String frontendReturnUrl = params.get("frontendReturnUrl");

@@ -9,6 +9,14 @@ export const getPatientInvoices = (params = {}) => {
   }));
 };
 
+
+export const getPatientInvoiceDetail = (invoiceId) => {
+  return authApis().get(endpoints["patient-invoice-detail"](invoiceId)).then((response) => ({
+    ...response,
+    data: mapInvoice(response.data),
+  }));
+};
+
 export const payPatientInvoice = (invoiceId, payload) => {
   return authApis().post(`${endpoints["patient-invoice-detail"](invoiceId)}/payments`, payload).then((response) => ({
     ...response,

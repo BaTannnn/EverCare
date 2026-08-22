@@ -28,10 +28,8 @@ import org.springframework.web.bind.annotation.*;
 public class ApiDepartmentController {
     @Autowired
     private DepartmentService departmentService;
-
     @Autowired
     private MedicalServiceService medicalServiceService;
-    
     @GetMapping
     public ResponseEntity<List<DepartmentResponse>> list(@RequestParam Map<String, String> params) {
         List<DepartmentResponse> result = this.departmentService.getDepartments(params).stream().map(DepartmentMapper::toResponse).toList();
@@ -54,7 +52,7 @@ public class ApiDepartmentController {
         List<MedicalServiceResponse> result = this.medicalServiceService
                 .getActiveExaminationServicesByDepartmentId((long) departmentId)
                 .stream()
-                .map(MedicalServiceMapper::toResponse)
+                .map(service -> MedicalServiceMapper.toResponse(service, true))
                 .toList();
 
         return ResponseEntity.ok(result);

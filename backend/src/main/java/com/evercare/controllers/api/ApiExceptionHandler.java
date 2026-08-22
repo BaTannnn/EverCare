@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -22,6 +24,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final Logger LOGGER = Logger.getLogger(ApiExceptionHandler.class.getName());
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
@@ -127,8 +130,12 @@ public class ApiExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
-        String message = ex.getClass().getSimpleName() + ": " + ex.getMessage();
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, message, request.getRequestURI());
+        LOGGER.log(Level.SEVERE, "Unhandled API exception at " + request.getRequestURI(), ex);
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
+                request.getRequestURI()
+        );
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, String path) {

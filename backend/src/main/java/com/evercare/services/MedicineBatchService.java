@@ -13,7 +13,13 @@ public interface MedicineBatchService {
 
     List<MedicineBatchResponse> getBatchesByMedicineId(Long medicineId);
 
+    MedicineBatchResponse getBatchById(Long id);
+
     List<MedicineBatchResponse> getNearExpiryBatches(Integer days);
 
     List<MedicineBatchResponse> getExpiredBatches();
+
+    MedicineBatchResponse updateBatch(Long id, MedicineBatchImportRequest request);
+
+    void deleteBatch(Long id);
 }

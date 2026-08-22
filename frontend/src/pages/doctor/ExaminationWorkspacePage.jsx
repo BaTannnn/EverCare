@@ -181,7 +181,7 @@ function ExaminationWorkspacePage() {
       } finally {
         setServiceSearch({ searching: false });
       }
-    }, 300);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [serviceKeyword, setServiceSearch]);
@@ -205,7 +205,7 @@ function ExaminationWorkspacePage() {
       } finally {
         setMedicineSearch({ loading: false });
       }
-    }, 300);
+    }, 600);
 
     return () => clearTimeout(timer);
   }, [medicineKeyword, setMedicineSearch]);

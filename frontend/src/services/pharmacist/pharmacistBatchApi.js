@@ -20,4 +20,12 @@ export const importMedicineBatch = (payload) => {
   return authApis().post(endpoints["pharmacist-medicine-batches-import"], payload);
 };
 
+export const updateMedicineBatch = (id, payload) => {
+  return authApis().put(endpoints["pharmacist-medicine-batch"](id), payload);
+};
+
+export const deleteMedicineBatch = (id) => {
+  return authApis().delete(endpoints["pharmacist-medicine-batch"](id));
+};
+
 export default Apis;

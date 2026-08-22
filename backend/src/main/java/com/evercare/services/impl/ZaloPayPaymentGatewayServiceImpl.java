@@ -24,10 +24,8 @@ import org.springframework.stereotype.Service;
 public class ZaloPayPaymentGatewayServiceImpl extends AbstractPaymentGatewayService {
     private static final String METHOD = "ZALOPAY";
     private static final Logger logger = LoggerFactory.getLogger(ZaloPayPaymentGatewayServiceImpl.class);
-
     @Autowired
     private Environment env;
-
     @Override
     protected String getMethod() {
         return METHOD;
@@ -63,9 +61,9 @@ public class ZaloPayPaymentGatewayServiceImpl extends AbstractPaymentGatewayServ
         String rawSignature = appId + "|" + appTransId + "|" + body.get("app_user") + "|" + amount + "|" + appTime + "|" + body.get("embed_data") + "|" + body.get("item");
         body.put("mac", PaymentGatewaySupport.hmacSha256(key1, rawSignature));
 
-        logger.debug("ZaloPay create order payload: {}", PaymentGatewaySupport.toJson(body));
+        logger.debug("ZaloPay create order request prepared for transaction {}", appTransId);
         String response = PaymentGatewaySupport.postWithQueryParams(endpoint, body);
-        logger.debug("ZaloPay create order response: {}", response);
+        logger.debug("ZaloPay create order response received for transaction {}", appTransId);
         JsonNode json = PaymentGatewaySupport.readJson(response);
         if (isSuccess(json) && json.hasNonNull("order_url")) {
             return json.get("order_url").asText();

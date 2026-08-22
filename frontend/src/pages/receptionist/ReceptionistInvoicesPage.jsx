@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Form, Row, Table } from "react-bootstrap";
 import { BsClipboardCheck, BsReceipt, BsSearch } from "react-icons/bs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -26,7 +26,7 @@ function ReceptionistInvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadInvoices = async () => {
+  const loadInvoices = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -54,7 +54,7 @@ function ReceptionistInvoicesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, searchParams]);
 
   useEffect(() => {
     const ensureDefaults = new URLSearchParams(searchParams);
@@ -86,8 +86,7 @@ function ReceptionistInvoicesPage() {
       return;
     }
     loadInvoices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [loadInvoices, searchParams]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));

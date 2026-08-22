@@ -1,0 +1,606 @@
+{
+  "info": {
+    "_postman_id": "8bf94d7a-7a13-4c5c-8f2d-evercare-pharmacy",
+    "name": "EverCare - Pharmacy Inventory Flow",
+    "description": "Collection test module thuoc va kho thuoc: danh muc thuoc, nhap lo, canh bao ton kho/han dung, xem don cho cap phat va cap phat thuoc.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/backend"
+    },
+    {
+      "key": "pharmacistUsername",
+      "value": "pharma01"
+    },
+    {
+      "key": "pharmacistPassword",
+      "value": "123456"
+    },
+    {
+      "key": "pharmacistToken",
+      "value": ""
+    },
+    {
+      "key": "medicineId",
+      "value": "1"
+    },
+    {
+      "key": "newMedicineId",
+      "value": ""
+    },
+    {
+      "key": "batchId",
+      "value": ""
+    },
+    {
+      "key": "prescriptionId",
+      "value": ""
+    },
+    {
+      "key": "newMedicineCode",
+      "value": "MED_POSTMAN_001"
+    },
+    {
+      "key": "newBatchCode",
+      "value": "BATCH-POSTMAN-001"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Login pharmacist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login duoc si thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('pharmacistToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{pharmacistUsername}}\",\n  \"password\": \"{{pharmacistPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Medicines",
+      "item": [
+        {
+          "name": "Get medicines",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lay danh sach thuoc thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "    pm.collectionVariables.set('medicineId', json[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicines"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get medicine detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/medicines/{{medicineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "medicines",
+                "{{medicineId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create medicine",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('newMedicineCode', 'MED_POSTMAN_' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tao thuoc thanh cong', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('newMedicineId', json.id);",
+                  "pm.collectionVariables.set('medicineId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicineCode\": \"{{newMedicineCode}}\",\n  \"name\": \"Thuoc test Postman\",\n  \"unit\": \"VIEN\",\n  \"description\": \"Thuoc tao tu Postman\",\n  \"usageNote\": \"Dung theo chi dinh\",\n  \"unitPrice\": 2500,\n  \"minStockQuantity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update medicine",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicineCode\": \"{{newMedicineCode}}\",\n  \"name\": \"Thuoc test Postman - cap nhat\",\n  \"unit\": \"VIEN\",\n  \"description\": \"Da cap nhat tu Postman\",\n  \"usageNote\": \"Uong sau an\",\n  \"unitPrice\": 3000,\n  \"minStockQuantity\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines/{{newMedicineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines",
+                "{{newMedicineId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update medicine status inactive",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines/{{newMedicineId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines",
+                "{{newMedicineId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update medicine status active",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines/{{newMedicineId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines",
+                "{{newMedicineId}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Medicine batches",
+      "item": [
+        {
+          "name": "Import medicine batch",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('newBatchCode', 'BATCH-POSTMAN-' + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Nhap lo thuoc thanh cong', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('batchId', json.batch.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicineId\": {{medicineId}},\n  \"batchCode\": \"{{newBatchCode}}\",\n  \"importDate\": \"2026-05-26\",\n  \"expiryDate\": \"2027-05-26\",\n  \"quantity\": 100,\n  \"importPrice\": 5000,\n  \"supplierName\": \"Cong ty Duoc ABC\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicine-batches/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicine-batches",
+                "import"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get medicine batches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicine-batches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicine-batches"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get batches by medicine",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines/{{medicineId}}/batches",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines",
+                "{{medicineId}}",
+                "batches"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Alerts",
+      "item": [
+        {
+          "name": "Get low stock medicines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicines/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicines",
+                "low-stock"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get near expiry batches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicine-batches/near-expiry?days=30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicine-batches",
+                "near-expiry"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get expired batches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/medicine-batches/expired",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "medicine-batches",
+                "expired"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Prescriptions dispensing",
+      "item": [
+        {
+          "name": "Get prescribed prescriptions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lay danh sach don cho cap phat thanh cong', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "if (Array.isArray(json) && json.length > 0) {",
+                  "    pm.collectionVariables.set('prescriptionId', json[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/prescriptions?status=PRESCRIBED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "prescriptions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PRESCRIBED"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get prescription detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/prescriptions/{{prescriptionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "prescriptions",
+                "{{prescriptionId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dispense prescription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{pharmacistToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/pharmacist/prescriptions/{{prescriptionId}}/dispense",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pharmacist",
+                "prescriptions",
+                "{{prescriptionId}}",
+                "dispense"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

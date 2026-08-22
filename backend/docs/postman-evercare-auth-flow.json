@@ -1,0 +1,248 @@
+{
+  "info": {
+    "_postman_id": "b3f0c7a5-3a78-47f9-9b12-evercare-auth",
+    "name": "EverCare - Auth Flow",
+    "description": "Collection test auth API: dang ky tai khoan benh nhan thanh cong.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/backend"
+    },
+    {
+      "key": "registerUsername",
+      "value": ""
+    },
+    {
+      "key": "registerPassword",
+      "value": "12345678"
+    },
+    {
+      "key": "registerEmail",
+      "value": ""
+    },
+    {
+      "key": "registerPhone",
+      "value": ""
+    },
+    {
+      "key": "registeredUserId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Register",
+      "item": [
+        {
+          "name": "Register patient success",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const suffix = Date.now().toString().slice(-9);",
+                  "pm.collectionVariables.set('registerUsername', `patient_${suffix}`);",
+                  "pm.collectionVariables.set('registerEmail', `patient_${suffix}@example.com`);",
+                  "pm.collectionVariables.set('registerPhone', `0${suffix}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dang ky thanh cong - status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Response co thong tin user moi', function () {",
+                  "    pm.expect(json.id).to.exist;",
+                  "    pm.expect(json.username).to.eql(pm.collectionVariables.get('registerUsername'));",
+                  "    pm.expect(json.email).to.eql(pm.collectionVariables.get('registerEmail'));",
+                  "    pm.expect(json.phone).to.eql(pm.collectionVariables.get('registerPhone'));",
+                  "    pm.expect(json.fullName).to.eql('Benh Nhan Test');",
+                  "});",
+                  "",
+                  "pm.test('User moi active va enabled', function () {",
+                  "    pm.expect(json.active).to.eql(true);",
+                  "    pm.expect(json.enabled).to.eql(true);",
+                  "});",
+                  "",
+                  "pm.test('User moi co role benh nhan', function () {",
+                  "    pm.expect(json.roles).to.be.an('array');",
+                  "    pm.expect(json.roles).to.include('ROLE_PATIENT');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('registeredUserId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "{{registerUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{registerPassword}}",
+                  "type": "text"
+                },
+                {
+                  "key": "confirmPassword",
+                  "value": "{{registerPassword}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{registerEmail}}",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "{{registerPhone}}",
+                  "type": "text"
+                },
+                {
+                  "key": "fullName",
+                  "value": "Benh Nhan Test",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register patient success with avatar",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const suffix = Date.now().toString().slice(-9);",
+                  "pm.collectionVariables.set('registerUsername', `patient_avatar_${suffix}`);",
+                  "pm.collectionVariables.set('registerEmail', `patient_avatar_${suffix}@example.com`);",
+                  "pm.collectionVariables.set('registerPhone', `1${suffix}`);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dang ky kem avatar thanh cong - status 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('Response co thong tin user moi', function () {",
+                  "    pm.expect(json.id).to.exist;",
+                  "    pm.expect(json.username).to.eql(pm.collectionVariables.get('registerUsername'));",
+                  "    pm.expect(json.email).to.eql(pm.collectionVariables.get('registerEmail'));",
+                  "    pm.expect(json.phone).to.eql(pm.collectionVariables.get('registerPhone'));",
+                  "    pm.expect(json.fullName).to.eql('Benh Nhan Avatar Test');",
+                  "});",
+                  "",
+                  "pm.test('Avatar da duoc upload va tra ve URL', function () {",
+                  "    pm.expect(json.avatarUrl).to.be.a('string').and.not.empty;",
+                  "    pm.expect(json.avatarUrl).to.match(/^https?:\\/\\//);",
+                  "});",
+                  "",
+                  "pm.test('User moi active, enabled va co role benh nhan', function () {",
+                  "    pm.expect(json.active).to.eql(true);",
+                  "    pm.expect(json.enabled).to.eql(true);",
+                  "    pm.expect(json.roles).to.be.an('array');",
+                  "    pm.expect(json.roles).to.include('ROLE_PATIENT');",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('registeredUserId', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "{{registerUsername}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{registerPassword}}",
+                  "type": "text"
+                },
+                {
+                  "key": "confirmPassword",
+                  "value": "{{registerPassword}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{registerEmail}}",
+                  "type": "text"
+                },
+                {
+                  "key": "phone",
+                  "value": "{{registerPhone}}",
+                  "type": "text"
+                },
+                {
+                  "key": "fullName",
+                  "value": "Benh Nhan Avatar Test",
+                  "type": "text"
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "docs/assets/register-avatar.svg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

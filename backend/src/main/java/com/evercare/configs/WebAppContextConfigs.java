@@ -13,11 +13,9 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -31,28 +29,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * @author admin
  */
 @Configuration
-@ComponentScan(
-        basePackages =  {
-            "com.evercare.controllers",
-            "com.evercare.repositories",
-            "com.evercare.services",
-        }
-)
+@ComponentScan(basePackages = "com.evercare.controllers")
 @EnableWebMvc
-@EnableTransactionManagement
-@EnableScheduling
 public class WebAppContextConfigs implements WebMvcConfigurer {
     @Override
     public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
         configurer.enable();
     }
-    
-//    @Override
-//    public void addFormatters(FormatterRegistry registry) {
-//        registry.addFormatter(new CategoryFormatter());
-//    }
-    
-    
+
     @Bean
     public StandardServletMultipartResolver multipartResolver() {
         return new StandardServletMultipartResolver();
@@ -60,7 +44,8 @@ public class WebAppContextConfigs implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new ApiQueryLoggingInterceptor()).addPathPatterns("/api/**");
+        registry.addInterceptor(new ApiQueryLoggingInterceptor())
+                .addPathPatterns("/api/**", "/admin/**");
     }
 
     @Override

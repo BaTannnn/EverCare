@@ -27,7 +27,6 @@ import PatientTestResults from "../pages/patient/PatientTestResults";
 import PaymentResultPage from "../pages/payment/PaymentResultPage";
 import PharmacistBatchesPage from "../pages/pharmacist/PharmacistBatchesPage";
 import PharmacistDashboardPage from "../pages/pharmacist/PharmacistDashboardPage";
-import PharmacistInventoryPage from "../pages/pharmacist/PharmacistInventoryPage";
 import PharmacistMedicinesPage from "../pages/pharmacist/PharmacistMedicinesPage";
 import PharmacistPrescriptionDetailPage from "../pages/pharmacist/PharmacistPrescriptionDetailPage";
 import PharmacistPrescriptionsPage from "../pages/pharmacist/PharmacistPrescriptionsPage";
@@ -45,8 +44,10 @@ import StaffTestRequestDetailPage from "../pages/staff/StaffTestRequestDetailPag
 import StaffTestRequestsPage from "../pages/staff/StaffTestRequestsPage";
 import StaffTestResultsPage from "../pages/staff/StaffTestResultsPage";
 import ProtectedRoute from "./ProtectedRoute";
+import HomeRedirect from "./HomeRedirect";
 import PublicOnlyRoute from "./PublicOnlyRoute";
 
+const adminRoles = ["ADMIN", "ROLE_ADMIN"];
 const patientRoles = ["PATIENT", "ROLE_PATIENT"];
 const doctorRoles = ["DOCTOR", "ROLE_DOCTOR"];
 const pharmacistRoles = ["PHARMACIST", "ROLE_PHARMACIST"];
@@ -63,7 +64,7 @@ export function renderAppRoutes() {
 
       <Route path="/payment/:provider/result" element={<PaymentResultPage />} />
 
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute roles={adminRoles} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>
 
@@ -105,7 +106,6 @@ export function renderAppRoutes() {
           <Route path="prescriptions/:prescriptionId" element={<PharmacistPrescriptionDetailPage />} />
           <Route path="medicines" element={<PharmacistMedicinesPage />} />
           <Route path="batches" element={<PharmacistBatchesPage />} />
-          <Route path="inventory" element={<PharmacistInventoryPage />} />
         </Route>
       </Route>
 
@@ -133,7 +133,7 @@ export function renderAppRoutes() {
         </Route>
       </Route>
 
-      <Route path="/" element={<Navigate to="/doctor/dashboard" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </>
   );

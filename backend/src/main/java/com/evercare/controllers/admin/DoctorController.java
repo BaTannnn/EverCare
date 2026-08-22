@@ -11,32 +11,33 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/admin/doctors")
 public class DoctorController {
-
     @Autowired
     private DoctorService doctorService;
-
     @Autowired
     private DepartmentService departmentService;
-
     @GetMapping
     public String index(@RequestParam Map<String, String> params, Model model) {
-        model.addAttribute("doctors", this.doctorService.getDoctors(params));
+        Map<String, String> listParams = new HashMap<>(params);
+        listParams.putIfAbsent("page", "1");
+
+        model.addAttribute("doctors", this.doctorService.getDoctors(listParams));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("doctorTypes", DoctorType.values());
         model.addAttribute("workStatuses", DoctorWorkStatus.values());
 
-        model.addAttribute("kw", params.getOrDefault("kw", ""));
-        model.addAttribute("departmentId", params.getOrDefault("departmentId", ""));
-        model.addAttribute("doctorType", params.getOrDefault("doctorType", ""));
-        model.addAttribute("workStatus", params.getOrDefault("workStatus", ""));
-        model.addAttribute("pages", this.doctorService.getTotalPages(params));
+        model.addAttribute("kw", listParams.getOrDefault("kw", ""));
+        model.addAttribute("departmentId", listParams.getOrDefault("departmentId", ""));
+        model.addAttribute("doctorType", listParams.getOrDefault("doctorType", ""));
+        model.addAttribute("workStatus", listParams.getOrDefault("workStatus", ""));
+        model.addAttribute("pages", this.doctorService.getTotalPages(listParams));
 
-        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        int page = Integer.parseInt(listParams.getOrDefault("page", "1"));
         model.addAttribute("page", page);
         return "doctors/doctors";
     }
@@ -44,6 +45,7 @@ public class DoctorController {
     @GetMapping("/create")
     public String createView(Model model) {
         model.addAttribute("doctor", new DoctorRequest());
+        model.addAttribute("users", this.doctorService.getSelectableUsers(null));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("doctorTypes", DoctorType.values());
         model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -63,6 +65,7 @@ public class DoctorController {
 
         DoctorRequest form = new DoctorRequest();
         form.setDepartmentId(doctor.getDepartmentId() != null ? doctor.getDepartmentId().getId() : null);
+        form.setUserId(doctor.getUserId() != null ? doctor.getUserId().getId() : null);
         form.setFullName(doctor.getFullName());
         form.setPhone(doctor.getPhone());
         form.setEmail(doctor.getEmail());
@@ -77,6 +80,7 @@ public class DoctorController {
         model.addAttribute("doctor", form);
         model.addAttribute("doctorId", id);
         model.addAttribute("currentAvatarUrl", doctor.getAvatarUrl());
+        model.addAttribute("users", this.doctorService.getSelectableUsers(form.getUserId()));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("doctorTypes", DoctorType.values());
         model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -94,6 +98,7 @@ public class DoctorController {
         } catch (IllegalArgumentException ex) {
             model.addAttribute("err", ex.getMessage());
             model.addAttribute("doctor", req);
+            model.addAttribute("users", this.doctorService.getSelectableUsers(req.getUserId()));
             model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
             model.addAttribute("doctorTypes", DoctorType.values());
             model.addAttribute("workStatuses", DoctorWorkStatus.values());
@@ -117,6 +122,7 @@ public class DoctorController {
             model.addAttribute("err", ex.getMessage());
             model.addAttribute("doctor", req);
             model.addAttribute("doctorId", id);
+            model.addAttribute("users", this.doctorService.getSelectableUsers(req.getUserId()));
             model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
             model.addAttribute("doctorTypes", DoctorType.values());
             model.addAttribute("workStatuses", DoctorWorkStatus.values());

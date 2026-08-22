@@ -1,12 +1,41 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Col, Form, Modal, Row, Table } from "react-bootstrap";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import LoadingState from "../../components/common/LoadingState";
 import StatusBadge from "../../components/common/StatusBadge";
-import { getMedicineBatches, getExpiredBatches, getNearExpiryBatches, importMedicineBatch } from "../../services/pharmacist/pharmacistBatchApi";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import {
+  deleteMedicineBatch,
+  getMedicineBatches,
+  importMedicineBatch,
+  updateMedicineBatch,
+} from "../../services/pharmacist/pharmacistBatchApi";
 import { getPharmacistMedicines } from "../../services/pharmacist/pharmacistMedicineApi";
-import { formatDate, formatMoney, getBatchExpiryStatus, getErrorMessage, normalizeText } from "./pharmacistPageUtils";
+import { formatDate, formatMoney, getBatchExpiryStatus, getErrorMessage } from "./pharmacistPageUtils";
+
+const PAGE_SIZE = 10;
+
+function PharmacistPagination({ page, pageSize, itemCount, onPageChange }) {
+  const canGoPrev = page > 1;
+  const canGoNext = itemCount >= pageSize;
+
+  if (!canGoPrev && !canGoNext) {
+    return null;
+  }
+
+  return (
+    <div className="pharmacist-pagination">
+      <Button type="button" variant="outline-primary" disabled={!canGoPrev} onClick={() => onPageChange(page - 1)}>
+        Trước
+      </Button>
+      <span>Trang {page}</span>
+      <Button type="button" variant="outline-primary" disabled={!canGoNext} onClick={() => onPageChange(page + 1)}>
+        Sau
+      </Button>
+    </div>
+  );
+}
 
 const emptyImportForm = {
   medicineId: "",
@@ -23,12 +52,16 @@ function PharmacistBatchesPage() {
   const [medicines, setMedicines] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [filter, setFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
   const [showImport, setShowImport] = useState(false);
+  const [editingBatch, setEditingBatch] = useState(null);
   const [form, setForm] = useState(emptyImportForm);
   const [saving, setSaving] = useState(false);
+  const [actionId, setActionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const debouncedKeyword = useDebouncedValue(keyword, 600);
 
   const loadBatches = useCallback(async () => {
     setLoading(true);
@@ -36,8 +69,8 @@ function PharmacistBatchesPage() {
 
     try {
       const [batchResponse, medicineResponse] = await Promise.all([
-        getMedicineBatches(),
-        getPharmacistMedicines(),
+        getMedicineBatches({ keyword: debouncedKeyword.trim(), status: filter, page, size: PAGE_SIZE }),
+        getPharmacistMedicines({ page: 1, size: 1000 }),
       ]);
       setBatches(batchResponse.data || []);
       setMedicines(medicineResponse.data || []);
@@ -46,31 +79,49 @@ function PharmacistBatchesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [debouncedKeyword, filter, page]);
 
   useEffect(() => {
     loadBatches();
   }, [loadBatches]);
 
-  const filteredBatches = useMemo(() => {
-    const normalizedKeyword = normalizeText(keyword);
-
-    return batches.filter((batch) => {
-      const status = getBatchExpiryStatus(batch);
-      const statusMatch = filter === "ALL"
-        || (filter === "VALID" && status === "ENOUGH")
-        || filter === status;
-      const text = normalizeText([batch.batchCode, batch.medicineName].join(" "));
-
-      return statusMatch && (!normalizedKeyword || text.includes(normalizedKeyword));
-    });
-  }, [batches, filter, keyword]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedKeyword, filter]);
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleImport = async (e) => {
+  const openCreateForm = () => {
+    setEditingBatch(null);
+    setForm(emptyImportForm);
+    setNotice("");
+    setShowImport(true);
+  };
+
+  const openEditForm = (batch) => {
+    setEditingBatch(batch);
+    setForm({
+      medicineId: String(batch.medicineId || ""),
+      batchCode: batch.batchCode || "",
+      importDate: batch.importDate || new Date().toISOString().slice(0, 10),
+      expiryDate: batch.expiryDate || "",
+      quantity: String(batch.quantity || ""),
+      importPrice: String(batch.importPrice || ""),
+      supplierName: batch.supplierName || "",
+    });
+    setNotice("");
+    setShowImport(true);
+  };
+
+  const closeBatchForm = () => {
+    setShowImport(false);
+    setEditingBatch(null);
+    setForm(emptyImportForm);
+  };
+
+  const handleSaveBatch = async (e) => {
     e.preventDefault();
     setNotice("");
 
@@ -86,7 +137,7 @@ function PharmacistBatchesPage() {
 
     setSaving(true);
     try {
-      await importMedicineBatch({
+      const payload = {
         medicineId: Number(form.medicineId),
         batchCode: form.batchCode,
         importDate: form.importDate,
@@ -94,15 +145,40 @@ function PharmacistBatchesPage() {
         quantity: Number(form.quantity),
         importPrice: Number(form.importPrice || 0),
         supplierName: form.supplierName,
-      });
-      setNotice("Đã nhập lô thuốc.");
-      setShowImport(false);
-      setForm(emptyImportForm);
+      };
+
+      if (editingBatch) {
+        await updateMedicineBatch(editingBatch.id, payload);
+        setNotice("Đã cập nhật lô thuốc.");
+      } else {
+        await importMedicineBatch(payload);
+        setNotice("Đã nhập lô thuốc.");
+      }
+
+      closeBatchForm();
       loadBatches();
     } catch (err) {
       setNotice(getErrorMessage(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteBatch = async (batch) => {
+    if (!window.confirm(`Xóa lô ${batch.batchCode}?`)) {
+      return;
+    }
+
+    setActionId(batch.id);
+    setNotice("");
+    try {
+      await deleteMedicineBatch(batch.id);
+      setNotice("Đã xóa lô thuốc.");
+      loadBatches();
+    } catch (err) {
+      setNotice(getErrorMessage(err));
+    } finally {
+      setActionId(null);
     }
   };
 
@@ -145,7 +221,7 @@ function PharmacistBatchesPage() {
               </Form.Group>
             </Col>
             <Col md={4} className="d-flex align-items-end justify-content-end">
-              <Button type="button" onClick={() => setShowImport(true)}>Nhập lô thuốc</Button>
+              <Button type="button" onClick={openCreateForm}>Nhập lô thuốc</Button>
             </Col>
           </Row>
         </Card.Body>
@@ -155,13 +231,13 @@ function PharmacistBatchesPage() {
         <Card.Header>
           <h2>Danh sách lô thuốc</h2>
           <div className="d-flex gap-2">
-            <Button type="button" variant="link" onClick={() => getNearExpiryBatches(30).then((res) => setBatches(res.data || []))}>Gần hết hạn</Button>
-            <Button type="button" variant="link" onClick={() => getExpiredBatches().then((res) => setBatches(res.data || []))}>Đã hết hạn</Button>
+            <Button type="button" variant="link" onClick={() => setFilter("NEAR_EXPIRY")}>Gần hết hạn</Button>
+            <Button type="button" variant="link" onClick={() => setFilter("EXPIRED")}>Đã hết hạn</Button>
             <Button type="button" variant="link" onClick={loadBatches}>Tải lại</Button>
           </div>
         </Card.Header>
         <Card.Body className="p-0">
-          {filteredBatches.length === 0 ? (
+          {batches.length === 0 ? (
             <EmptyState title="Không có lô thuốc phù hợp" />
           ) : (
             <Table responsive hover className="doctor-table mb-0">
@@ -176,10 +252,11 @@ function PharmacistBatchesPage() {
                   <th>Giá nhập</th>
                   <th>Nhà cung cấp</th>
                   <th>Trạng thái</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredBatches.map((batch) => (
+                {batches.map((batch) => (
                   <tr key={batch.id}>
                     <td>{batch.batchCode}</td>
                     <td>{batch.medicineName}</td>
@@ -190,17 +267,34 @@ function PharmacistBatchesPage() {
                     <td>{formatMoney(batch.importPrice)}</td>
                     <td>{batch.supplierName || "--"}</td>
                     <td><StatusBadge status={getBatchExpiryStatus(batch)} /></td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        <Button type="button" size="sm" variant="outline-primary" onClick={() => openEditForm(batch)}>
+                          Sửa
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline-danger"
+                          disabled={actionId === batch.id}
+                          onClick={() => handleDeleteBatch(batch)}
+                        >
+                          Xóa
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </Table>
           )}
+          <PharmacistPagination page={page} pageSize={PAGE_SIZE} itemCount={batches.length} onPageChange={setPage} />
         </Card.Body>
       </Card>
 
-      <Modal show={showImport} onHide={() => setShowImport(false)} size="lg" centered>
-        <Form onSubmit={handleImport}>
-          <Modal.Header closeButton={!saving}><Modal.Title>Nhập lô thuốc</Modal.Title></Modal.Header>
+      <Modal show={showImport} onHide={closeBatchForm} size="lg" centered>
+        <Form onSubmit={handleSaveBatch}>
+          <Modal.Header closeButton={!saving}><Modal.Title>{editingBatch ? "Cập nhật lô thuốc" : "Nhập lô thuốc"}</Modal.Title></Modal.Header>
           <Modal.Body>
             <Row className="g-3">
               <Col md={6}>
@@ -223,8 +317,8 @@ function PharmacistBatchesPage() {
             </Row>
           </Modal.Body>
           <Modal.Footer>
-            <Button type="button" variant="outline-secondary" onClick={() => setShowImport(false)} disabled={saving}>Hủy</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Đang nhập..." : "Nhập kho"}</Button>
+            <Button type="button" variant="outline-secondary" onClick={closeBatchForm} disabled={saving}>Hủy</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : editingBatch ? "Cập nhật" : "Nhập kho"}</Button>
           </Modal.Footer>
         </Form>
       </Modal>

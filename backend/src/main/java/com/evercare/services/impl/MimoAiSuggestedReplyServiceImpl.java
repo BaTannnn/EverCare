@@ -13,6 +13,7 @@ import com.evercare.repositories.SupportConversationRepository;
 import com.evercare.repositories.SupportMessageRepository;
 import com.evercare.services.AiSuggestedReplyService;
 import com.evercare.utils.AuthSupport;
+import com.evercare.utils.SensitiveDataSanitizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -50,21 +51,18 @@ public class MimoAiSuggestedReplyServiceImpl implements AiSuggestedReplyService 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
-
     @Autowired
     private Environment env;
-
     @Autowired
     private AuthSupport authSupport;
-
     @Autowired
     private SupportConversationRepository conversationRepo;
-
     @Autowired
     private SupportMessageRepository messageRepo;
-
     @Autowired
     private MedicalServiceRepository medicalServiceRepo;
+    @Autowired
+    private SensitiveDataSanitizer sensitiveDataSanitizer;
 
     @Override
     public AiSuggestedReplyResponse suggestReceptionistReply(Long conversationId) {
@@ -150,7 +148,7 @@ public class MimoAiSuggestedReplyServiceImpl implements AiSuggestedReplyService 
             for (SupportMessage message : messages) {
                 prompt.append("- [").append(resolveSenderLabel(message)).append("] ")
                         .append(formatDate(message)).append(": ")
-                        .append(nullToEmpty(message.getContent())).append("\n");
+                        .append(this.sensitiveDataSanitizer.sanitize(message.getContent())).append("\n");
             }
         }
 

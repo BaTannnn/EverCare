@@ -11,6 +11,7 @@ public class MedicineResponse {
     private String usageNote;
     private BigDecimal unitPrice;
     private Integer minStockQuantity;
+    private Long availableQuantity;
     private Boolean active;
 
     public Long getId() {
@@ -75,6 +76,14 @@ public class MedicineResponse {
 
     public void setMinStockQuantity(Integer minStockQuantity) {
         this.minStockQuantity = minStockQuantity;
+    }
+
+    public Long getAvailableQuantity() {
+        return availableQuantity;
+    }
+
+    public void setAvailableQuantity(Long availableQuantity) {
+        this.availableQuantity = availableQuantity;
     }
 
     public Boolean getActive() {

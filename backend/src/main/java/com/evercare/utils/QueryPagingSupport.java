@@ -5,11 +5,13 @@ import org.hibernate.query.Query;
 import org.springframework.core.env.Environment;
 
 public final class QueryPagingSupport {
+    private static final int MAX_PAGE_SIZE = 100;
+
     private QueryPagingSupport() {
     }
 
     public static int resolvePageSize(Environment env, String propertyName, Map<String, String> params, int defaultValue) {
-        int defaultPageSize = env.getProperty(propertyName, Integer.class, defaultValue);
+        int defaultPageSize = Math.min(env.getProperty(propertyName, Integer.class, defaultValue), MAX_PAGE_SIZE);
         if (params == null) {
             return defaultPageSize;
         }
@@ -21,7 +23,7 @@ public final class QueryPagingSupport {
 
         try {
             int size = Integer.parseInt(sizeValue.trim());
-            return size > 0 ? size : defaultPageSize;
+            return size > 0 ? Math.min(size, MAX_PAGE_SIZE) : defaultPageSize;
         } catch (NumberFormatException ex) {
             return defaultPageSize;
         }

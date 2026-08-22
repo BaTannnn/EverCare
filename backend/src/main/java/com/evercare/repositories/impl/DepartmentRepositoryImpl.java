@@ -32,10 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class DepartmentRepositoryImpl implements DepartmentRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
     @Autowired
     private Environment env;
-
     private List<Predicate> getPredicate(Map<String, String> params, Root root, CriteriaBuilder b) {
         List<Predicate> predicates = new ArrayList<>();
         if (params != null) {

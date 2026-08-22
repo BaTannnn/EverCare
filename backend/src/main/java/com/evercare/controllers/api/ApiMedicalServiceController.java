@@ -20,10 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/medical-services")
 @CrossOrigin
 public class ApiMedicalServiceController {
-
     @Autowired
     private MedicalServiceService medicalServiceService;
-
     @GetMapping
     public ResponseEntity<?> list(@RequestParam Map<String, String> params) {
         Map<String, String> effectiveParams = new HashMap<>();
@@ -33,7 +31,7 @@ public class ApiMedicalServiceController {
 
         List<MedicalServiceResponse> result = new ArrayList<>();
         for (var service : this.medicalServiceService.getServices(effectiveParams)) {
-            result.add(MedicalServiceMapper.toResponse(service));
+            result.add(MedicalServiceMapper.toResponse(service, true));
         }
 
         return ResponseEntity.ok(result);

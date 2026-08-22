@@ -21,7 +21,11 @@ const readJsonCookie = (name) => {
 };
 
 const authCookieOptions = (remember = true) => {
-  const options = { path: COOKIE_PATH };
+  const options = {
+    path: COOKIE_PATH,
+    sameSite: "lax",
+    secure: window.location.protocol === "https:",
+  };
 
   if (remember) {
     options.maxAge = REMEMBER_MAX_AGE;

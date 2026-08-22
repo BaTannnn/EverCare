@@ -19,8 +19,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlTransient;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.Set;
@@ -31,7 +29,6 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "department")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "Department.findAll", query = "SELECT d FROM Department d"),
     @NamedQuery(name = "Department.findById", query = "SELECT d FROM Department d WHERE d.id = :id"),
@@ -142,7 +139,6 @@ public class Department implements Serializable {
         this.active = active;
     }
 
-    @XmlTransient
     public Set<MedicalService> getMedicalServiceSet() {
         return medicalServiceSet;
     }
@@ -151,7 +147,6 @@ public class Department implements Serializable {
         this.medicalServiceSet = medicalServiceSet;
     }
 
-    @XmlTransient
     public Set<Doctor> getDoctorSet() {
         return doctorSet;
     }

@@ -6,23 +6,31 @@ package com.evercare.services.impl;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.request.AccountRequest;
 import com.evercare.dtos.request.UserProfileUpdateRequest;
+import com.evercare.dtos.request.UserRegisterRequest;
+import com.evercare.dtos.response.AccountResponse;
 import com.evercare.dtos.response.UserRegisterResponse;
+import com.evercare.mappers.UserMapper;
+import com.evercare.exceptions.CloudinaryUploadException;
 import com.evercare.pojo.Role;
 import com.evercare.pojo.User;
-import com.evercare.mappers.UserMapper;
 import com.evercare.repositories.RoleRepository;
 import com.evercare.repositories.UserRepository;
 import com.evercare.services.UserService;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,22 +49,30 @@ public class UserServiceImpl implements UserService {
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{4,50}$");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\d{10}$");
-
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final char[] PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789".toCharArray();
+    private static final long MAX_AVATAR_BYTES = 5L * 1024 * 1024;
+    private static final Set<String> ALLOWED_AVATAR_CONTENT_TYPES = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+    );
     @Autowired
     private UserRepository userRepo;
-
     @Autowired
     private Cloudinary cloudinary;
-
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
-    
     @Autowired
     private RoleRepository roleRepo;
-
     @Override
     public User getUserByUsername(String username) {
         return userRepo.findByUsername(username);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return this.userRepo.findById(id);
     }
 
     @Override
@@ -179,6 +195,136 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<User> getAccounts(Map<String, String> params) {
+        return this.userRepo.getUsers(params);
+    }
+
+    @Override
+    public long getTotalPagesForAccounts(Map<String, String> params) {
+        return this.userRepo.getTotalPages(params);
+    }
+
+    @Override
+    public List<Role> getActiveRoles() {
+        return this.roleRepo.getActiveRoles();
+    }
+
+    @Override
+    public List<User> getDoctorLinkUsers(Long currentUserId) {
+        return filterSelectableUsers(currentUserId, user ->
+                user != null
+                        && user.getRoleSet() != null
+                        && user.getRoleSet().stream()
+                        .filter(role -> role != null && role.getCode() != null)
+                        .anyMatch(role -> "ROLE_DOCTOR".equalsIgnoreCase(role.getCode().trim()))
+                        && (user.getDoctor() == null
+                        || (currentUserId != null && currentUserId.equals(user.getId()))));
+    }
+
+    @Override
+    public List<User> getEmployeeLinkUsers(Long currentUserId) {
+        return filterSelectableUsers(currentUserId, user ->
+                user.getRoleSet() != null
+                        && !user.getRoleSet().isEmpty()
+                        && user.getRoleSet().stream()
+                        .filter(role -> role != null && role.getCode() != null)
+                        .noneMatch(role -> {
+                            String code = role.getCode().trim().toUpperCase(Locale.ROOT);
+                            return "ROLE_DOCTOR".equals(code)
+                                    || "DOCTOR".equals(code)
+                                    || "ROLE_PATIENT".equals(code)
+                                    || "PATIENT".equals(code)
+                                    || "ROLE_ADMIN".equals(code)
+                                    || "ADMIN".equals(code);
+                        })
+                        && (user.getEmployee() == null
+                        || (currentUserId != null && currentUserId.equals(user.getId()))));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponse createAccount(AccountRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu tài khoản không hợp lệ");
+        }
+
+        String roleCode = normalizeRoleCode(request.getRoleCode());
+        Role role = this.roleRepo.findByCode(roleCode);
+        if (role == null || Boolean.FALSE.equals(role.getActive())) {
+            throw new IllegalArgumentException("Vai trò không hợp lệ");
+        }
+
+        String fullName = normalizeFullName(request.getFullName());
+        validateFullName(fullName);
+
+        String email = normalizeNullableEmail(request.getEmail());
+        String phone = normalizeNullablePhone(request.getPhone());
+
+        if (email != null) {
+            validateEmail(email);
+        }
+        if (phone != null) {
+            validatePhone(phone);
+        }
+
+        if (email != null && userRepo.existsByEmail(email)) {
+            throw new IllegalStateException("Email đã tồn tại");
+        }
+        if (phone != null && userRepo.existsByPhone(phone)) {
+            throw new IllegalStateException("Số điện thoại đã tồn tại");
+        }
+
+        String rawPassword = generatePassword();
+        String username = generateUsername(roleCode);
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setFullName(fullName);
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setRoleSet(new HashSet<>(Collections.singleton(role)));
+        user.setActive(true);
+        user.setEnabled(true);
+        user.setAccountNonLocked(true);
+
+        Date now = new Date();
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
+
+        User saved = userRepo.save(user);
+
+        AccountResponse response = new AccountResponse();
+        response.setId(saved.getId());
+        response.setUsername(saved.getUsername());
+        response.setRawPassword(rawPassword);
+        response.setRoleCode(role.getCode());
+        response.setFullName(saved.getFullName());
+        response.setEmail(saved.getEmail());
+        response.setPhone(saved.getPhone());
+        response.setActive(Boolean.TRUE.equals(saved.getActive()));
+        response.setRoles(saved.getRoleSet() == null
+                ? Collections.emptyList()
+                : saved.getRoleSet().stream().map(Role::getCode).collect(Collectors.toList()));
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public void deactivateAccount(Long id) {
+        User user = this.userRepo.findById(id);
+        if (user == null) {
+            throw new IllegalArgumentException("Tài khoản không tồn tại");
+        }
+
+        user.setActive(false);
+        user.setEnabled(false);
+        user.setAccountNonLocked(false);
+        user.setUpdatedAt(new Date());
+        this.userRepo.update(user);
+    }
+
+    @Override
     public boolean authenticate(String username, String password) {
         return this.userRepo.authenticate(username, password);
     }
@@ -198,17 +344,79 @@ public class UserServiceImpl implements UserService {
             }
         }
         
-        return new org.springframework.security.core.userdetails.User(user.getUsername(),
-                user.getPassword(), authorities);
+        boolean enabled = !Boolean.FALSE.equals(user.getActive()) && !Boolean.FALSE.equals(user.getEnabled());
+        boolean accountNonLocked = !Boolean.FALSE.equals(user.getAccountNonLocked());
+
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                enabled,
+                true,
+                true,
+                accountNonLocked,
+                authorities
+        );
+    }
+
+    private List<User> filterSelectableUsers(Long currentUserId, java.util.function.Predicate<User> predicate) {
+        List<User> users = this.userRepo.getActiveUsers();
+        List<User> selectable = new ArrayList<>();
+
+        for (User user : users) {
+            if (user == null) {
+                continue;
+            }
+
+            if (currentUserId != null && currentUserId.equals(user.getId())) {
+                selectable.add(user);
+                continue;
+            }
+
+            if (predicate.test(user)) {
+                selectable.add(user);
+            }
+        }
+
+        if (currentUserId != null && selectable.stream().noneMatch(u -> currentUserId.equals(u.getId()))) {
+            User currentUser = this.userRepo.findById(currentUserId);
+            if (currentUser != null && Boolean.TRUE.equals(currentUser.getActive())) {
+                selectable.add(0, currentUser);
+            }
+        }
+
+        return selectable;
     }
 
     private String uploadAvatar(MultipartFile avatar) {
+        validateAvatar(avatar);
         try {
-            Map res = this.cloudinary.uploader().upload(avatar.getBytes(),
-                    ObjectUtils.asMap("resource_type", "auto"));
-            return res.get("secure_url").toString();
+            Map res = this.cloudinary.uploader().upload(
+                    avatar.getBytes(),
+                    ObjectUtils.asMap("resource_type", "image")
+            );
+            Object secureUrl = res.get("secure_url");
+            if (secureUrl == null) {
+                throw new CloudinaryUploadException("Cloudinary không trả về URL ảnh đại diện");
+            }
+            return secureUrl.toString();
+        } catch (CloudinaryUploadException ex) {
+            throw ex;
         } catch (Exception ex) {
-            return null;
+            throw new CloudinaryUploadException("Không thể tải ảnh đại diện lên Cloudinary", ex);
+        }
+    }
+
+    private void validateAvatar(MultipartFile avatar) {
+        if (avatar == null || avatar.isEmpty()) {
+            throw new IllegalArgumentException("Ảnh đại diện không hợp lệ");
+        }
+        if (avatar.getSize() > MAX_AVATAR_BYTES) {
+            throw new IllegalArgumentException("Ảnh đại diện không được vượt quá 5MB");
+        }
+
+        String contentType = avatar.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("Ảnh đại diện chỉ hỗ trợ JPEG, PNG hoặc WebP");
         }
     }
 
@@ -268,6 +476,13 @@ public class UserServiceImpl implements UserService {
         return fullName.trim();
     }
 
+    private String normalizeRoleCode(String roleCode) {
+        if (roleCode == null || roleCode.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng chọn vai trò");
+        }
+        return roleCode.trim().toUpperCase(Locale.ROOT);
+    }
+
     private void validateUsername(String username) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Username là bắt buộc");
@@ -315,8 +530,39 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Full name phải từ 2 đến 100 ký tự");
         }
     }
-    
+
+    private String generateUsername(String roleCode) {
+        String prefix = roleCode.replace("ROLE_", "")
+                .replaceAll("[^A-Za-z0-9]", "")
+                .toLowerCase(Locale.ROOT);
+        if (prefix.isBlank()) {
+            prefix = "user";
+        }
+
+        for (int i = 0; i < 50; i++) {
+            String candidate = prefix + generateNumericSuffix(5);
+            if (!this.userRepo.existsByUsername(candidate)) {
+                return candidate;
+            }
+        }
+
+        throw new IllegalStateException("Không thể sinh username duy nhất");
+    }
+
+    private String generateNumericSuffix(int length) {
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(RANDOM.nextInt(10));
+        }
+        return sb.toString();
+    }
+
+    private String generatePassword() {
+        StringBuilder sb = new StringBuilder(10);
+        for (int i = 0; i < 10; i++) {
+            sb.append(PASSWORD_CHARS[RANDOM.nextInt(PASSWORD_CHARS.length)]);
+        }
+        return sb.toString();
+    }
+
 }
-
-
-    

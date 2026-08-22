@@ -15,24 +15,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.Session;
+import org.hibernate.query.Query;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import com.evercare.utils.QueryPagingSupport;
 
 @Repository
 @Transactional
 public class MedicineRepositoryImpl implements MedicineRepository {
     @Autowired
     private LocalSessionFactoryBean factory;
-
-    @Override
-    public List<Medicine> getMedicines(Map<String, String> params) {
-        Session session = this.factory.getObject().getCurrentSession();
-        CriteriaBuilder cb = session.getCriteriaBuilder();
-        CriteriaQuery<Medicine> cq = cb.createQuery(Medicine.class);
-        Root<Medicine> root = cq.from(Medicine.class);
-
+    @Autowired
+    private Environment env;
+    private List<Predicate> getMedicinePredicates(Map<String, String> params, CriteriaBuilder cb, Root<Medicine> root) {
         List<Predicate> predicates = new ArrayList<>();
 
         if (params != null) {
@@ -64,10 +62,38 @@ public class MedicineRepositoryImpl implements MedicineRepository {
             predicates.add(cb.isTrue(root.get("active")));
         }
 
-        cq.where(predicates.toArray(Predicate[]::new));
+        return predicates;
+    }
+
+    @Override
+    public List<Medicine> getMedicines(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Medicine> cq = cb.createQuery(Medicine.class);
+        Root<Medicine> root = cq.from(Medicine.class);
+
+        cq.where(getMedicinePredicates(params, cb, root).toArray(Predicate[]::new));
         cq.orderBy(cb.asc(root.get("name")));
 
-        return session.createQuery(cq).getResultList();
+        Query<Medicine> query = session.createQuery(cq);
+        if (params != null && params.containsKey("page")) {
+            int pageSize = QueryPagingSupport.resolvePageSize(this.env, "pharmacistMedicine.pageSize", params, 10);
+            QueryPagingSupport.applyPaging(query, params, countMedicines(params), pageSize);
+        }
+
+        return query.getResultList();
+    }
+
+    private long countMedicines(Map<String, String> params) {
+        Session session = this.factory.getObject().getCurrentSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Medicine> root = cq.from(Medicine.class);
+
+        cq.select(cb.count(root));
+        cq.where(getMedicinePredicates(params, cb, root).toArray(Predicate[]::new));
+
+        return session.createQuery(cq).getSingleResult();
     }
 
     @Override

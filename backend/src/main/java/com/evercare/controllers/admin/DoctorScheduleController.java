@@ -11,35 +11,35 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/admin/schedules")
 public class DoctorScheduleController {
-
     @Autowired
     private DoctorScheduleService scheduleService;
-
     @Autowired
     private DoctorService doctorService;
-
     @Autowired
     private DepartmentService departmentService;
-
     @GetMapping
     public String index(@RequestParam Map<String, String> params, Model model) {
-        model.addAttribute("schedules", this.scheduleService.getSchedules(params));
+        Map<String, String> listParams = new HashMap<>(params);
+        listParams.putIfAbsent("page", "1");
+
+        model.addAttribute("schedules", this.scheduleService.getSchedules(listParams));
         model.addAttribute("doctors", this.doctorService.getDoctors(Collections.emptyMap()));
         model.addAttribute("departments", this.departmentService.getDepartments(Collections.emptyMap()));
         model.addAttribute("statuses", DoctorScheduleStatus.values());
 
-        model.addAttribute("doctorId", params.getOrDefault("doctorId", ""));
-        model.addAttribute("departmentId", params.getOrDefault("departmentId", ""));
-        model.addAttribute("workDate", params.getOrDefault("workDate", ""));
-        model.addAttribute("status", params.getOrDefault("status", ""));
-        model.addAttribute("pages", this.doctorService.getTotalPages(params));
+        model.addAttribute("doctorId", listParams.getOrDefault("doctorId", ""));
+        model.addAttribute("departmentId", listParams.getOrDefault("departmentId", ""));
+        model.addAttribute("workDate", listParams.getOrDefault("workDate", ""));
+        model.addAttribute("status", listParams.getOrDefault("status", ""));
+        model.addAttribute("pages", this.scheduleService.getTotalPages(listParams));
 
-        int page = Integer.parseInt(params.getOrDefault("page", "1"));
+        int page = Integer.parseInt(listParams.getOrDefault("page", "1"));
         model.addAttribute("page", page);
         return "schedules/schedules";
     }

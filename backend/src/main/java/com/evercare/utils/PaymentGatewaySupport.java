@@ -171,7 +171,7 @@ public final class PaymentGatewaySupport {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IllegalStateException(
-                        "Payment gateway trả về lỗi HTTP " + response.statusCode() + ": " + response.body()
+                        "Payment gateway trả về lỗi HTTP " + response.statusCode()
                 );
             }
             return response.body();

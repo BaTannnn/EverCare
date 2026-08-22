@@ -20,7 +20,6 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -30,7 +29,6 @@ import java.util.Date;
  */
 @Entity
 @Table(name = "inventory_transaction")
-@XmlRootElement
 @NamedQueries({
     @NamedQuery(name = "InventoryTransaction.findAll", query = "SELECT i FROM InventoryTransaction i"),
     @NamedQuery(name = "InventoryTransaction.findById", query = "SELECT i FROM InventoryTransaction i WHERE i.id = :id"),

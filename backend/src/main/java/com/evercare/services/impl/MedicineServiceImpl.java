@@ -27,12 +27,24 @@ public class MedicineServiceImpl implements MedicineService {
     private MedicineRepository medicineRepo;
     @Autowired
     private MedicineBatchRepository batchRepo;
-
     @Override
     public List<MedicineResponse> getMedicines(Map<String, String> params) {
-        return this.medicineRepo.getMedicines(params)
+        Date today = java.sql.Date.valueOf(LocalDate.now());
+        List<Medicine> medicines = this.medicineRepo.getMedicines(params);
+        Map<Long, Long> availableQuantities = this.batchRepo.getAvailableNonExpiredQuantitiesByMedicineIds(
+                medicines.stream()
+                        .map(Medicine::getId)
+                        .toList(),
+                today
+        );
+
+        return medicines
                 .stream()
-                .map(MedicineMapper::toResponse)
+                .map(medicine -> {
+                    MedicineResponse res = MedicineMapper.toResponse(medicine);
+                    res.setAvailableQuantity(availableQuantities.getOrDefault(medicine.getId(), 0L));
+                    return res;
+                })
                 .toList();
     }
 
@@ -92,7 +104,12 @@ public class MedicineServiceImpl implements MedicineService {
             throw new NoSuchElementException("Không tìm thấy thuốc");
         }
 
-        return MedicineMapper.toResponse(medicine);
+        MedicineResponse res = MedicineMapper.toResponse(medicine);
+        res.setAvailableQuantity(this.batchRepo.getAvailableNonExpiredQuantityByMedicineId(
+                medicine.getId(),
+                java.sql.Date.valueOf(LocalDate.now())
+        ));
+        return res;
     }
 
     @Override

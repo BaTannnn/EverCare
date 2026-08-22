@@ -7,6 +7,7 @@ import com.evercare.dtos.response.TestResultFileResponse;
 import com.evercare.dtos.response.TestResultResponse;
 import com.evercare.services.StaffTestResultService;
 import com.evercare.services.TestResultFileService;
+import com.evercare.utils.AuthSupport;
 import com.evercare.utils.PdfInlineResponseHelper;
 import java.security.Principal;
 import java.util.List;
@@ -34,11 +35,17 @@ public class ApiStaffTestResultController {
     private StaffTestResultService staffTestResultService;
     @Autowired
     private TestResultFileService testResultFileService;
-
+    @Autowired
+    private AuthSupport authSupport;
     @GetMapping("/test-requests")
-    public ResponseEntity<?> getPendingRequests(Principal principal) {
+    public ResponseEntity<?> getPendingRequests(
+            Principal principal,
+            @RequestParam Map<String, String> params
+    ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         List<StaffTestRequestSummaryResponse> result = this.staffTestResultService
-                .getPendingTestRequests(requireUsername(principal));
+                .getPendingTestRequests(username, params);
         return ResponseEntity.ok(result);
     }
 
@@ -47,8 +54,10 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("recordId") Long recordId
     ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         StaffTestRequestDetailResponse result = this.staffTestResultService
-                .getTestRequestDetail(requireUsername(principal), recordId);
+                .getTestRequestDetail(username, recordId);
         return ResponseEntity.ok(result);
     }
 
@@ -57,8 +66,10 @@ public class ApiStaffTestResultController {
             Principal principal,
             @RequestParam Map<String, String> params
     ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         List<TestResultResponse> result = this.staffTestResultService
-                .getTestResults(requireUsername(principal), params);
+                .getTestResults(username, params);
         return ResponseEntity.ok(result);
     }
 
@@ -67,8 +78,10 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         TestResultResponse result = this.staffTestResultService
-                .getTestResultById(requireUsername(principal), id);
+                .getTestResultById(username, id);
         return ResponseEntity.ok(result);
     }
 
@@ -77,7 +90,9 @@ public class ApiStaffTestResultController {
             Principal principal,
             @PathVariable("id") Long id
     ) {
-        TestResultFileResponse file = this.testResultFileService.getFileForStaff(requireUsername(principal), id);
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
+        TestResultFileResponse file = this.testResultFileService.getFileForStaff(username, id);
         return PdfInlineResponseHelper.inlinePdf(file);
     }
 
@@ -110,8 +125,10 @@ public class ApiStaffTestResultController {
             Long recordId,
             TestResultRequest request
     ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         TestResultResponse result = this.staffTestResultService
-                .createTestResult(requireUsername(principal), recordId, request);
+                .createTestResult(username, recordId, request);
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
@@ -144,15 +161,10 @@ public class ApiStaffTestResultController {
             Long id,
             TestResultRequest request
     ) {
+        String username = this.authSupport.requireUsername(principal);
+        this.authSupport.requireCurrentEmployee(username, "LAB_TECH", "Tài khoản hiện tại không phải nhân viên xét nghiệm đang hoạt động");
         TestResultResponse result = this.staffTestResultService
-                .updateTestResult(requireUsername(principal), id, request);
+                .updateTestResult(username, id, request);
         return ResponseEntity.ok(result);
-    }
-
-    private String requireUsername(Principal principal) {
-        if (principal == null) {
-            throw new com.evercare.exceptions.AuthenticationRequiredException("Vui lòng đăng nhập");
-        }
-        return principal.getName();
     }
 }

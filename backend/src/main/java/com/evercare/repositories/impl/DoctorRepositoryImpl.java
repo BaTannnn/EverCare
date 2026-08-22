@@ -21,10 +21,8 @@ import java.util.Map;
 public class DoctorRepositoryImpl implements DoctorRepository {
     @Autowired
     private Environment env;
-
     @Autowired
     private LocalSessionFactoryBean factory;
-
     private List<Predicate> getPredicates(Map<String, String> params, CriteriaBuilder cb, Root root) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -98,7 +96,16 @@ public class DoctorRepositoryImpl implements DoctorRepository {
     @Override
     public Doctor getDoctorById(int id) {
         Session session = this.factory.getObject().getCurrentSession();
-        return session.get(Doctor.class, Long.valueOf(id));
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Doctor> cq = cb.createQuery(Doctor.class);
+        Root<Doctor> root = cq.from(Doctor.class);
+        root.fetch("departmentId", JoinType.LEFT);
+        root.fetch("userId", JoinType.LEFT);
+
+        cq.select(root).distinct(true);
+        cq.where(cb.equal(root.get("id"), Long.valueOf(id)));
+
+        return session.createQuery(cq).uniqueResult();
     }
     @Override
     public Doctor getDoctorByUserId(Long userId) {

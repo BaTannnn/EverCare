@@ -20,13 +20,10 @@ import java.util.Map;
 @Repository
 @Transactional
 public class MedicalServiceRepositoryImpl implements MedicalServiceRepository {
-
     @Autowired
     private Environment env;
-
     @Autowired
     private LocalSessionFactoryBean factory;
-
     List<Predicate> getPredicates(Map<String, String> params, CriteriaBuilder cb, Root root) {
         List<Predicate> predicates = new ArrayList<>();
 

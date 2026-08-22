@@ -56,27 +56,20 @@ public class AppointmentServiceImpl implements AppointmentService {
     private static final String STATUS_IN_PROGRESS = AppointmentStatus.IN_PROGRESS.getCode();
     private static final String STATUS_COMPLETED = AppointmentStatus.COMPLETED.getCode();
     private static final int DEFAULT_APPOINTMENT_MINUTES = 30;
-
     @Autowired
     private AppointmentRepository appointmentRepo;
     @Autowired
     private DoctorScheduleRepository scheduleRepo;
-
     @Autowired
     private PatientRepository patientRepo;
-
     @Autowired
     private NotificationRepository notificationRepo;
-
     @Autowired
     private AuthSupport authSupport;
-
     @Autowired
     private LookupSupport lookupSupport;
-
     @Autowired
     private EmailService emailService;
-
     @Override
     public AppointmentResponse bookAppointment(AppointmentRequest request) {
         validateBookingRequest(request);
@@ -738,7 +731,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             notification.setCreatedAt(new Date());
             this.notificationRepo.createNotification(notification);
         } catch (Exception ex) {
-            // Notification is best-effort only.
+
         }
     }
 
